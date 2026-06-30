@@ -54,7 +54,7 @@ export function SearchTab() {
                 <div className="h-32 animate-pulse rounded-md bg-muted" />
             )}
             {!http.processing && result !== null && (
-                <ResultsTable variants={result.variants} />
+                <ResultsTable variants={result.variants ?? []} />
             )}
         </div>
     );

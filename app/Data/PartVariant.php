@@ -7,6 +7,9 @@ namespace App\Data;
 use JsonSerializable;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
+/**
+ * @phpstan-type PriceRow array{dataSupplierId: int, articleNumber: string, traderArticleNumber: string, priceTypeKey: string, price: float, currencyCode: string, availableQuantity: int, stockStatusDescription: string, stockMatchCode: string}
+ */
 #[TypeScript]
 final readonly class PartVariant implements JsonSerializable
 {
@@ -23,34 +26,48 @@ final readonly class PartVariant implements JsonSerializable
     ) {}
 
     /**
+     * Each article comes back with one purchase (E) and one retail (V) price row
+     * per warehouse. Stock is summed across warehouses; the price/location shown
+     * is taken from the best-stocked warehouse so an in-stock part is never
+     * reported as out of stock.
+     *
      * @param  list<array{dataSupplierId: int, mfrId: int, brandName: string, articleNumber: string}>  $articles
-     * @param  list<array{dataSupplierId: int, articleNumber: string, traderArticleNumber: string, priceTypeKey: string, price: float, currencyCode: string, availableQuantity: int, stockStatusDescription: string, stockMatchCode: string}>  $priceRows
+     * @param  list<PriceRow>  $priceRows
      */
     public static function merge(array $articles, array $priceRows, string $query = ''): PartSearchResult
     {
-        $pricesByKey = [];
+        $rowsByKey = [];
         foreach ($priceRows as $row) {
             $key = $row['dataSupplierId'].'.'.$row['articleNumber'];
-            $pricesByKey[$key][$row['priceTypeKey']] = $row;
+            $rowsByKey[$key][$row['priceTypeKey']][] = $row;
         }
 
         $variants = [];
         foreach ($articles as $a) {
             $key = $a['dataSupplierId'].'.'.$a['articleNumber'];
-            $purchase = $pricesByKey[$key]['E'] ?? null;
-            $retail = $pricesByKey[$key]['V'] ?? null;
-            $any = $purchase ?? $retail;
+            $purchaseRows = $rowsByKey[$key]['E'] ?? [];
+            $retailRows = $rowsByKey[$key]['V'] ?? [];
+            $stockRows = $purchaseRows !== [] ? $purchaseRows : $retailRows;
+
+            $totalQuantity = 0;
+            foreach ($stockRows as $row) {
+                $totalQuantity += $row['availableQuantity'];
+            }
+
+            $primary = self::bestStocked($stockRows);
+            $bestPurchase = self::bestStocked($purchaseRows);
+            $bestRetail = self::bestStocked($retailRows);
 
             $variants[] = new self(
                 brandName: $a['brandName'],
                 articleNumber: $a['articleNumber'],
-                traderArticleNumber: $any['traderArticleNumber'] ?? '',
-                purchasePrice: $purchase['price'] ?? null,
-                retailPrice: $retail['price'] ?? null,
-                currency: $any['currencyCode'] ?? 'EUR',
-                availableQuantity: $any['availableQuantity'] ?? 0,
-                inStock: ($any['availableQuantity'] ?? 0) > 0,
-                warehouse: mb_trim($any['stockMatchCode'] ?? '', " ,\t\n"),
+                traderArticleNumber: $primary['traderArticleNumber'] ?? '',
+                purchasePrice: $bestPurchase['price'] ?? null,
+                retailPrice: $bestRetail['price'] ?? null,
+                currency: $primary['currencyCode'] ?? 'EUR',
+                availableQuantity: $totalQuantity,
+                inStock: $totalQuantity > 0,
+                warehouse: mb_trim($primary['stockMatchCode'] ?? '', " ,\t\n"),
             );
         }
 
@@ -73,5 +90,21 @@ final readonly class PartVariant implements JsonSerializable
             'inStock' => $this->inStock,
             'warehouse' => $this->warehouse,
         ];
+    }
+
+    /**
+     * @param  list<PriceRow>  $rows
+     * @return PriceRow|null
+     */
+    private static function bestStocked(array $rows): ?array
+    {
+        $best = null;
+        foreach ($rows as $row) {
+            if ($best === null || $row['availableQuantity'] > $best['availableQuantity']) {
+                $best = $row;
+            }
+        }
+
+        return $best;
     }
 }

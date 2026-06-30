@@ -161,6 +161,18 @@ final class AutoDeltaClient
         return is_numeric($value) ? (float) $value : 0.0;
     }
 
+    /**
+     * Authenticate against AuthWS and return a usable token.
+     *
+     * LIVE-INTEGRATION TODO (see plan "Known API contract"): AuthWS is a
+     * JSON-RPC endpoint — a raw {"username","password"} body returns
+     * {"status":400,"statusText":"Unknown Call: username"}. The request below is
+     * a placeholder. The webshop makes TWO AuthWS calls: call 1 (no x-api-key)
+     * returns {apiKey, expiresOn}; call 2 (WITH x-api-key) returns the session
+     * context including catalogUserId. Capture both method names + bodies via a
+     * proxy on a real login, then implement the two-call flow here. Until then
+     * this method fails loud (throws) rather than sending a bad token.
+     */
     private function login(): AutoDeltaToken
     {
         $response = Http::asJson()

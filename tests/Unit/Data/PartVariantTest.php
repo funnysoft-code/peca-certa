@@ -28,3 +28,69 @@ it('merges articles with E/V price rows into one variant each', function (): voi
         ->and($v->inStock)->toBeTrue()
         ->and($v->warehouse)->toBe('1 - Leiria');
 });
+
+it('sums stock across warehouses and reports the best-stocked location', function (): void {
+    $articles = [[
+        'dataSupplierId' => 156, 'mfrId' => 2194, 'brandName' => 'JAPANPARTS',
+        'articleNumber' => 'FO-398S',
+    ]];
+
+    // Same article in four warehouses: Leiria 23, C.Branco 0, ALECARPEÇAS 4, FIMAG 0.
+    $warehouses = [
+        ['1 - Leiria,', 23],
+        ['2 - C. Branco,', 0],
+        ['4 - ALECARPEÇAS,', 4],
+        ['5 - FIMAG,', 0],
+    ];
+    $priceRows = [];
+    foreach ($warehouses as [$wh, $qty]) {
+        foreach (['E' => 1.70, 'V' => 2.26] as $type => $price) {
+            $priceRows[] = [
+                'dataSupplierId' => 156, 'articleNumber' => 'FO-398S', 'traderArticleNumber' => 'JFO-398',
+                'priceTypeKey' => $type, 'price' => $price, 'currencyCode' => 'EUR',
+                'availableQuantity' => $qty, 'stockStatusDescription' => 'em stock', 'stockMatchCode' => $wh,
+            ];
+        }
+    }
+
+    $v = PartVariant::merge($articles, $priceRows)->variants[0];
+
+    expect($v->availableQuantity)->toBe(27)
+        ->and($v->inStock)->toBeTrue()
+        ->and($v->warehouse)->toBe('1 - Leiria')
+        ->and($v->purchasePrice)->toBe(1.70)
+        ->and($v->retailPrice)->toBe(2.26);
+});
+
+it('reports zero stock and no warehouse loss when all warehouses are empty', function (): void {
+    $articles = [[
+        'dataSupplierId' => 350, 'mfrId' => 3063, 'brandName' => 'BLUE PRINT',
+        'articleNumber' => 'ADG02102',
+    ]];
+    $priceRows = [
+        ['dataSupplierId' => 350, 'articleNumber' => 'ADG02102', 'traderArticleNumber' => 'BPADG02102', 'priceTypeKey' => 'E', 'price' => 2.65, 'currencyCode' => 'EUR', 'availableQuantity' => 0, 'stockStatusDescription' => 'em stock', 'stockMatchCode' => '2 - C. Branco,'],
+        ['dataSupplierId' => 350, 'articleNumber' => 'ADG02102', 'traderArticleNumber' => 'BPADG02102', 'priceTypeKey' => 'V', 'price' => 3.31, 'currencyCode' => 'EUR', 'availableQuantity' => 0, 'stockStatusDescription' => 'em stock', 'stockMatchCode' => '2 - C. Branco,'],
+    ];
+
+    $v = PartVariant::merge($articles, $priceRows)->variants[0];
+
+    expect($v->availableQuantity)->toBe(0)
+        ->and($v->inStock)->toBeFalse()
+        ->and($v->purchasePrice)->toBe(2.65)
+        ->and($v->warehouse)->toBe('2 - C. Branco');
+});
+
+it('builds a variant with null prices when no price row matches the article', function (): void {
+    $articles = [[
+        'dataSupplierId' => 999, 'mfrId' => 1, 'brandName' => 'ORPHAN',
+        'articleNumber' => 'X1',
+    ]];
+
+    $v = PartVariant::merge($articles, [])->variants[0];
+
+    expect($v->purchasePrice)->toBeNull()
+        ->and($v->retailPrice)->toBeNull()
+        ->and($v->availableQuantity)->toBe(0)
+        ->and($v->inStock)->toBeFalse()
+        ->and($v->warehouse)->toBe('');
+});
