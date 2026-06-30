@@ -76,7 +76,7 @@ final class AutoDeltaClient
     }
 
     /**
-     * @param  list<array{dataSupplierId: int, articleNumber: string}>  $articles
+     * @param  list<array{dataSupplierId: int, articleNumber: string, mfrId?: int, brandName?: string}>  $articles
      * @return list<array{dataSupplierId: int, articleNumber: string, traderArticleNumber: string, priceTypeKey: string, price: float, currencyCode: string, availableQuantity: int, stockStatusDescription: string, stockMatchCode: string}>
      */
     public function getTradePrices(array $articles): array
