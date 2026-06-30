@@ -49,6 +49,12 @@ final readonly class PartVariant implements JsonSerializable
             $retailRows = $rowsByKey[$key]['V'] ?? [];
             $stockRows = $purchaseRows !== [] ? $purchaseRows : $retailRows;
 
+            // Only surface articles Auto Delta actually carries (i.e. priced);
+            // the catalog search also returns pure TecDoc cross-references.
+            if ($stockRows === []) {
+                continue;
+            }
+
             $totalQuantity = 0;
             foreach ($stockRows as $row) {
                 $totalQuantity += $row['availableQuantity'];

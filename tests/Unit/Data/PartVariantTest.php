@@ -80,17 +80,18 @@ it('reports zero stock and no warehouse loss when all warehouses are empty', fun
         ->and($v->warehouse)->toBe('2 - C. Branco');
 });
 
-it('builds a variant with null prices when no price row matches the article', function (): void {
-    $articles = [[
-        'dataSupplierId' => 999, 'mfrId' => 1, 'brandName' => 'ORPHAN',
-        'articleNumber' => 'X1',
-    ]];
+it('omits articles that have no price row (TecDoc cross-references Auto Delta does not carry)', function (): void {
+    $articles = [
+        ['dataSupplierId' => 999, 'mfrId' => 1, 'brandName' => 'ORPHAN', 'articleNumber' => 'X1'],
+        ['dataSupplierId' => 156, 'mfrId' => 2194, 'brandName' => 'JAPANPARTS', 'articleNumber' => 'FO-398S'],
+    ];
+    $priceRows = [
+        ['dataSupplierId' => 156, 'articleNumber' => 'FO-398S', 'traderArticleNumber' => 'JFO-398', 'priceTypeKey' => 'E', 'price' => 1.70, 'currencyCode' => 'EUR', 'availableQuantity' => 23, 'stockStatusDescription' => 'em stock', 'stockMatchCode' => '1 - Leiria,'],
+    ];
 
-    $v = PartVariant::merge($articles, [])->variants[0];
+    $result = PartVariant::merge($articles, $priceRows);
 
-    expect($v->purchasePrice)->toBeNull()
-        ->and($v->retailPrice)->toBeNull()
-        ->and($v->availableQuantity)->toBe(0)
-        ->and($v->inStock)->toBeFalse()
-        ->and($v->warehouse)->toBe('');
+    // ORPHAN (no price row) is dropped; only the carried article remains.
+    expect($result->variants)->toHaveCount(1)
+        ->and($result->variants[0]->brandName)->toBe('JAPANPARTS');
 });
