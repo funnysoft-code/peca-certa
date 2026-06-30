@@ -19,6 +19,11 @@ export type UseTwoFactorAuthReturn = {
 
 export const OTP_MAX_LENGTH = 6;
 
+/**
+ * Drives the Fortify 2FA setup flow (QR code, manual key, recovery codes) using
+ * Inertia v3's native `useHttp`. Routes come from Wayfinder's generated
+ * `@/routes/two-factor`.
+ */
 export const useTwoFactorAuth = (): UseTwoFactorAuthReturn => {
     const { submit } = useHttp();
 

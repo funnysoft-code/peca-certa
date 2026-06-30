@@ -1,0 +1,269 @@
+name: CI
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  rector:
+    name: Rector
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: vendor/bin/rector --dry-run --ansi
+
+  pint:
+    name: Pint
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: vendor/bin/pint --test --ansi
+
+  phpstan:
+    name: PHPStan
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: vendor/bin/phpstan analyse --memory-limit=2G --ansi
+
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Generate Wayfinder
+        run: php artisan wayfinder:generate --with-form
+      - name: Fail on Wayfinder drift
+        run: |
+          if ! git diff --exit-code -- resources/js/actions/ resources/js/routes/; then
+            echo "::error::Wayfinder output is out of date; run 'php artisan wayfinder:generate --with-form' and commit." >&2
+            exit 1
+          fi
+      - run: bun run test:lint
+
+  # TypeScript drift check: Wayfinder + optional TS-transformer generated.d.ts
+  # The typescript:transform step is guarded — it is a no-op when the
+  # --ts-transformer module is not installed (class_exists check in artisan).
+  # If you do NOT use spatie/laravel-typescript-transformer, the drift check
+  # on generated.d.ts will always pass (file absent = no diff).
+  typescript:
+    name: TypeScript
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - name: Generate Wayfinder
+        run: php artisan wayfinder:generate --with-form
+      # --ts-transformer module only: transform PHP DTOs/Enums → generated.d.ts
+      # Remove or comment this step if spatie/laravel-typescript-transformer is not installed.
+      - name: Generate TypeScript types from PHP DTOs
+        run: php artisan typescript:transform
+      - name: Fail on generated.d.ts drift
+        run: |
+          if ! git diff --exit-code -- resources/js/types/generated.d.ts; then
+            echo "::error::resources/js/types/generated.d.ts is out of date; run 'php artisan typescript:transform' and commit." >&2
+            exit 1
+          fi
+      - run: bun run test:types
+
+  test:
+    name: Test
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: laravel_testing
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      valkey:
+        image: valkey/valkey:8
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="valkey-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Override coverage: xdebug for this job only (other jobs use coverage: none via the composite)
+      - name: Setup PHP (with xdebug coverage)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          tools: composer:v2
+          coverage: xdebug
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Restore dependencies
+        id: deps-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            vendor
+            node_modules
+          key: deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/composer.lock', '**/bun.lock') }}
+
+      - name: Install Composer dependencies
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Install Bun dependencies
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      # Build assets BEFORE key:generate/config:clear so the manifest exists
+      - name: Build Assets
+        run: bun run build
+
+      - name: Prepare Laravel Application
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5433
+          DB_DATABASE: laravel_testing
+          DB_USERNAME: postgres
+          DB_PASSWORD: password
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan config:clear
+
+      - name: Run Tests
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5433
+          DB_DATABASE: laravel_testing
+          DB_USERNAME: postgres
+          DB_PASSWORD: password
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          MAIL_MAILER: array
+        run: |
+          php artisan config:clear --ansi
+          php artisan test --parallel --compact --exclude-testsuite=Browser
+
+  browser-test:
+    name: Browser Test
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: laravel_testing
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      valkey:
+        image: valkey/valkey:8
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="valkey-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Build Assets
+        run: bun run build
+
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install Playwright Browsers
+        run: bunx playwright install --with-deps
+
+      - name: Prepare Laravel Application
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5433
+          DB_DATABASE: laravel_testing
+          DB_USERNAME: postgres
+          DB_PASSWORD: password
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan config:clear
+
+      - name: Run Browser Tests (serial)
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5433
+          DB_DATABASE: laravel_testing
+          DB_USERNAME: postgres
+          DB_PASSWORD: password
+          REDIS_HOST: 127.0.0.1
+          REDIS_PORT: 6379
+          MAIL_MAILER: array
+        run: php artisan test tests/Browser/
+
+      - name: Upload Browser Screenshots on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-screenshots
+          path: tests/Browser/Screenshots

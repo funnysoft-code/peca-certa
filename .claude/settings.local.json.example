@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan:*)",
+      "Bash(composer:*)",
+      "Bash(bun:*)",
+      "Bash(git:*)",
+      "Bash(vendor/bin/pint:*)",
+      "Bash(vendor/bin/phpstan:*)",
+      "Bash(vendor/bin/rector:*)",
+      "Bash(vendor/bin/pest:*)",
+      "Bash(vp:*)",
+      "Bash(bin/quality-gate.sh:*)"
+    ]
+  },
+  "enabledMcpJsonServers": [
+    "laravel-boost",
+    "open-design"
+  ]
+}

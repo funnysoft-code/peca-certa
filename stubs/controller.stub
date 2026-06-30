@@ -1,0 +1,25 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace }};
+
+use App\Models\User;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Routing\Attributes\CurrentUser;
+use Inertia\Response;
+
+final readonly class {{ class }}
+{
+    /**
+     * Handle the incoming request.
+     *
+     * Inject your Action as a method parameter, e.g.:
+     *   public function __invoke(#[CurrentUser] User $user, MyAction $action): ...
+     */
+    public function __invoke(
+        #[CurrentUser] User $user,
+    ): Response|RedirectResponse {
+        //
+    }
+}

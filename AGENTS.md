@@ -1,4 +1,107 @@
 <laravel-boost-guidelines>
+=== .ai/app.actions rules ===
+
+# App/Actions guidelines
+
+- This application uses the Action pattern and prefers much logic to live in reusable, composable Action classes.
+- Actions live in `app/Actions`, named based on what they do, with **no class-name suffix** (e.g., `CreateUser` not `CreateUserAction`).
+- Actions are called from many different places: Jobs, commands, HTTP controllers, API requests, MCP requests, and more.
+- Every Action is a `final readonly class` with a single public method: **`execute()`** (never `handle()` — that is reserved for Jobs).
+- Inject dependencies via constructor using constructor property promotion.
+- Create new actions with `php artisan make:action "{Name}" --no-interaction`. The stub emits `execute()`; if `handle()` appears, rename it.
+- Wrap complex, multi-step mutations in `DB::transaction()`.
+- Mark secret arguments (passwords, tokens) with `#[\SensitiveParameter]`.
+- Some actions require no constructor dependencies — they may use just `execute()` with no constructor.
+
+<!-- Example action class -->
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions;
+
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+
+final readonly class CreatePost
+{
+    public function __construct(
+        private NotifyFollowersAction $notify,
+    ) {}
+
+    public function execute(User $author, string $title, string $body): Post
+    {
+        return DB::transaction(function () use ($author, $title, $body): Post {
+            $post = Post::query()->create([
+                'user_id' => $author->id,
+                'title'   => $title,
+                'body'    => $body,
+            ]);
+
+            $this->notify->execute($author, $post);
+
+            return $post;
+        });
+    }
+}
+```
+
+<!-- Action with #[SensitiveParameter] -->
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Actions;
+
+final readonly class RotateApiKey
+{
+    public function execute(
+        User $user,
+        #[\SensitiveParameter] string $currentToken,
+    ): string {
+        // verify then rotate
+    }
+}
+```
+
+=== .ai/general rules ===
+
+# General Guidelines
+
+- Don't include superfluous PHP annotations; only use `@` blocks for typing variables, generics, and PHPStan hints.
+- `declare(strict_types=1)` is required at the top of every PHP file — enforced by Pint.
+- All classes are `final` (or `final readonly` for stateless classes). Never omit `final` without explicit reason.
+- Use PHP 8 constructor property promotion for all injected dependencies.
+- Explicit return types on all methods and functions — no implicit returns.
+- `casts()` method, not the `$casts` property.
+- `env()` is ONLY allowed inside `config/` files; everywhere else use `config('key')`.
+- Array types: use `list<Type>` for sequential arrays and `array<Key, Value>` for associative arrays.
+- Never call `DB::` facade for queries — prefer `Model::query()`.
+- PHPDoc blocks take priority over inline comments. Inline comments are reserved for exceptionally complex logic only.
+- Code quality pipeline order (must all pass): `rector --no-diffs` → `pint --dirty --format agent` → `phpstan analyse --memory-limit=2G`.
+- PHPStan level max; no baseline; zero errors required.
+
+## Naming
+
+- Actions: descriptive verb phrases, no suffix — `CreatePost`, `SendWelcomeEmail`.
+- Controllers: `final readonly class`, suffixed `Controller` — `PostController`.
+- Jobs: suffixed `Job` — `ProcessImageJob`.
+- Policies: suffixed `Policy` — `PostPolicy`.
+- Events: past-tense noun — `PostCreated`.
+- Listeners: agent-noun phrase — `SendPostNotification`.
+- Requests: `CreatePostRequest`, `UpdatePostRequest`.
+
+## PHPDoc conventions
+
+- Relationship generics: `@return HasMany<Post, $this>`, `@phpstan-return BelongsTo<User, $this>`.
+- Attribute accessors: `@return Attribute<string|null, never>`.
+- Array shapes: `@return array{key: Type}`.
+- Collection generics: `Collection<int, Model>` — never bare `Collection`.
+- Model class-level: `@property`, `@property-read`, `/** @use HasFactory<ModelFactory> */`.
+- PHPDoc NOT required for: fully descriptive native return types, simple boolean checkers, override methods.
+
 === foundation rules ===
 
 # Laravel Boost Guidelines
@@ -11,24 +114,29 @@ This application is a Laravel application and its main Laravel ecosystems packag
 
 - php - 8.5
 - inertiajs/inertia-laravel (INERTIA_LARAVEL) - v3
+- laravel/ai (AI) - v0
 - laravel/fortify (FORTIFY) - v1
 - laravel/framework (LARAVEL) - v13
+- laravel/horizon (HORIZON) - v5
+- laravel/nightwatch (NIGHTWATCH) - v1
+- laravel/octane (OCTANE) - v2
 - laravel/prompts (PROMPTS) - v0
+- laravel/reverb (REVERB) - v1
 - laravel/wayfinder (WAYFINDER) - v0
 - larastan/larastan (LARASTAN) - v3
 - laravel/boost (BOOST) - v2
 - laravel/mcp (MCP) - v0
 - laravel/pail (PAIL) - v1
 - laravel/pint (PINT) - v1
-- laravel/sail (SAIL) - v1
-- pestphp/pest (PEST) - v4
-- phpunit/phpunit (PHPUNIT) - v12
+- pestphp/pest (PEST) - v5
+- phpunit/phpunit (PHPUNIT) - v13
+- rector/rector (RECTOR) - v2
 - @inertiajs/react (INERTIA_REACT) - v3
+- @laravel/echo-react (ECHO_REACT) - v2
+- laravel-echo (ECHO) - v2
 - react (REACT) - v19
 - tailwindcss (TAILWINDCSS) - v4
 - @laravel/vite-plugin-wayfinder (WAYFINDER_VITE) - v0
-- eslint (ESLINT) - v9
-- prettier (PRETTIER) - v3
 
 ## Skills Activation
 
@@ -51,7 +159,7 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 ## Frontend Bundling
 
-- If the user doesn't see a frontend change reflected in the UI, it could mean they need to run `npm run build`, `npm run dev`, or `composer run dev`. Ask them.
+- If the user doesn't see a frontend change reflected in the UI, it could mean they need to run `bun run build`, `bun run dev`, or `composer run dev`. Ask them.
 
 ## Documentation Files
 
@@ -174,7 +282,19 @@ This project has domain-specific skills available in `**/skills/**`. You MUST ac
 
 ## Vite Error
 
-- If you receive an "Illuminate\Foundation\ViteException: Unable to locate file in Vite manifest" error, you can run `npm run build` or ask the user to run `npm run dev` or `composer run dev`.
+- If you receive an "Illuminate\Foundation\ViteException: Unable to locate file in Vite manifest" error, you can run `bun run build` or ask the user to run `bun run dev` or `composer run dev`.
+
+=== octane/core rules ===
+
+# Laravel Octane
+
+This application uses Laravel Octane, a long-running PHP server. The application bootstraps once and handles many requests within the same process.
+
+- Never store request-specific state in singletons or static properties, because it can leak across requests.
+- Use `config('octane.server')` to detect the active driver (`swoole`, `roadrunner`, or `frankenphp`).
+- Prefer scoped bindings (`$this->app->scoped()`) over singletons for per-request services.
+
+When working on Octane-specific features (concurrency, shared tables, memory, driver configuration, testing), invoke `octane-development` for detailed rules.
 
 === wayfinder/core rules ===
 
@@ -203,5 +323,15 @@ Use Wayfinder to generate TypeScript functions for Laravel routes. Import from `
 # Inertia + React
 
 - IMPORTANT: Activate `inertia-react-development` when working with Inertia React client-side patterns.
+
+=== spatie/guidelines-skills rules ===
+
+# Project Coding Guidelines
+
+- This codebase follows Spatie's coding guidelines.
+- Always activate the `spatie-laravel-php` skill when writing, editing, reviewing, or formatting Laravel or PHP code.
+- Always activate the `spatie-javascript` skill when writing, editing, reviewing, or formatting JavaScript or TypeScript code.
+- Always activate the `spatie-version-control` skill when creating commits, branches, or managing Git operations.
+- Always activate the `spatie-security` skill when configuring security, reviewing authentication, or setting up servers and databases.
 
 </laravel-boost-guidelines>

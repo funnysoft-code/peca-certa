@@ -1,0 +1,44 @@
+name: Setup Environment
+description: Setup PHP, Node, Bun and install project dependencies (with combined vendor+node_modules cache)
+
+inputs:
+  php-version:
+    description: PHP version to install
+    default: '8.5'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ inputs.php-version }}
+        tools: composer:v2
+        coverage: none
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24'
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+
+    - name: Restore dependencies
+      id: deps-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          vendor
+          node_modules
+        key: deps-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/composer.lock', '**/bun.lock') }}
+
+    - name: Install Composer dependencies
+      if: steps.deps-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+    - name: Install Bun dependencies
+      if: steps.deps-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: bun install --frozen-lockfile

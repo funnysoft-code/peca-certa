@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+
+echo "Post-merge: syncing environment..."
+
+echo "Installing Composer dependencies..."
+composer install --no-interaction --ansi
+
+echo "Installing bun dependencies..."
+bun install
+
+echo "Running migrations..."
+php artisan migrate --force --ansi
+
+echo "Clearing caches..."
+php artisan optimize:clear --ansi
+
+echo "Building assets..."
+bun run build
+
+echo "Regenerating IDE helpers..."
+composer ide
+
+echo "Post-merge sync complete!"

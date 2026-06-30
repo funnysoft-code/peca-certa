@@ -9,14 +9,26 @@
     "cloud": false,
     "guidelines": true,
     "mcp": true,
-    "nightwatch": false,
+    "nightwatch": true,
+    "packages": [
+        "spatie/guidelines-skills"
+    ],
     "sail": false,
     "skills": [
+        "ai-sdk-development",
         "fortify-development",
         "laravel-best-practices",
+        "configuring-horizon",
+        "configure-nightwatch",
+        "octane-development",
         "wayfinder-development",
-        "pest-testing",
         "inertia-react-development",
-        "tailwindcss-development"
+        "echo-react-development",
+        "echo-development",
+        "tailwindcss-development",
+        "spatie-javascript",
+        "spatie-laravel-php",
+        "spatie-security",
+        "spatie-version-control"
     ]
 }

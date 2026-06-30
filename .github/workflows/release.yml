@@ -1,0 +1,125 @@
+name: Release
+
+# Triggered by a semver tag push (e.g. v1.2.3).
+# Chain: ci -> release (gh release) -> deploy (optional, --forge) -> publish-changelog (optional, app-specific).
+#
+# OPTIONAL sections are marked below. Remove them if the flag is not in use:
+#   deploy job              — requires --forge flag + FORGE_DEPLOYMENT_TRIGGER_URL secret
+#   publish-changelog job   — app-specific, remove for generic base
+#   generate-changelog step — requires ANTHROPIC_API_KEY secret; replace with hand-written CHANGELOG.md if preferred
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  release:
+    name: Release
+    needs: ci
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # OPTIONAL: AI-generated changelog — requires ANTHROPIC_API_KEY secret.
+      # Remove this step and replace body_path below with a static CHANGELOG.md
+      # if you prefer to write release notes by hand.
+      - name: Generate Changelog
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          VERSION: ${{ github.ref_name }}
+        run: bash .github/scripts/generate-changelog.sh "$VERSION"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: public_changelog.md
+          generate_release_notes: false
+
+  # OPTIONAL: deploy job — remove if --forge is not in use.
+  # Requires: FORGE_DEPLOYMENT_TRIGGER_URL repo secret (Settings → Secrets → Actions).
+  # The URL is the "Deploy Script" URL from your Laravel Forge site's deployment settings.
+  deploy:
+    name: Deploy Production
+    needs: release
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 10
+
+    steps:
+      - name: Trigger Forge Deployment
+        env:
+          FORGE_DEPLOYMENT_TRIGGER_URL: ${{ secrets.FORGE_DEPLOYMENT_TRIGGER_URL }}
+          COMMIT_SHA: ${{ github.sha }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [ -z "$FORGE_DEPLOYMENT_TRIGGER_URL" ]; then
+            echo "FORGE_DEPLOYMENT_TRIGGER_URL secret is not set. Add it in repo Settings → Secrets → Actions."
+            exit 1
+          fi
+
+          MESSAGE=$(printf 'Release %s' "$TAG" | jq -sRr @uri)
+
+          # Append query params correctly regardless of whether the URL already has a '?'
+          SEP='?'
+          case "$FORGE_DEPLOYMENT_TRIGGER_URL" in
+            *\?*) SEP='&' ;;
+          esac
+
+          curl -sf -X POST \
+            "${FORGE_DEPLOYMENT_TRIGGER_URL}${SEP}forge_deploy_commit=${COMMIT_SHA}&forge_deploy_message=${MESSAGE}" \
+            -o /dev/null -w "%{http_code}\n"
+
+          echo "Forge deployment triggered for ${COMMIT_SHA} (${TAG})."
+
+  # OPTIONAL: publish-changelog job — app-specific, remove for generic base.
+  # Publishes the release's public_changelog.md to an application API endpoint.
+  # Requires: APP_URL + CHANGELOG_API_TOKEN repo secrets.
+  publish-changelog:
+    name: Publish Changelog
+    needs: [release, deploy]
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 5
+
+    steps:
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release download "$TAG" --pattern "public_changelog.md" --repo "${{ github.repository }}"
+
+      - name: Publish changelog to application
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CHANGELOG_API_TOKEN: ${{ secrets.CHANGELOG_API_TOKEN }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          if [ -z "$APP_URL" ]; then
+            echo "APP_URL secret is not set. Add it in repo Settings → Secrets → Actions."
+            exit 1
+          fi
+
+          CONTENT=$(cat public_changelog.md)
+          jq -n \
+            --arg version "$VERSION" \
+            --arg content "$CONTENT" \
+            '{version: $version, content: $content}' | \
+          curl -sf -X POST \
+            "${APP_URL%/}/api/changelog-releases" \
+            -H "Authorization: Bearer ${CHANGELOG_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d @-

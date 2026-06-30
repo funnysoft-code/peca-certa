@@ -27,3 +27,31 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+.env.local
+.eslintcache
+
+# IDE helpers (generated via `composer ide`, never committed)
+_ide_helper.php
+_ide_helper_models.php
+.phpstorm.meta.php
+
+# Claude Code (plans + worktrees are local-only)
+.claude/plans
+.claude/worktrees
+.claude/projects
+
+# Browser test screenshots (uploaded as CI artifacts on failure)
+tests/Browser/Screenshots
+
+# FrankenPHP / Octane binary + worker (downloaded at deploy time)
+frankenphp
+frankenphp-worker.php
+/config/frankenphp
+/data
+**/caddy
+
+# TypeScript transformer manifest (generated file, not the output .d.ts)
+/resources/js/types/generated.d.ts.map
+
+# Pnpm
+.pnpm-store/
