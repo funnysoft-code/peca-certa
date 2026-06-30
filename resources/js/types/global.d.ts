@@ -1,3 +1,5 @@
+/// <reference path="./generated.d.ts" />
+
 import type { FlashToast } from '@/hooks/use-flash-toast';
 import type { Auth } from '@/types/auth';
 
