@@ -17,7 +17,7 @@ final class PartSearchController extends Controller
         return Inertia::render('parts/index');
     }
 
-    public function search(SearchPartsRequest $request, SearchAutoDeltaParts $action): PartSearchResult
+    public function store(SearchPartsRequest $request, SearchAutoDeltaParts $action): PartSearchResult
     {
         return $action->execute($request->reference());
     }

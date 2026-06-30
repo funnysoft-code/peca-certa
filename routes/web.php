@@ -11,7 +11,7 @@ Route::get('/', fn () => Inertia::render('welcome'))->name('home');
 Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('dashboard', fn () => Inertia::render('dashboard'))->name('dashboard');
     Route::get('parts', [PartSearchController::class, 'index'])->name('parts.index');
-    Route::post('parts/search', [PartSearchController::class, 'search'])->name('parts.search');
+    Route::post('parts/search', [PartSearchController::class, 'store'])->name('parts.search');
 });
 
 require __DIR__.'/settings.php';
