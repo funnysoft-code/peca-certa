@@ -7,6 +7,7 @@ namespace App\Services\AutoDelta;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 
 final class AutoDeltaClient
 {
@@ -28,16 +29,16 @@ final class AutoDeltaClient
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * @return list<array{dataSupplierId: int, mfrId: int, brandName: string, articleNumber: string}>
      */
     public function searchByNumber(string $reference): array
     {
-        $response = $this->call((string) config('suppliers.autodelta.search_url'), [
+        $response = $this->call(config()->string('suppliers.autodelta.search_url'), [
             'getArticles' => [
                 'applyDqmRules' => true,
-                'articleCountry' => (string) config('suppliers.autodelta.country'),
-                'provider' => (int) config('suppliers.autodelta.provider'),
-                'lang' => (string) config('suppliers.autodelta.lang'),
+                'articleCountry' => config()->string('suppliers.autodelta.country'),
+                'provider' => config()->integer('suppliers.autodelta.provider'),
+                'lang' => config()->string('suppliers.autodelta.lang'),
                 'searchQuery' => $reference,
                 'searchMatchType' => 'exact',
                 'searchType' => 10,
@@ -50,27 +51,33 @@ final class AutoDeltaClient
             ],
         ]);
 
-        /** @var array<int, array{dataSupplierId:int, mfrId:int, mfrName:string, articleNumber:string}> $articles */
         $articles = $response['articles'] ?? [];
 
-        $results = collect($articles)
-            ->map(fn (array $a): array => [
-                'dataSupplierId' => $a['dataSupplierId'],
-                'mfrId' => $a['mfrId'],
-                'brandName' => $a['mfrName'],
-                'articleNumber' => $a['articleNumber'],
-            ])
-            ->all();
+        if (! is_array($articles)) {
+            return [];
+        }
 
-        /** @var list<array<string, mixed>> $list */
-        $list = array_values($results);
+        $results = [];
 
-        return $list;
+        foreach ($articles as $article) {
+            if (! is_array($article)) {
+                continue;
+            }
+
+            $results[] = [
+                'dataSupplierId' => $this->toInt($article['dataSupplierId'] ?? null),
+                'mfrId' => $this->toInt($article['mfrId'] ?? null),
+                'brandName' => $this->toString($article['mfrName'] ?? null),
+                'articleNumber' => $this->toString($article['articleNumber'] ?? null),
+            ];
+        }
+
+        return $results;
     }
 
     /**
-     * @param  list<array{dataSupplierId:int, articleNumber:string}>  $articles
-     * @return list<array<string, mixed>>
+     * @param  list<array{dataSupplierId: int, articleNumber: string}>  $articles
+     * @return list<array{dataSupplierId: int, articleNumber: string, traderArticleNumber: string, priceTypeKey: string, price: float, currencyCode: string, availableQuantity: int, stockStatusDescription: string, stockMatchCode: string}>
      */
     public function getTradePrices(array $articles): array
     {
@@ -80,60 +87,102 @@ final class AutoDeltaClient
             'quantity' => 1,
         ], $articles);
 
-        $response = $this->call((string) config('suppliers.autodelta.catalog_url'), [
+        $response = $this->call(config()->string('suppliers.autodelta.catalog_url'), [
             'getTradePrices' => [
-                'lang' => (string) config('suppliers.autodelta.lang'),
-                'countryCode' => (string) config('suppliers.autodelta.country'),
+                'lang' => config()->string('suppliers.autodelta.lang'),
+                'countryCode' => config()->string('suppliers.autodelta.country'),
                 'articles' => $payload,
             ],
         ]);
 
-        /** @var array<int, array<string, mixed>> $data */
-        $data = $response['data']['array'] ?? [];
+        $data = $response['data'] ?? null;
+        $rows = is_array($data) ? ($data['array'] ?? []) : [];
 
-        /** @var list<array<string, mixed>> $list */
-        $list = array_values($data);
+        if (! is_array($rows)) {
+            return [];
+        }
+
+        $list = [];
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $list[] = [
+                'dataSupplierId' => $this->toInt($row['dataSupplierId'] ?? null),
+                'articleNumber' => $this->toString($row['articleNumber'] ?? null),
+                'traderArticleNumber' => $this->toString($row['traderArticleNumber'] ?? null),
+                'priceTypeKey' => $this->toString($row['priceTypeKey'] ?? null),
+                'price' => $this->toFloat($row['price'] ?? null),
+                'currencyCode' => $this->toString($row['currencyCode'] ?? null),
+                'availableQuantity' => $this->toInt($row['availableQuantity'] ?? null),
+                'stockStatusDescription' => $this->toString($row['stockStatusDescription'] ?? null),
+                'stockMatchCode' => $this->toString($row['stockMatchCode'] ?? null),
+            ];
+        }
 
         return $list;
     }
 
     /**
      * @param  array<string, mixed>  $body
-     * @return array<string, mixed>
+     * @return array<array-key, mixed>
      */
     private function call(string $url, array $body): array
     {
         $token = $this->token();
 
-        /** @var array<string, mixed> $response */
         $response = Http::asJson()
             ->withHeaders([
                 'x-api-key' => $token->apiKey,
-                'x-catalog' => (string) config('suppliers.autodelta.catalog_id'),
+                'x-catalog' => config()->string('suppliers.autodelta.catalog_id'),
                 'x-catalog-user' => $token->catalogUserId,
             ])
             ->post($url, $body)
             ->throw()
             ->json();
 
-        return $response;
+        return is_array($response) ? $response : [];
+    }
+
+    private function toInt(mixed $value): int
+    {
+        return is_numeric($value) ? (int) $value : 0;
+    }
+
+    private function toString(mixed $value): string
+    {
+        return is_scalar($value) ? (string) $value : '';
+    }
+
+    private function toFloat(mixed $value): float
+    {
+        return is_numeric($value) ? (float) $value : 0.0;
     }
 
     private function login(): AutoDeltaToken
     {
-        /** @var array{apiKey:string, catalogUserId:string, expiresOn:string} $response */
         $response = Http::asJson()
-            ->post((string) config('suppliers.autodelta.auth_url'), [
-                'username' => (string) config('suppliers.autodelta.username'),
-                'password' => (string) config('suppliers.autodelta.password'),
+            ->post(config()->string('suppliers.autodelta.auth_url'), [
+                'username' => config()->string('suppliers.autodelta.username'),
+                'password' => config()->string('suppliers.autodelta.password'),
             ])
             ->throw()
             ->json();
 
+        throw_unless(is_array($response), RuntimeException::class, 'Unexpected Auto Delta auth response.');
+
+        $apiKey = $response['apiKey'] ?? null;
+        $catalogUserId = $response['catalogUserId'] ?? null;
+        $expiresOn = $response['expiresOn'] ?? null;
+
+        throw_if(! is_string($apiKey) || ! is_string($catalogUserId) || ! is_string($expiresOn), RuntimeException::class, 'Incomplete Auto Delta auth response.');
+
         return new AutoDeltaToken(
-            apiKey: $response['apiKey'],
-            catalogUserId: $response['catalogUserId'],
-            expiresOn: Date::parse($response['expiresOn']),
+            apiKey: $apiKey,
+            catalogUserId: $catalogUserId,
+            expiresOn: Date::parse($expiresOn),
         );
     }
 }
