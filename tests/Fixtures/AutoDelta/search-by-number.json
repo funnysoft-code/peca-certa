@@ -1,0 +1,75 @@
+{
+    "response": {
+        "totalMatchingArticles": 157,
+        "maxAllowedPage": 1,
+        "articles": [
+            {
+                "dataSupplierId": 350,
+                "articleNumber": "ADG02102",
+                "mfrId": 3063,
+                "mfrName": "BLUE PRINT",
+                "searchQueryMatches": [
+                    {
+                        "matchType": "ComparableNumber",
+                        "description": "Número de comparação",
+                        "match": "OC 90",
+                        "mfrId": 534,
+                        "mfrName": "KNECHT"
+                    },
+                    {
+                        "matchType": "ComparableNumber",
+                        "description": "Número de comparação",
+                        "match": "OC 90",
+                        "mfrId": 2721,
+                        "mfrName": "MAHLE"
+                    },
+                    {
+                        "matchType": "ComparableNumber",
+                        "description": "Número de comparação",
+                        "match": "OC 90",
+                        "mfrId": 3867,
+                        "mfrName": "METAL LEVE"
+                    }
+                ]
+            },
+            {
+                "dataSupplierId": 421,
+                "articleNumber": "CDW11001",
+                "mfrId": 3242,
+                "mfrName": "COMLINE",
+                "searchQueryMatches": [
+                    {
+                        "matchType": "ComparableNumber",
+                        "description": "Número de comparação",
+                        "match": "OC90",
+                        "mfrId": 534,
+                        "mfrName": "KNECHT"
+                    },
+                    {
+                        "matchType": "ComparableNumber",
+                        "description": "Número de comparação",
+                        "match": "OC90",
+                        "mfrId": 2721,
+                        "mfrName": "MAHLE"
+                    }
+                ]
+            },
+            {
+                "dataSupplierId": 156,
+                "articleNumber": "FO-398S",
+                "mfrId": 2194,
+                "mfrName": "JAPANPARTS",
+                "searchQueryMatches": [
+                    {
+                        "matchType": "ComparableNumber",
+                        "description": "Número de comparação",
+                        "match": "OC 90",
+                        "mfrId": 2721,
+                        "mfrName": "MAHLE"
+                    }
+                ]
+            }
+        ],
+        "status": 200
+    }
+}
