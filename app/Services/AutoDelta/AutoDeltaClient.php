@@ -50,14 +50,22 @@ final class AutoDeltaClient
             ],
         ]);
 
-        return collect($response['articles'] ?? [])
+        /** @var array<int, array{dataSupplierId:int, mfrId:int, mfrName:string, articleNumber:string}> $articles */
+        $articles = $response['articles'] ?? [];
+
+        $results = collect($articles)
             ->map(fn (array $a): array => [
-                'dataSupplierId' => (int) $a['dataSupplierId'],
-                'mfrId' => (int) $a['mfrId'],
-                'brandName' => (string) ($a['mfrName'] ?? ''),
-                'articleNumber' => (string) $a['articleNumber'],
+                'dataSupplierId' => $a['dataSupplierId'],
+                'mfrId' => $a['mfrId'],
+                'brandName' => $a['mfrName'],
+                'articleNumber' => $a['articleNumber'],
             ])
             ->all();
+
+        /** @var list<array<string, mixed>> $list */
+        $list = array_values($results);
+
+        return $list;
     }
 
     /**
@@ -80,7 +88,13 @@ final class AutoDeltaClient
             ],
         ]);
 
-        return $response['data']['array'] ?? [];
+        /** @var array<int, array<string, mixed>> $data */
+        $data = $response['data']['array'] ?? [];
+
+        /** @var list<array<string, mixed>> $list */
+        $list = array_values($data);
+
+        return $list;
     }
 
     /**
@@ -91,7 +105,8 @@ final class AutoDeltaClient
     {
         $token = $this->token();
 
-        return Http::asJson()
+        /** @var array<string, mixed> $response */
+        $response = Http::asJson()
             ->withHeaders([
                 'x-api-key' => $token->apiKey,
                 'x-catalog' => (string) config('suppliers.autodelta.catalog_id'),
@@ -100,10 +115,13 @@ final class AutoDeltaClient
             ->post($url, $body)
             ->throw()
             ->json();
+
+        return $response;
     }
 
     private function login(): AutoDeltaToken
     {
+        /** @var array{apiKey:string, catalogUserId:string, expiresOn:string} $response */
         $response = Http::asJson()
             ->post((string) config('suppliers.autodelta.auth_url'), [
                 'username' => (string) config('suppliers.autodelta.username'),
@@ -113,9 +131,9 @@ final class AutoDeltaClient
             ->json();
 
         return new AutoDeltaToken(
-            apiKey: (string) $response['apiKey'],
-            catalogUserId: (string) $response['catalogUserId'],
-            expiresOn: Date::parse((string) $response['expiresOn']),
+            apiKey: $response['apiKey'],
+            catalogUserId: $response['catalogUserId'],
+            expiresOn: Date::parse($response['expiresOn']),
         );
     }
 }
