@@ -471,7 +471,7 @@ use App\Data\PartVariant;
 it('merges articles with E/V price rows into one variant each', function (): void {
     $articles = [[
         'dataSupplierId' => 156, 'mfrId' => 2194, 'brandName' => 'JAPANPARTS',
-        'articleNumber' => 'FO-398S', 'description' => 'Filtro de óleo',
+        'articleNumber' => 'FO-398S',
     ]];
     $priceRows = [
         ['dataSupplierId' => 156, 'articleNumber' => 'FO-398S', 'traderArticleNumber' => 'JFO-398', 'priceTypeKey' => 'E', 'price' => 1.70, 'currencyCode' => 'EUR', 'availableQuantity' => 23, 'stockStatusDescription' => 'em stock', 'stockMatchCode' => '1 - Leiria,'],
@@ -526,15 +526,15 @@ final readonly class PartVariant
     ) {}
 
     /**
-     * @param  list<array<string, mixed>>  $articles
-     * @param  list<array<string, mixed>>  $priceRows
+     * @param  list<array{dataSupplierId: int, mfrId: int, brandName: string, articleNumber: string}>  $articles
+     * @param  list<array{dataSupplierId: int, articleNumber: string, traderArticleNumber: string, priceTypeKey: string, price: float, currencyCode: string, availableQuantity: int, stockStatusDescription: string, stockMatchCode: string}>  $priceRows
      */
     public static function merge(array $articles, array $priceRows, string $query = ''): PartSearchResult
     {
         $pricesByKey = [];
         foreach ($priceRows as $row) {
             $key = $row['dataSupplierId'].'.'.$row['articleNumber'];
-            $pricesByKey[$key][(string) $row['priceTypeKey']] = $row;
+            $pricesByKey[$key][$row['priceTypeKey']] = $row;
         }
 
         $variants = [];
@@ -545,15 +545,15 @@ final readonly class PartVariant
             $any = $purchase ?? $retail;
 
             $variants[] = new self(
-                brandName: (string) $a['brandName'],
-                articleNumber: (string) $a['articleNumber'],
-                traderArticleNumber: (string) ($any['traderArticleNumber'] ?? ''),
-                purchasePrice: $purchase !== null ? (float) $purchase['price'] : null,
-                retailPrice: $retail !== null ? (float) $retail['price'] : null,
-                currency: (string) ($any['currencyCode'] ?? 'EUR'),
-                availableQuantity: (int) ($any['availableQuantity'] ?? 0),
-                inStock: (int) ($any['availableQuantity'] ?? 0) > 0,
-                warehouse: trim((string) ($any['stockMatchCode'] ?? ''), " ,\t\n"),
+                brandName: $a['brandName'],
+                articleNumber: $a['articleNumber'],
+                traderArticleNumber: $any['traderArticleNumber'] ?? '',
+                purchasePrice: $purchase['price'] ?? null,
+                retailPrice: $retail['price'] ?? null,
+                currency: $any['currencyCode'] ?? 'EUR',
+                availableQuantity: $any['availableQuantity'] ?? 0,
+                inStock: ($any['availableQuantity'] ?? 0) > 0,
+                warehouse: trim($any['stockMatchCode'] ?? '', " ,\t\n"),
             );
         }
 
