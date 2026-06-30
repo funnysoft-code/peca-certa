@@ -42,3 +42,49 @@ it('searches by number and returns brand variants', function (): void {
     expect($articles)->not->toBeEmpty()
         ->and($articles[0])->toHaveKeys(['dataSupplierId', 'mfrId', 'brandName', 'articleNumber']);
 });
+
+it('returns no variants when the search payload is malformed', function (): void {
+    Http::fake(['cat.test/*' => Http::response(['articles' => 'not-an-array', 'status' => 200])]);
+
+    expect(resolve(AutoDeltaClient::class)->searchByNumber('OC90'))->toBe([]);
+});
+
+it('skips non-array article entries', function (): void {
+    Http::fake(['cat.test/*' => Http::response([
+        'articles' => [
+            'garbage',
+            ['dataSupplierId' => 156, 'mfrId' => 2194, 'mfrName' => 'JAPANPARTS', 'articleNumber' => 'FO-398S'],
+        ],
+        'status' => 200,
+    ])]);
+
+    $articles = resolve(AutoDeltaClient::class)->searchByNumber('OC90');
+
+    expect($articles)->toHaveCount(1)
+        ->and($articles[0]['brandName'])->toBe('JAPANPARTS');
+});
+
+it('returns no prices when the trade-price payload is malformed', function (): void {
+    Http::fake(['cat.test/*' => Http::response(['data' => ['array' => 'not-an-array'], 'status' => 200])]);
+
+    expect(resolve(AutoDeltaClient::class)->getTradePrices([
+        ['dataSupplierId' => 156, 'articleNumber' => 'FO-398S'],
+    ]))->toBe([]);
+});
+
+it('skips non-array price rows', function (): void {
+    Http::fake(['cat.test/*' => Http::response([
+        'data' => ['array' => [
+            'garbage',
+            ['dataSupplierId' => 156, 'articleNumber' => 'FO-398S', 'priceTypeKey' => 'E', 'price' => 1.7],
+        ]],
+        'status' => 200,
+    ])]);
+
+    $rows = resolve(AutoDeltaClient::class)->getTradePrices([
+        ['dataSupplierId' => 156, 'articleNumber' => 'FO-398S'],
+    ]);
+
+    expect($rows)->toHaveCount(1)
+        ->and($rows[0]['priceTypeKey'])->toBe('E');
+});
