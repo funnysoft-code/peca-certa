@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Data;
 
+use JsonSerializable;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 #[TypeScript]
-final readonly class PartVariant
+final readonly class PartVariant implements JsonSerializable
 {
     public function __construct(
         public string $brandName,
@@ -54,5 +55,23 @@ final readonly class PartVariant
         }
 
         return new PartSearchResult($query, $variants);
+    }
+
+    /**
+     * @return array{brandName: string, articleNumber: string, traderArticleNumber: string, purchasePrice: float|null, retailPrice: float|null, currency: string, availableQuantity: int, inStock: bool, warehouse: string}
+     */
+    public function jsonSerialize(): array
+    {
+        return [
+            'brandName' => $this->brandName,
+            'articleNumber' => $this->articleNumber,
+            'traderArticleNumber' => $this->traderArticleNumber,
+            'purchasePrice' => $this->purchasePrice,
+            'retailPrice' => $this->retailPrice,
+            'currency' => $this->currency,
+            'availableQuantity' => $this->availableQuantity,
+            'inStock' => $this->inStock,
+            'warehouse' => $this->warehouse,
+        ];
     }
 }
