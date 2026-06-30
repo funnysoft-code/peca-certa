@@ -162,23 +162,22 @@ final class AutoDeltaClient
     }
 
     /**
-     * Authenticate against AuthWS and return a usable token.
+     * Authenticate against AuthWS (JSON-RPC) and return a usable token.
      *
-     * LIVE-INTEGRATION TODO (see plan "Known API contract"): AuthWS is a
-     * JSON-RPC endpoint — a raw {"username","password"} body returns
-     * {"status":400,"statusText":"Unknown Call: username"}. The request below is
-     * a placeholder. The webshop makes TWO AuthWS calls: call 1 (no x-api-key)
-     * returns {apiKey, expiresOn}; call 2 (WITH x-api-key) returns the session
-     * context including catalogUserId. Capture both method names + bodies via a
-     * proxy on a real login, then implement the two-call flow here. Until then
-     * this method fails loud (throws) rather than sending a bad token.
+     * `getAPIKeyForUser` takes the catalog KEY (e.g. "autodelta", not the
+     * catalog id) plus credentials and returns a 24h dynamic `apiKey`. The
+     * `catalogUserId` is a stable per-account identifier: it is read from the
+     * response when present, otherwise from config (`catalog_user_id`).
      */
     private function login(): AutoDeltaToken
     {
         $response = Http::asJson()
             ->post(config()->string('suppliers.autodelta.auth_url'), [
-                'username' => config()->string('suppliers.autodelta.username'),
-                'password' => config()->string('suppliers.autodelta.password'),
+                'getAPIKeyForUser' => [
+                    'catalog' => config()->string('suppliers.autodelta.catalog_key'),
+                    'username' => config()->string('suppliers.autodelta.username'),
+                    'password' => config()->string('suppliers.autodelta.password'),
+                ],
             ])
             ->throw()
             ->json();
@@ -186,10 +185,16 @@ final class AutoDeltaClient
         throw_unless(is_array($response), RuntimeException::class, 'Unexpected Auto Delta auth response.');
 
         $apiKey = $response['apiKey'] ?? null;
-        $catalogUserId = $response['catalogUserId'] ?? null;
         $expiresOn = $response['expiresOn'] ?? null;
 
-        throw_if(! is_string($apiKey) || ! is_string($catalogUserId) || ! is_string($expiresOn), RuntimeException::class, 'Incomplete Auto Delta auth response.');
+        throw_if(! is_string($apiKey) || ! is_string($expiresOn), RuntimeException::class, 'Incomplete Auto Delta auth response (apiKey/expiresOn missing).');
+
+        $catalogUserId = $response['catalogUserId'] ?? null;
+        if (! is_string($catalogUserId) || $catalogUserId === '') {
+            $catalogUserId = config()->string('suppliers.autodelta.catalog_user_id');
+        }
+
+        throw_if($catalogUserId === '', RuntimeException::class, 'Missing Auto Delta catalog_user_id — set AUTODELTA_CATALOG_USER_ID.');
 
         return new AutoDeltaToken(
             apiKey: $apiKey,
