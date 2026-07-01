@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -46,7 +46,7 @@ jobs:
         run: bash .github/scripts/generate-changelog.sh "$VERSION"
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           body_path: public_changelog.md
           generate_release_notes: false
