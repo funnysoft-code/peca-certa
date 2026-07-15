@@ -36,15 +36,15 @@ final readonly class SearchAutoZitaniaParts
             $this->client->searchByNumber($reference),
         );
 
-        // The DVSE catalog search is a session-bound POST with no shareable
-        // per-query URL, so the "open in Auto Zitânia" button points at the
-        // branded catalog entry (its tenant theme) rather than a deep link.
-        $entryUrl = config()->string('suppliers.autozitania.entry_url');
+        // The DVSE catalog has no shareable per-query URL; the portal root is
+        // the only link that lands a logged-in operator on the catalog rather
+        // than forcing a re-login (see config comment).
+        $portalUrl = config()->string('suppliers.autozitania.portal_url');
 
         return new PartSearchResult(
             $reference,
             $variants,
-            $entryUrl === '' ? null : $entryUrl,
+            $portalUrl === '' ? null : $portalUrl,
         );
     }
 
