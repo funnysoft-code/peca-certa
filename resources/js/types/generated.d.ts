@@ -14,6 +14,7 @@ declare namespace App {
             readonly availableQuantity: number;
             readonly inStock: boolean;
             readonly warehouse: string;
+            readonly url: string | null;
         };
     }
     namespace Enums {

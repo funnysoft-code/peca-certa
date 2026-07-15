@@ -15,6 +15,8 @@ return [
         'password' => env('AUTODELTA_PASSWORD'),
         'lang' => env('AUTODELTA_LANG', 'pt'),
         'country' => env('AUTODELTA_COUNTRY', 'PT'),
+        // WebCat30 webshop base; used to deep-link a variant to its article page.
+        'webshop_url' => env('AUTODELTA_WEBSHOP_URL', 'https://web.tecalliance.net/autodelta/pt'),
     ],
 
     'autozitania' => [
@@ -23,5 +25,8 @@ return [
         'password' => env('AUTOZITANIA_PASSWORD'),
         'bun_binary' => env('AUTOZITANIA_BUN_BINARY', 'bun'),
         'script_timeout' => (int) env('AUTOZITANIA_SCRIPT_TIMEOUT', 120),
+        // DVSE catalog is session-bound with no stable per-article URL, so
+        // variants can only link to the portal itself.
+        'portal_url' => env('AUTOZITANIA_PORTAL_URL', 'https://web2.carparts-cat.com'),
     ],
 ];

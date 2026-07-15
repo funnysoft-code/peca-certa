@@ -1,3 +1,4 @@
+import { ExternalLink } from 'lucide-react';
 import {
     Table,
     TableBody,
@@ -55,7 +56,22 @@ export function ResultsTable({ rows }: { rows: ResultRow[] }) {
                         <TableCell className="font-medium">
                             {row.variant.brandName}
                         </TableCell>
-                        <TableCell>{row.variant.articleNumber}</TableCell>
+                        <TableCell>
+                            {row.variant.url ? (
+                                <a
+                                    href={row.variant.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
+                                    title={`Abrir em ${row.supplier}`}
+                                >
+                                    {row.variant.articleNumber}
+                                    <ExternalLink className="size-3.5 opacity-70" />
+                                </a>
+                            ) : (
+                                row.variant.articleNumber
+                            )}
+                        </TableCell>
                         <TableCell className="text-right tabular-nums">
                             {row.variant.purchasePrice?.toFixed(2) ?? '–'}
                         </TableCell>

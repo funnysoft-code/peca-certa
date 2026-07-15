@@ -33,7 +33,8 @@ it('searches a part and shows variants in a tab', function (): void {
 
     $page->waitForText('Compra')
         ->assertSee('PVP')
-        ->assertSee('Fornecedor');
+        ->assertSee('Fornecedor')
+        ->assertPresent('a[href*="web.tecalliance.net"]');
 
     $page->waitForText('Auto Zitânia')
         ->assertSee('Disponível');

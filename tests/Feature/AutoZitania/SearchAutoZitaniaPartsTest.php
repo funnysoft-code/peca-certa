@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Process;
 beforeEach(function (): void {
     config()->set('suppliers.autozitania.username', 'user');
     config()->set('suppliers.autozitania.password', 'secret');
+    config()->set('suppliers.autozitania.portal_url', 'https://portal.test');
 });
 
 it('maps sidecar output to part variants', function (): void {
@@ -24,7 +25,8 @@ it('maps sidecar output to part variants', function (): void {
         ->and($result->variants[0]->retailPrice)->toBe(34.38)
         ->and($result->variants[0]->purchasePrice)->toBeNull()
         ->and($result->variants[0]->inStock)->toBeFalse()
-        ->and($result->variants[5]->inStock)->toBeTrue();
+        ->and($result->variants[5]->inStock)->toBeTrue()
+        ->and($result->variants[0]->url)->toBe('https://portal.test');
 
     Process::assertRan(function ($process): bool {
         $command = is_array($process->command) ? implode(' ', $process->command) : (string) $process->command;

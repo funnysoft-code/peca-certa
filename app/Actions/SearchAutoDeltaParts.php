@@ -24,6 +24,11 @@ final readonly class SearchAutoDeltaParts
 
         $prices = $this->client->getTradePrices($articles);
 
-        return PartVariant::merge($articles, $prices, $reference);
+        return PartVariant::merge(
+            $articles,
+            $prices,
+            $reference,
+            config()->string('suppliers.autodelta.webshop_url'),
+        );
     }
 }
