@@ -26,4 +26,12 @@ return [
         'bun_binary' => env('AUTOZITANIA_BUN_BINARY', 'bun'),
         'script_timeout' => (int) env('AUTOZITANIA_SCRIPT_TIMEOUT', 120),
     ],
+
+    'partslink24' => [
+        'base_url' => env('PARTSLINK24_BASE_URL', 'https://www.partslink24.com'),
+        'account' => env('PARTSLINK24_ACCOUNT'),
+        'username' => env('PARTSLINK24_USERNAME'),
+        'password' => env('PARTSLINK24_PASSWORD'),
+        'timeout' => (int) env('PARTSLINK24_TIMEOUT', 30),
+    ],
 ];
