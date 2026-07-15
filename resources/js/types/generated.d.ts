@@ -1,5 +1,11 @@
 declare namespace App {
     namespace Data {
+        export type IdentifyResult = {
+            readonly understanding: App.Data.PartRequestUnderstanding;
+            readonly oeParts: App.Data.OePart[];
+            readonly autoDeltaResults: App.Data.PartSearchResult[];
+            readonly autoZitaniaResults: App.Data.PartSearchResult[];
+        };
         export type OePart = {
             readonly oeNumber: string;
             readonly description: string;
