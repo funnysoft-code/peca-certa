@@ -49,9 +49,22 @@ final readonly class PartVariant implements JsonSerializable
             $retailRows = $rowsByKey[$key]['V'] ?? [];
             $stockRows = $purchaseRows !== [] ? $purchaseRows : $retailRows;
 
-            // Only surface articles Auto Delta actually carries (i.e. priced);
-            // the catalog search also returns pure TecDoc cross-references.
+            // Unpriced articles are pure TecDoc cross-references Auto Delta
+            // does not carry: keep them as unavailable variants so the UI can
+            // list them under the collapsed "Indisponíveis" section.
             if ($stockRows === []) {
+                $variants[] = new self(
+                    brandName: $a['brandName'],
+                    articleNumber: $a['articleNumber'],
+                    traderArticleNumber: '',
+                    purchasePrice: null,
+                    retailPrice: null,
+                    currency: 'EUR',
+                    availableQuantity: 0,
+                    inStock: false,
+                    warehouse: '',
+                );
+
                 continue;
             }
 
