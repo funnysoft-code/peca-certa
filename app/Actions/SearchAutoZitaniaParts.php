@@ -36,15 +36,16 @@ final readonly class SearchAutoZitaniaParts
             $this->client->searchByNumber($reference),
         );
 
-        // The DVSE catalog has no shareable per-query URL; the portal root is
-        // the only link that lands a logged-in operator on the catalog rather
-        // than forcing a re-login (see config comment).
-        $portalUrl = config()->string('suppliers.autozitania.portal_url');
+        // The DVSE catalog has no shareable per-query URL. The tenant entry URL
+        // always lands on the branded Auto Zitânia login (then the catalog);
+        // it forces a re-login even for an active session, which is the chosen
+        // trade-off over the bare portal root (branded > session-resume here).
+        $entryUrl = config()->string('suppliers.autozitania.entry_url');
 
         return new PartSearchResult(
             $reference,
             $variants,
-            $portalUrl === '' ? null : $portalUrl,
+            $entryUrl === '' ? null : $entryUrl,
         );
     }
 

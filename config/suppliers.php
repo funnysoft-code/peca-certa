@@ -25,10 +25,5 @@ return [
         'password' => env('AUTOZITANIA_PASSWORD'),
         'bun_binary' => env('AUTOZITANIA_BUN_BINARY', 'bun'),
         'script_timeout' => (int) env('AUTOZITANIA_SCRIPT_TIMEOUT', 120),
-        // "Open in Auto Zitânia" target. The bare portal root is deliberate: it
-        // is the only URL that resumes an existing session straight to the
-        // catalog. Any parameterised/token URL forces a re-login because the
-        // portal issues a fresh session token per login that we cannot embed.
-        'portal_url' => env('AUTOZITANIA_PORTAL_URL', 'https://web2.carparts-cat.com/'),
     ],
 ];
