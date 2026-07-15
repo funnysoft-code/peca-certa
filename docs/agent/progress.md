@@ -31,6 +31,13 @@ Every session reads this **first**, along with `git log --oneline -20`, before t
 
 <!-- newest entry goes here -->
 
+## 2026-07-15 — `ecab00d` — Phase 2 Plan 1: VIN part identification (/identify)
+
+- **Built:** `feat/vin-identification` (subagent-driven, 9 tasks + final Opus review, all gate-green). `/identify` page: PT free-text request + VIN (required) → Grok 4.3 (xAI, now app-wide default) structures request into category/keywords/clarifying-question → `PartsLink24Catalog` contract resolves VIN→OE parts (FAKE for now) → priced via existing Phase 1 fan-out → results table. New: xai config, `PartRequestUnderstanding`/`OePart`/`IdentifyResult` DTOs, `PartRequestUnderstander` agent, `UnderstandPartRequest`/`IdentifyOeParts`/`IdentifyAndSourceParts` actions, PartsLink24 contract+fake, `IdentifyController`+routes+page+form. Full gate green (phpstan max, 100% cov, browser).
+- **Next:** Plan 2 (spike-gated): real `PartsLink24HttpClient` (JSON REST, `POST /auth/ext/api/1.1/login` {account,user,password}→token, single-session limit; VIN→parts endpoints need authed spike w/ free session) swapped for the fake (one binding change). Then UI parity pass (see deferred).
+- **Blocked:** PartsLink24 authed spike needs a free session / dedicated account (single-session, occupied). `XAI_API_KEY` not yet in `.env` (tests fake Grok, so build didn't need it).
+- **Decisions:** PartsLink24 = identifier, Phase 1 = pricer; TecDoc aftermarket-ID path deferred. xAI app-wide default (`grok-4.3`, verified vs live docs). Deferred to Plan 2 (final-review triage): I2 per-supplier failure isolation + concurrency; M2 surface 422 field errors + /parts fallback hint; M3 wire clarify re-run with carried context; M4 available/unavailable split + "Abrir em" provider links (searchUrl in payload, unused); SUPPLIER_LABELS dedupe. None block merge.
+
 ## 2026-07-15 — `7d89012` — merge Auto Zitânia adapter to main
 
 - **Built:** merged `feat/autozitania-adapter` → main (ff, 13 commits): Zitânia DVSE Playwright sidecar, supplier fan-out, merged results table (single Preço column, collapsed Indisponíveis), Leiria-branch availability, provider "open in" buttons, sqlite WAL concurrency fix. Gate green. Branch deleted.
