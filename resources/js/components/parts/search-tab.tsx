@@ -1,5 +1,5 @@
 import { useHttp } from '@inertiajs/react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +28,16 @@ const SUPPLIER_LABELS: Record<App.Enums.Supplier, string> = {
 const SUPPLIER_STOCK_MODES: Record<App.Enums.Supplier, StockMode> = {
     autodelta: 'quantity',
     autozitania: 'availability',
+};
+
+// Auto Delta is where R2CZ buys, so its price column shows the purchase price;
+// Auto Zitânia only exposes the retail (PVP) price.
+const SUPPLIER_PRICE: Record<
+    App.Enums.Supplier,
+    (variant: App.Data.PartVariant) => number | null
+> = {
+    autodelta: (variant) => variant.purchasePrice,
+    autozitania: (variant) => variant.retailPrice,
 };
 
 function useSupplierSearch(supplier: App.Enums.Supplier): SupplierSearch {
@@ -64,6 +74,7 @@ function toRows(
         variant,
         supplier: SUPPLIER_LABELS[supplier],
         stockMode: SUPPLIER_STOCK_MODES[supplier],
+        price: SUPPLIER_PRICE[supplier](variant),
     }));
 }
 
@@ -91,6 +102,10 @@ export function SearchTab() {
     const unavailable = rows.filter((row) => !row.variant.inStock);
     const pending = searches.filter(([, search]) => search.processing);
     const hasResults = searches.some(([, search]) => search.result !== null);
+    const providerLinks = searches.flatMap(([supplier, search]) => {
+        const url = search.result?.searchUrl;
+        return url ? [{ supplier, url }] : [];
+    });
 
     function run() {
         if (!reference.trim()) return;
@@ -139,6 +154,28 @@ export function SearchTab() {
                     {!hasResults && (
                         <div className="h-24 animate-pulse rounded-md bg-muted" />
                     )}
+                </div>
+            )}
+
+            {providerLinks.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                    {providerLinks.map(({ supplier, url }) => (
+                        <Button
+                            key={supplier}
+                            asChild
+                            variant="outline"
+                            size="sm"
+                        >
+                            <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <ExternalLink className="size-4" />
+                                Abrir em {SUPPLIER_LABELS[supplier]}
+                            </a>
+                        </Button>
+                    ))}
                 </div>
             )}
 

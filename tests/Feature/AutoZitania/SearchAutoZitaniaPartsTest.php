@@ -26,7 +26,7 @@ it('maps sidecar output to part variants', function (): void {
         ->and($result->variants[0]->purchasePrice)->toBeNull()
         ->and($result->variants[0]->inStock)->toBeFalse()
         ->and($result->variants[5]->inStock)->toBeTrue()
-        ->and($result->variants[0]->url)->toBe('https://portal.test');
+        ->and($result->searchUrl)->toBe('https://portal.test');
 
     Process::assertRan(function ($process): bool {
         $command = is_array($process->command) ? implode(' ', $process->command) : (string) $process->command;

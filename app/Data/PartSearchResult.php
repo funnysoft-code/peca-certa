@@ -16,16 +16,18 @@ final readonly class PartSearchResult implements JsonSerializable
     public function __construct(
         public string $query,
         public array $variants,
+        public ?string $searchUrl = null,
     ) {}
 
     /**
-     * @return array{query: string, variants: list<PartVariant>}
+     * @return array{query: string, variants: list<PartVariant>, searchUrl: string|null}
      */
     public function jsonSerialize(): array
     {
         return [
             'query' => $this->query,
             'variants' => $this->variants,
+            'searchUrl' => $this->searchUrl,
         ];
     }
 }

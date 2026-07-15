@@ -23,7 +23,6 @@ final readonly class PartVariant implements JsonSerializable
         public int $availableQuantity,
         public bool $inStock,
         public string $warehouse,
-        public ?string $url = null,
     ) {}
 
     /**
@@ -35,7 +34,7 @@ final readonly class PartVariant implements JsonSerializable
      * @param  list<array{dataSupplierId: int, mfrId: int, brandName: string, articleNumber: string}>  $articles
      * @param  list<PriceRow>  $priceRows
      */
-    public static function merge(array $articles, array $priceRows, string $query = '', string $webshopUrl = ''): PartSearchResult
+    public static function merge(array $articles, array $priceRows, string $query = ''): PartSearchResult
     {
         $rowsByKey = [];
         foreach ($priceRows as $row) {
@@ -64,7 +63,6 @@ final readonly class PartVariant implements JsonSerializable
                     availableQuantity: 0,
                     inStock: false,
                     warehouse: '',
-                    url: self::webshopUrl($webshopUrl, $a['articleNumber']),
                 );
 
                 continue;
@@ -89,7 +87,6 @@ final readonly class PartVariant implements JsonSerializable
                 availableQuantity: $totalQuantity,
                 inStock: $totalQuantity > 0,
                 warehouse: mb_trim($primary['stockMatchCode'] ?? '', " ,\t\n"),
-                url: self::webshopUrl($webshopUrl, $a['articleNumber']),
             );
         }
 
@@ -97,7 +94,7 @@ final readonly class PartVariant implements JsonSerializable
     }
 
     /**
-     * @return array{brandName: string, articleNumber: string, traderArticleNumber: string, purchasePrice: float|null, retailPrice: float|null, currency: string, availableQuantity: int, inStock: bool, warehouse: string, url: string|null}
+     * @return array{brandName: string, articleNumber: string, traderArticleNumber: string, purchasePrice: float|null, retailPrice: float|null, currency: string, availableQuantity: int, inStock: bool, warehouse: string}
      */
     public function jsonSerialize(): array
     {
@@ -111,17 +108,7 @@ final readonly class PartVariant implements JsonSerializable
             'availableQuantity' => $this->availableQuantity,
             'inStock' => $this->inStock,
             'warehouse' => $this->warehouse,
-            'url' => $this->url,
         ];
-    }
-
-    private static function webshopUrl(string $webshopUrl, string $articleNumber): ?string
-    {
-        if ($webshopUrl === '') {
-            return null;
-        }
-
-        return $webshopUrl.'/parts/search?query='.rawurlencode($articleNumber).'&exact=true';
     }
 
     /**

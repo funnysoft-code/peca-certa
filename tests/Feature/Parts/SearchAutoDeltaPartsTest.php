@@ -12,6 +12,7 @@ it('returns merged variants for a reference', function (): void {
     config()->set('suppliers.autodelta.search_url', 'https://cat.test/Tecdoc');
     config()->set('suppliers.autodelta.catalog_id', 'CAT');
     config()->set('suppliers.autodelta.provider', 1066);
+    config()->set('suppliers.autodelta.webshop_url', 'https://shop.test/pt');
     Cache::put('autodelta.token', new AutoDeltaToken('KEY', 'USER', now()->addDay()), now()->addDay());
 
     $search = json_decode((string) file_get_contents(base_path('tests/Fixtures/AutoDelta/search-by-number.json')), true);
@@ -26,7 +27,8 @@ it('returns merged variants for a reference', function (): void {
 
     expect($result->query)->toBe('OC90')
         ->and($result->variants)->not->toBeEmpty()
-        ->and($result->variants[0]->brandName)->not->toBe('');
+        ->and($result->variants[0]->brandName)->not->toBe('')
+        ->and($result->searchUrl)->toBe('https://shop.test/pt/parts/search?query=OC90&exact=true');
 });
 
 it('returns empty variants when search returns no articles', function (): void {
@@ -34,6 +36,8 @@ it('returns empty variants when search returns no articles', function (): void {
     config()->set('suppliers.autodelta.search_url', 'https://cat.test/Tecdoc');
     config()->set('suppliers.autodelta.catalog_id', 'CAT');
     config()->set('suppliers.autodelta.provider', 1066);
+    // No webshop configured → no "open in Auto Delta" link.
+    config()->set('suppliers.autodelta.webshop_url', '');
     Cache::put('autodelta.token', new AutoDeltaToken('KEY', 'USER', now()->addDay()), now()->addDay());
 
     Http::fake(['cat.test/*' => Http::response(['articles' => [], 'status' => 200])]);
@@ -41,5 +45,6 @@ it('returns empty variants when search returns no articles', function (): void {
     $result = resolve(SearchAutoDeltaParts::class)->execute('NOPE');
 
     expect($result->query)->toBe('NOPE')
-        ->and($result->variants)->toBe([]);
+        ->and($result->variants)->toBe([])
+        ->and($result->searchUrl)->toBeNull();
 });

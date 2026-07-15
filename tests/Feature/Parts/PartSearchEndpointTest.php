@@ -32,7 +32,7 @@ it('returns merged variants as json', function (): void {
     $this->actingAs(User::factory()->create(['email_verified_at' => now()]))
         ->postJson('/parts/search', ['reference' => 'OC90', 'supplier' => 'autodelta'])
         ->assertOk()
-        ->assertJsonStructure(['query', 'variants' => [['brandName', 'articleNumber', 'purchasePrice', 'retailPrice', 'availableQuantity', 'inStock', 'url']]]);
+        ->assertJsonStructure(['query', 'searchUrl', 'variants' => [['brandName', 'articleNumber', 'purchasePrice', 'retailPrice', 'availableQuantity', 'inStock']]]);
 });
 
 it('returns auto zitania variants as json', function (): void {

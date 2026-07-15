@@ -3,6 +3,7 @@ declare namespace App {
         export type PartSearchResult = {
             readonly query: string;
             readonly variants: App.Data.PartVariant[];
+            readonly searchUrl: string | null;
         };
         export type PartVariant = {
             readonly brandName: string;
@@ -14,7 +15,6 @@ declare namespace App {
             readonly availableQuantity: number;
             readonly inStock: boolean;
             readonly warehouse: string;
-            readonly url: string | null;
         };
     }
     namespace Enums {

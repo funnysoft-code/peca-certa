@@ -31,10 +31,11 @@ it('searches a part and shows variants in a tab', function (): void {
     $page->fill('input[placeholder="Referência da peça"]', 'OC90')
         ->press('Pesquisar');
 
-    $page->waitForText('Compra')
-        ->assertSee('PVP')
+    $page->waitForText('Preço')
         ->assertSee('Fornecedor')
         ->assertPresent('a[href*="web.tecalliance.net"]');
+
+    $page->waitForText('Abrir em Auto Delta');
 
     $page->waitForText('Auto Zitânia')
         ->assertSee('Disponível');

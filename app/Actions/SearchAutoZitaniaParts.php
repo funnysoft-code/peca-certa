@@ -20,10 +20,6 @@ final readonly class SearchAutoZitaniaParts
      */
     public function execute(string $reference): PartSearchResult
     {
-        // The DVSE catalog has no stable per-article URL (session-bound), so
-        // every variant links to the portal landing page instead.
-        $portalUrl = config()->string('suppliers.autozitania.portal_url');
-
         $variants = array_map(
             /** @param array<mixed, mixed> $row */
             fn (array $row): PartVariant => new PartVariant(
@@ -36,12 +32,19 @@ final readonly class SearchAutoZitaniaParts
                 availableQuantity: 0,
                 inStock: ($row['inStock'] ?? false) === true,
                 warehouse: '',
-                url: $portalUrl === '' ? null : $portalUrl,
             ),
             $this->client->searchByNumber($reference),
         );
 
-        return new PartSearchResult($reference, $variants);
+        // The DVSE catalog is session-bound with no stable search URL, so the
+        // "open in Auto Zitânia" button points at the portal landing page.
+        $portalUrl = config()->string('suppliers.autozitania.portal_url');
+
+        return new PartSearchResult(
+            $reference,
+            $variants,
+            $portalUrl === '' ? null : $portalUrl,
+        );
     }
 
     private function toString(mixed $value): string

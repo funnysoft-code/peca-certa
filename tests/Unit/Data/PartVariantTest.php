@@ -80,31 +80,6 @@ it('reports zero stock and no warehouse loss when all warehouses are empty', fun
         ->and($v->warehouse)->toBe('2 - C. Branco');
 });
 
-it('builds a webshop deep link for each variant when a base url is given', function (): void {
-    $articles = [
-        ['dataSupplierId' => 156, 'mfrId' => 2194, 'brandName' => 'JAPANPARTS', 'articleNumber' => 'FO-398S'],
-        ['dataSupplierId' => 999, 'mfrId' => 1, 'brandName' => 'ORPHAN', 'articleNumber' => 'X 1/2'],
-    ];
-    $priceRows = [
-        ['dataSupplierId' => 156, 'articleNumber' => 'FO-398S', 'traderArticleNumber' => 'JFO-398', 'priceTypeKey' => 'E', 'price' => 1.70, 'currencyCode' => 'EUR', 'availableQuantity' => 23, 'stockStatusDescription' => 'em stock', 'stockMatchCode' => '1 - Leiria,'],
-    ];
-
-    $result = PartVariant::merge($articles, $priceRows, 'FO-398S', 'https://shop.test/pt');
-
-    // Priced and unpriced variants both get a link; the article number is URL-encoded.
-    expect($result->variants[0]->url)->toBe('https://shop.test/pt/parts/search?query=FO-398S&exact=true')
-        ->and($result->variants[1]->url)->toBe('https://shop.test/pt/parts/search?query=X%201%2F2&exact=true');
-});
-
-it('leaves the url null when no webshop base url is configured', function (): void {
-    $articles = [['dataSupplierId' => 156, 'mfrId' => 2194, 'brandName' => 'JAPANPARTS', 'articleNumber' => 'FO-398S']];
-    $priceRows = [
-        ['dataSupplierId' => 156, 'articleNumber' => 'FO-398S', 'traderArticleNumber' => 'JFO-398', 'priceTypeKey' => 'E', 'price' => 1.70, 'currencyCode' => 'EUR', 'availableQuantity' => 5, 'stockStatusDescription' => 'em stock', 'stockMatchCode' => '1 - Leiria,'],
-    ];
-
-    expect(PartVariant::merge($articles, $priceRows)->variants[0]->url)->toBeNull();
-});
-
 it('keeps articles without price rows as unavailable variants (TecDoc cross-references Auto Delta does not carry)', function (): void {
     $articles = [
         ['dataSupplierId' => 999, 'mfrId' => 1, 'brandName' => 'ORPHAN', 'articleNumber' => 'X1'],
