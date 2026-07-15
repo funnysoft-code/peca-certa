@@ -7,10 +7,14 @@ import {
     TableRow,
 } from '@/components/ui/table';
 
+export type StockMode = 'quantity' | 'availability';
+
 export function ResultsTable({
     variants,
+    stockMode = 'quantity',
 }: {
     variants: App.Data.PartVariant[];
+    stockMode?: StockMode;
 }) {
     if (variants.length === 0) {
         return (
@@ -52,7 +56,11 @@ export function ResultsTable({
                                         : 'text-muted-foreground'
                                 }
                             >
-                                {v.availableQuantity}
+                                {stockMode === 'quantity'
+                                    ? v.availableQuantity
+                                    : v.inStock
+                                      ? 'Disponível'
+                                      : 'Indisponível'}
                             </span>
                         </TableCell>
                     </TableRow>

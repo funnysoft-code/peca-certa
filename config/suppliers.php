@@ -16,4 +16,12 @@ return [
         'lang' => env('AUTODELTA_LANG', 'pt'),
         'country' => env('AUTODELTA_COUNTRY', 'PT'),
     ],
+
+    'autozitania' => [
+        'entry_url' => env('AUTOZITANIA_ENTRY_URL', 'https://web2.carparts-cat.com/default.aspx?11=102&14=15&1115=1&1281=17=0&10=CB42290652B84321A1D2E66B1FA73DCE102015&12=1400'),
+        'username' => env('AUTOZITANIA_USERNAME'),
+        'password' => env('AUTOZITANIA_PASSWORD'),
+        'bun_binary' => env('AUTOZITANIA_BUN_BINARY', 'bun'),
+        'script_timeout' => (int) env('AUTOZITANIA_SCRIPT_TIMEOUT', 120),
+    ],
 ];

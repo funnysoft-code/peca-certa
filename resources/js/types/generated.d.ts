@@ -16,4 +16,7 @@ declare namespace App {
             readonly warehouse: string;
         };
     }
+    namespace Enums {
+        export type Supplier = 'autodelta' | 'autozitania';
+    }
 }
