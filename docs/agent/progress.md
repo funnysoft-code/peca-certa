@@ -31,6 +31,13 @@ Every session reads this **first**, along with `git log --oneline -20`, before t
 
 <!-- newest entry goes here -->
 
+## 2026-07-15 — `7d89012` — merge Auto Zitânia adapter to main
+
+- **Built:** merged `feat/autozitania-adapter` → main (ff, 13 commits): Zitânia DVSE Playwright sidecar, supplier fan-out, merged results table (single Preço column, collapsed Indisponíveis), Leiria-branch availability, provider "open in" buttons, sqlite WAL concurrency fix. Gate green. Branch deleted.
+- **Next:** deploy prep — the Zitânia sidecar needs bun + Playwright/Chromium on the prod server (+ `AUTOZITANIA_BUN_BINARY` abs path). Then Phase 2 discovery (FUN-43 plate→VIN, FUN-44 make→portal, both "ask the uncle").
+- **Blocked:** dedicated Auto Zitânia account (single-session; operator vs sidecar) — operational, uncle to request. Europeças (FUN-39/41) deferred, no creds.
+- **Decisions:** —
+
 ## 2026-07-15 — Zitânia availability keyed to Leiria branch
 
 - **Built:** Zitânia stock now reflects the LEIRIA warehouse specifically, not "available anywhere". Sidecar calls the portal's `ErpAppWSVC.GetErpInfosAL` JS proxy in-browser and reads per-branch `AvailState` for Leiria. Regenerated fixture from live Leiria run; gate green; live PHP action = 11/29 available at Leiria.
