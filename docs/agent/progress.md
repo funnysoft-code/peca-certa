@@ -30,3 +30,10 @@ Every session reads this **first**, along with `git log --oneline -20`, before t
 ## Entries
 
 <!-- newest entry goes here -->
+
+## 2026-07-15 — `0ece840` — Auto Zitania adapter (Playwright sidecar) + supplier fan-out
+
+- **Built:** Phase 1 verified live w/ rotated creds and merged to main (FUN-33/37 done). Auto Zitania adapter (FUN-40/42): `bin/zitania-search.ts` Playwright sidecar (login + single-session takeover + scrape), `AutoZitaniaClient` via Process, `SearchAutoZitaniaParts`, `Supplier` enum + `supplier` param on `/parts/search`, UI fires both suppliers in parallel w/ per-section loading. Full gate green; verified live (29 variants `OC 90`). Also fixed gate browser step (pao exit-code) and added `bin/**/*.ts` to tsconfig.
+- **Next:** ask uncle for a dedicated Zitania account (single-session limit: each app search evicts his portal session); then FUN-43/44 discovery for Phase 2.
+- **Blocked:** Europeças (FUN-39/41) deferred, no credentials.
+- **Decisions:** no adapter interface, exhaustive `match()` on `Supplier` enum (FUN-42 comment). Zitania exposes retail P.V.P. + binary availability only, no purchase price/quantities; UI renders Disponivel/Indisponivel for it. Zitania portal has PT plate+VIN search, candidate plate resolver for Phase 2 (noted FUN-45).
