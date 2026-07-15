@@ -9,14 +9,22 @@ import {
 
 export type StockMode = 'quantity' | 'availability';
 
-export function ResultsTable({
-    variants,
-    stockMode = 'quantity',
-}: {
-    variants: App.Data.PartVariant[];
-    stockMode?: StockMode;
-}) {
-    if (variants.length === 0) {
+export type ResultRow = {
+    variant: App.Data.PartVariant;
+    supplier: string;
+    stockMode: StockMode;
+};
+
+function stockLabel(row: ResultRow): string {
+    if (row.stockMode === 'quantity') {
+        return String(row.variant.availableQuantity);
+    }
+
+    return row.variant.inStock ? 'Disponível' : 'Indisponível';
+}
+
+export function ResultsTable({ rows }: { rows: ResultRow[] }) {
+    if (rows.length === 0) {
         return (
             <p className="py-8 text-center text-sm text-muted-foreground">
                 Sem resultados.
@@ -28,6 +36,7 @@ export function ResultsTable({
         <Table>
             <TableHeader>
                 <TableRow>
+                    <TableHead>Fornecedor</TableHead>
                     <TableHead>Marca</TableHead>
                     <TableHead>Artigo</TableHead>
                     <TableHead className="text-right">Compra</TableHead>
@@ -36,31 +45,32 @@ export function ResultsTable({
                 </TableRow>
             </TableHeader>
             <TableBody>
-                {variants.map((v) => (
-                    <TableRow key={`${v.brandName}-${v.articleNumber}`}>
+                {rows.map((row) => (
+                    <TableRow
+                        key={`${row.supplier}-${row.variant.brandName}-${row.variant.traderArticleNumber}`}
+                    >
+                        <TableCell className="text-muted-foreground">
+                            {row.supplier}
+                        </TableCell>
                         <TableCell className="font-medium">
-                            {v.brandName}
+                            {row.variant.brandName}
                         </TableCell>
-                        <TableCell>{v.articleNumber}</TableCell>
+                        <TableCell>{row.variant.articleNumber}</TableCell>
                         <TableCell className="text-right tabular-nums">
-                            {v.purchasePrice?.toFixed(2) ?? '—'}
+                            {row.variant.purchasePrice?.toFixed(2) ?? '–'}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
-                            {v.retailPrice?.toFixed(2) ?? '—'}
+                            {row.variant.retailPrice?.toFixed(2) ?? '–'}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                             <span
                                 className={
-                                    v.inStock
+                                    row.variant.inStock
                                         ? 'text-emerald-600'
                                         : 'text-muted-foreground'
                                 }
                             >
-                                {stockMode === 'quantity'
-                                    ? v.availableQuantity
-                                    : v.inStock
-                                      ? 'Disponível'
-                                      : 'Indisponível'}
+                                {stockLabel(row)}
                             </span>
                         </TableCell>
                     </TableRow>

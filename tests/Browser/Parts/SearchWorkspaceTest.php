@@ -32,8 +32,11 @@ it('searches a part and shows variants in a tab', function (): void {
         ->press('Pesquisar');
 
     $page->waitForText('Compra')
-        ->assertSee('PVP');
+        ->assertSee('PVP')
+        ->assertSee('Fornecedor');
 
     $page->waitForText('Auto Zitânia')
         ->assertSee('Disponível');
+
+    $page->waitForText('Indisponíveis');
 });
