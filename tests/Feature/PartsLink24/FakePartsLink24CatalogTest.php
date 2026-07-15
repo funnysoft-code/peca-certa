@@ -10,3 +10,7 @@ it('resolves fake OE parts for a vin and category', function (): void {
     expect($parts)->not->toBeEmpty()
         ->and($parts[0]->oeNumber)->not->toBe('');
 });
+
+it('returns no parts when the vin is empty', function (): void {
+    expect(resolve(PartsLink24Catalog::class)->resolveOeParts('', 'filtro de óleo', []))->toBe([]);
+});
