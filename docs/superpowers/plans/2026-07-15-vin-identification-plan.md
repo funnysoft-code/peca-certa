@@ -699,7 +699,8 @@ it('understands, identifies, and prices when a vin is given', function (): void 
 
     expect($result->understanding->category)->toBe('filtro de óleo')
         ->and($result->oeParts)->toHaveCount(1)
-        ->and($result->results)->not->toBeEmpty();
+        ->and($result->autoDeltaResults)->not->toBeEmpty()
+        ->and($result->autoZitaniaResults)->not->toBeEmpty();
 });
 
 it('stops at the clarifying question and does not identify', function (): void {
@@ -712,7 +713,8 @@ it('stops at the clarifying question and does not identify', function (): void {
 
     expect($result->understanding->needsClarification())->toBeTrue()
         ->and($result->oeParts)->toBe([])
-        ->and($result->results)->toBe([]);
+        ->and($result->autoDeltaResults)->toBe([])
+        ->and($result->autoZitaniaResults)->toBe([]);
 });
 ```
 
@@ -738,23 +740,26 @@ final readonly class IdentifyResult implements JsonSerializable
 {
     /**
      * @param  list<OePart>  $oeParts
-     * @param  list<PartSearchResult>  $results
+     * @param  list<PartSearchResult>  $autoDeltaResults
+     * @param  list<PartSearchResult>  $autoZitaniaResults
      */
     public function __construct(
         public PartRequestUnderstanding $understanding,
         public array $oeParts,
-        public array $results,
+        public array $autoDeltaResults,
+        public array $autoZitaniaResults,
     ) {}
 
     /**
-     * @return array{understanding: PartRequestUnderstanding, oeParts: list<OePart>, results: list<PartSearchResult>}
+     * @return array{understanding: PartRequestUnderstanding, oeParts: list<OePart>, autoDeltaResults: list<PartSearchResult>, autoZitaniaResults: list<PartSearchResult>}
      */
     public function jsonSerialize(): array
     {
         return [
             'understanding' => $this->understanding,
             'oeParts' => $this->oeParts,
-            'results' => $this->results,
+            'autoDeltaResults' => $this->autoDeltaResults,
+            'autoZitaniaResults' => $this->autoZitaniaResults,
         ];
     }
 }
@@ -786,18 +791,19 @@ final readonly class IdentifyAndSourceParts
         $understanding = $this->understand->execute($request);
 
         if ($understanding->needsClarification()) {
-            return new IdentifyResult($understanding, [], []);
+            return new IdentifyResult($understanding, [], [], []);
         }
 
         $oeParts = $this->identify->execute($vin, $understanding->category, $understanding->keywords);
 
-        $results = [];
+        $autoDeltaResults = [];
+        $autoZitaniaResults = [];
         foreach ($oeParts as $part) {
-            $results[] = $this->autoDelta->execute($part->oeNumber);
-            $results[] = $this->autoZitania->execute($part->oeNumber);
+            $autoDeltaResults[] = $this->autoDelta->execute($part->oeNumber);
+            $autoZitaniaResults[] = $this->autoZitania->execute($part->oeNumber);
         }
 
-        return new IdentifyResult($understanding, $oeParts, array_values($results));
+        return new IdentifyResult($understanding, $oeParts, $autoDeltaResults, $autoZitaniaResults);
     }
 }
 ```
@@ -860,7 +866,7 @@ it('returns understanding + results as json', function (): void {
     $this->actingAs(User::factory()->create(['email_verified_at' => now()]))
         ->postJson('/identify', ['request' => 'filtro de óleo', 'vin' => 'WVWZZZ1JZXW000001'])
         ->assertOk()
-        ->assertJsonStructure(['understanding' => ['category', 'keywords', 'clarifyingQuestion', 'confidence'], 'oeParts', 'results']);
+        ->assertJsonStructure(['understanding' => ['category', 'keywords', 'clarifyingQuestion', 'confidence'], 'oeParts', 'autoDeltaResults', 'autoZitaniaResults']);
 });
 ```
 
@@ -1061,14 +1067,24 @@ export function IdentifyForm() {
         }
     }
 
-    const rows: ResultRow[] = (result?.results ?? []).flatMap((r) =>
-        r.variants.map((variant) => ({
-            variant,
-            supplier: variant.warehouse !== '' ? SUPPLIER_LABELS.autodelta : SUPPLIER_LABELS.autozitania,
-            stockMode: variant.warehouse !== '' ? 'quantity' : 'availability',
-            price: variant.purchasePrice ?? variant.retailPrice,
-        })),
-    );
+    const rows: ResultRow[] = [
+        ...(result?.autoDeltaResults ?? []).flatMap((r) =>
+            r.variants.map((variant) => ({
+                variant,
+                supplier: SUPPLIER_LABELS.autodelta,
+                stockMode: 'quantity' as const,
+                price: variant.purchasePrice,
+            })),
+        ),
+        ...(result?.autoZitaniaResults ?? []).flatMap((r) =>
+            r.variants.map((variant) => ({
+                variant,
+                supplier: SUPPLIER_LABELS.autozitania,
+                stockMode: 'availability' as const,
+                price: variant.retailPrice,
+            })),
+        ),
+    ];
 
     return (
         <div className="space-y-4">
