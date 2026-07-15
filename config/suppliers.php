@@ -25,8 +25,5 @@ return [
         'password' => env('AUTOZITANIA_PASSWORD'),
         'bun_binary' => env('AUTOZITANIA_BUN_BINARY', 'bun'),
         'script_timeout' => (int) env('AUTOZITANIA_SCRIPT_TIMEOUT', 120),
-        // DVSE catalog is session-bound with no stable per-article URL, so
-        // variants can only link to the portal itself.
-        'portal_url' => env('AUTOZITANIA_PORTAL_URL', 'https://web2.carparts-cat.com'),
     ],
 ];
