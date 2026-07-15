@@ -31,6 +31,13 @@ Every session reads this **first**, along with `git log --oneline -20`, before t
 
 <!-- newest entry goes here -->
 
+## 2026-07-15 — Zitânia availability keyed to Leiria branch
+
+- **Built:** Zitânia stock now reflects the LEIRIA warehouse specifically, not "available anywhere". Sidecar calls the portal's `ErpAppWSVC.GetErpInfosAL` JS proxy in-browser and reads per-branch `AvailState` for Leiria. Regenerated fixture from live Leiria run; gate green; live PHP action = 11/29 available at Leiria.
+- **Next:** commit + still pending user sign-off to merge `feat/autozitania-adapter`.
+- **Blocked:** —
+- **Decisions:** Exact unit quantities CONFIRMED unavailable for account 125200C — dug to the raw web-service JSON: `Quantity` field exists per branch but is zeroed even on available parts (supplier entitlement). Only fix is Zitânia enabling stock qty on the account. Per-branch availability (Leiria) is the finest real signal. Service 500s on ERP batches >~7 items → sidecar chunks at 5, failed chunks fall back to overall availability. Warehouse via `AUTOZITANIA_WAREHOUSE` env (default LEIRIA), no PHP config plumbing.
+
 ## 2026-07-15 — `9342544` — merged supplier table + collapsed unavailable rows
 
 - **Built:** single results table w/ Fornecedor column (sorted by brand, so same-brand offers sit together), out-of-stock rows from both suppliers under an "Indisponíveis (N)" collapsible, per-supplier pending hint (Auto Delta shows while Zitânia's ~30s run finishes). Verified live in the real app via headless browser. Also fixed prod-path bug: Herd PHP couldn't find `bun` (added `AUTOZITANIA_BUN_BINARY` env, set to absolute path in .env).

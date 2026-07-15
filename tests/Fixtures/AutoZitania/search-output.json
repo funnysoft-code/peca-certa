@@ -5,7 +5,7 @@
       "brandName": "FEBI BILSTEIN",
       "traderArticleNumber": "DF36171",
       "articleNumber": "36171",
-      "availabilityText": "não disponivel",
+      "availabilityText": "não disponível",
       "inStock": false,
       "retailPrice": 34.38
     },
@@ -13,7 +13,7 @@
       "brandName": "FEBI BILSTEIN",
       "traderArticleNumber": "DF37503",
       "articleNumber": "37503",
-      "availabilityText": "não disponivel",
+      "availabilityText": "não disponível",
       "inStock": false,
       "retailPrice": 34.17
     },
@@ -21,25 +21,9 @@
       "brandName": "FEBI BILSTEIN",
       "traderArticleNumber": "DF38835",
       "articleNumber": "38835",
-      "availabilityText": "não disponivel",
+      "availabilityText": "não disponível",
       "inStock": false,
       "retailPrice": 40.32
-    },
-    {
-      "brandName": "FEBI BILSTEIN",
-      "traderArticleNumber": "DF38836",
-      "articleNumber": "38836",
-      "availabilityText": "não disponivel",
-      "inStock": false,
-      "retailPrice": 29.28
-    },
-    {
-      "brandName": "FEBI BILSTEIN",
-      "traderArticleNumber": "DF38837",
-      "articleNumber": "38837",
-      "availabilityText": "não disponivel",
-      "inStock": false,
-      "retailPrice": 29.84
     },
     {
       "brandName": "AD Parts",
@@ -48,6 +32,22 @@
       "availabilityText": "disponível",
       "inStock": true,
       "retailPrice": 2.42
+    },
+    {
+      "brandName": "MANN-FILTER",
+      "traderArticleNumber": "IFMW712/75",
+      "articleNumber": "W 712/75",
+      "availabilityText": "disponível",
+      "inStock": true,
+      "retailPrice": 2.86
+    },
+    {
+      "brandName": "BOSCH",
+      "traderArticleNumber": "B0451103079",
+      "articleNumber": "0 451 103 079",
+      "availabilityText": "disponível",
+      "inStock": true,
+      "retailPrice": 2.52
     }
   ]
 }
