@@ -25,6 +25,10 @@ final readonly class IdentifyAndSourceParts
 
         $oeParts = $this->identify->execute($vin, $understanding->category, $understanding->keywords);
 
+        // Plan 1 fans out all-or-nothing: a supplier failure aborts the request
+        // and the (paid) understanding is lost. Acceptable while PartsLink24 is
+        // faked and returns a single part. Plan 2 (real catalog, multiple OE
+        // parts) must isolate each supplier so partial results survive.
         $autoDeltaResults = [];
         $autoZitaniaResults = [];
         foreach ($oeParts as $part) {

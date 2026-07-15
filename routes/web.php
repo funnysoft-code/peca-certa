@@ -16,7 +16,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->middleware('throttle:30,1')
         ->name('parts.search');
     Route::get('identify', [IdentifyController::class, 'index'])->name('identify.index');
-    Route::post('identify', [IdentifyController::class, 'store'])->name('identify.store');
+    Route::post('identify', [IdentifyController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('identify.store');
 });
 
 require __DIR__.'/settings.php';
