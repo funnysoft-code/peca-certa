@@ -2,36 +2,101 @@
 
 declare(strict_types=1);
 
-use App\Ai\Agents\PartRequestUnderstander;
 use App\Data\OePart;
+use App\Data\PartRequestUnderstanding;
+use App\Data\PartSearchResult;
+use App\Data\PartVariant;
+use App\Enums\SearchRunStatus;
+use App\Enums\Supplier;
+use App\Enums\SupplierLookupStatus;
+use App\Models\SearchRun;
+use App\Models\SupplierLookup;
 use App\Models\User;
-use App\Services\AutoDelta\AutoDeltaToken;
-use App\Services\PartsLink24\Contracts\PartsLink24Catalog;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Facades\Bus;
 
-it('identifies a part from a request and vin', function (): void {
-    PartRequestUnderstander::fake([
-        ['category' => 'filtro de óleo', 'searchTerm' => 'oil filter', 'keywords' => ['óleo'], 'clarifyingQuestion' => null, 'confidence' => 0.9],
+it('renders the persisted results of a completed run', function (): void {
+    $user = User::factory()->create(['email_verified_at' => now()]);
+
+    $understanding = new PartRequestUnderstanding(
+        category: 'filtro de óleo',
+        searchTerm: 'oil filter',
+        keywords: ['óleo'],
+        clarifyingQuestion: null,
+        confidence: 0.9,
+    );
+    $oePart = new OePart('OC 90', 'Filtro de óleo', 'OE');
+
+    $run = SearchRun::factory()->for($user)->create([
+        'status' => SearchRunStatus::Done,
+        'understanding' => $understanding->jsonSerialize(),
+        'oe_parts' => [$oePart->jsonSerialize()],
     ]);
-    $this->mock(PartsLink24Catalog::class)->shouldReceive('resolveOeParts')->andReturn([new OePart('OC 90', 'Filtro', 'OE')]);
-    config()->set('suppliers.autodelta.catalog_url', 'https://cat.test/WebCat30WS');
-    config()->set('suppliers.autodelta.search_url', 'https://cat.test/Tecdoc');
-    config()->set('suppliers.autodelta.catalog_id', 'CAT');
-    config()->set('suppliers.autozitania.username', 'user');
-    config()->set('suppliers.autozitania.password', 'secret');
-    Cache::put('autodelta.token', new AutoDeltaToken('KEY', 'USER', now()->addDay()), now()->addDay());
-    $search = json_decode((string) file_get_contents(base_path('tests/Fixtures/AutoDelta/search-by-number.json')), true);
-    $prices = json_decode((string) file_get_contents(base_path('tests/Fixtures/AutoDelta/trade-prices.json')), true);
-    Http::fakeSequence('cat.test/*')->push($search['response'])->push($prices['response']);
-    Process::fake(['*' => Process::result(output: (string) file_get_contents(base_path('tests/Fixtures/AutoZitania/search-output.json')))]);
+
+    $availableVariant = new PartVariant(
+        brandName: 'MANN-FILTER',
+        articleNumber: 'W 712/75',
+        traderArticleNumber: 'W71275',
+        purchasePrice: 4.5,
+        retailPrice: 7.9,
+        currency: 'EUR',
+        availableQuantity: 12,
+        inStock: true,
+        warehouse: 'Lisboa',
+    );
+
+    SupplierLookup::factory()->for($run, 'run')->create([
+        'supplier' => Supplier::AutoDelta,
+        'query' => $oePart->oeNumber,
+        'oe_description' => $oePart->description,
+        'status' => SupplierLookupStatus::Done,
+        'result' => new PartSearchResult(
+            query: $oePart->oeNumber,
+            variants: [$availableVariant],
+            searchUrl: 'https://web.tecalliance.net/search',
+        )->jsonSerialize(),
+    ]);
+
+    SupplierLookup::factory()->for($run, 'run')->create([
+        'supplier' => Supplier::AutoZitania,
+        'query' => $oePart->oeNumber,
+        'oe_description' => $oePart->description,
+        'status' => SupplierLookupStatus::Empty,
+        'result' => new PartSearchResult(
+            query: $oePart->oeNumber,
+            variants: [],
+        )->jsonSerialize(),
+    ]);
+
+    $this->actingAs($user);
+
+    $page = visit('/identify/'.$run->id);
+    $page->waitForEvent('networkidle');
+
+    $page->assertSee('OC 90')
+        ->assertSee('Fornecedor')
+        ->assertSee('4.50')
+        ->assertSee('Abrir em Auto Delta')
+        ->assertPresent('a[href="https://web.tecalliance.net/search"]');
+});
+
+it('submits the identify form and lands on the run page', function (): void {
+    Bus::fake();
 
     $this->actingAs(User::factory()->create(['email_verified_at' => now()]));
+
     $page = visit('/identify');
     $page->waitForEvent('networkidle');
+
     $page->fill('input[placeholder="Pedido do cliente"]', 'filtro de óleo para Golf')
         ->fill('input[placeholder="VIN"]', 'WVWZZZ1JZXW000001')
         ->press('Identificar');
-    $page->waitForText('Preço')->assertSee('Fornecedor');
-})->skip('Superseded by the run-based /identify flow (create/store/show); needs a rewrite against identify/show once Task 9 ships that page.');
+
+    $page->waitForEvent('networkidle');
+
+    $page->assertPathBeginsWith('/identify/');
+
+    $run = SearchRun::query()->firstOrFail();
+
+    expect($run->request_text)->toBe('filtro de óleo para Golf')
+        ->and($run->vin)->toBe('WVWZZZ1JZXW000001');
+});

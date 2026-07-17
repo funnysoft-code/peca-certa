@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Enums\SearchRunKind;
 use App\Enums\SearchRunStatus;
-use App\Http\Middleware\HandleInertiaRequests;
 use App\Jobs\IdentifyOePartsJob;
 use App\Jobs\UnderstandRequestJob;
 use App\Models\SearchRun;
@@ -24,13 +23,18 @@ it('renders the identify page for authed users', function (): void {
 
 it("lists the user's last 5 identify runs newest first", function (): void {
     $user = User::factory()->create(['email_verified_at' => now()]);
+    $baseTime = now();
+
+    // Explicit, strictly increasing created_at values: Pest.php freezes time
+    // for every test, so factory-default timestamps would tie and make the
+    // "newest first" ordering assertion flaky.
     SearchRun::factory()->for($user)->count(6)->sequence(
-        ['request_text' => 'run 1'],
-        ['request_text' => 'run 2'],
-        ['request_text' => 'run 3'],
-        ['request_text' => 'run 4'],
-        ['request_text' => 'run 5'],
-        ['request_text' => 'run 6'],
+        ['request_text' => 'run 1', 'created_at' => $baseTime->copy()->subMinutes(6)],
+        ['request_text' => 'run 2', 'created_at' => $baseTime->copy()->subMinutes(5)],
+        ['request_text' => 'run 3', 'created_at' => $baseTime->copy()->subMinutes(4)],
+        ['request_text' => 'run 4', 'created_at' => $baseTime->copy()->subMinutes(3)],
+        ['request_text' => 'run 5', 'created_at' => $baseTime->copy()->subMinutes(2)],
+        ['request_text' => 'run 6', 'created_at' => $baseTime->copy()->subMinute()],
     )->create();
 
     $this->actingAs($user)
@@ -72,23 +76,13 @@ it('shows the run page for the owner', function (): void {
     $user = User::factory()->create(['email_verified_at' => now()]);
     $run = SearchRun::factory()->for($user)->create();
 
-    // Task 9 builds the identify/show frontend page; this XHR-style Inertia
-    // request avoids the full HTML render (and thus the Vite manifest lookup
-    // for a page that does not exist yet) while still exercising the
-    // controller's real Inertia response shape.
-    $response = $this->actingAs($user)
-        ->withHeaders([
-            'X-Inertia' => 'true',
-            'X-Inertia-Version' => new HandleInertiaRequests()->version(request()),
-        ])
-        ->get(route('identify.show', $run));
-
-    $response->assertOk();
-
-    $page = $response->json();
-
-    expect($page['component'])->toBe('identify/show')
-        ->and($page['props']['run']['id'])->toBe($run->id);
+    $this->actingAs($user)
+        ->get(route('identify.show', $run))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('identify/show')
+            ->where('run.id', $run->id),
+        );
 });
 
 it("forbids showing another user's run", function (): void {

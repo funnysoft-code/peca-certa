@@ -27,6 +27,7 @@ final readonly class SearchRunData implements JsonSerializable
         public ?PartRequestUnderstanding $understanding,
         public array $oeParts,
         public array $lookups,
+        public string $createdAt,
     ) {}
 
     public static function fromModel(SearchRun $run): self
@@ -41,11 +42,12 @@ final readonly class SearchRunData implements JsonSerializable
             understanding: $run->understanding === null ? null : PartRequestUnderstanding::fromArray($run->understanding),
             oeParts: array_map(OePart::fromArray(...), $run->oe_parts ?? []),
             lookups: array_values($run->lookups->map(SupplierLookupData::fromModel(...))->all()),
+            createdAt: $run->created_at?->toISOString() ?? '',
         );
     }
 
     /**
-     * @return array{id: string, kind: SearchRunKind, status: SearchRunStatus, requestText: string|null, vin: string|null, reference: string|null, understanding: PartRequestUnderstanding|null, oeParts: list<OePart>, lookups: list<SupplierLookupData>}
+     * @return array{id: string, kind: SearchRunKind, status: SearchRunStatus, requestText: string|null, vin: string|null, reference: string|null, understanding: PartRequestUnderstanding|null, oeParts: list<OePart>, lookups: list<SupplierLookupData>, createdAt: string}
      */
     public function jsonSerialize(): array
     {
@@ -59,6 +61,7 @@ final readonly class SearchRunData implements JsonSerializable
             'understanding' => $this->understanding,
             'oeParts' => $this->oeParts,
             'lookups' => $this->lookups,
+            'createdAt' => $this->createdAt,
         ];
     }
 }
