@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\PartsLink24;
 
 use GuzzleHttp\Cookie\CookieJar;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Http;
@@ -39,18 +40,15 @@ final readonly class PartsLink24Client
     public function searchByVin(PartsLink24Brand $brand, string $vin, string $query): array
     {
         $token = $this->token($brand);
-        $base = config()->string('suppliers.partslink24.base_url');
+        $response = $this->search($brand, $vin, $query, $token);
 
-        $response = Http::asJson()
-            ->timeout(config()->integer('suppliers.partslink24.timeout'))
-            ->withToken($token->accessToken)
-            ->get(sprintf('%s/%s/extern/search/vin', $base, $brand->group), [
-                'lang' => config()->string('suppliers.partslink24.lang'),
-                'serviceName' => $brand->service,
-                'vin' => $vin,
-                'q' => $query,
-            ])
-            ->throw();
+        if ($response->status() === 401) {
+            Cache::forget('partslink24.token.'.$brand->service);
+            $token = $this->token($brand);
+            $response = $this->search($brand, $vin, $query, $token);
+        }
+
+        $response->throw();
 
         /** @var list<array<string, mixed>> $records */
         $records = data_get($response->json(), 'data.records', []);
@@ -67,6 +65,21 @@ final readonly class PartsLink24Client
         }
 
         return $rows;
+    }
+
+    private function search(PartsLink24Brand $brand, string $vin, string $query, PartsLink24Token $token): Response
+    {
+        $base = config()->string('suppliers.partslink24.base_url');
+
+        return Http::asJson()
+            ->timeout(config()->integer('suppliers.partslink24.timeout'))
+            ->withToken($token->accessToken)
+            ->get(sprintf('%s/%s/extern/search/vin', $base, $brand->group), [
+                'lang' => config()->string('suppliers.partslink24.lang'),
+                'serviceName' => $brand->service,
+                'vin' => $vin,
+                'q' => $query,
+            ]);
     }
 
     private function authorize(PartsLink24Brand $brand): PartsLink24Token

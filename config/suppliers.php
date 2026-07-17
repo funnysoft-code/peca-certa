@@ -33,7 +33,6 @@ return [
         'username' => env('PARTSLINK24_USERNAME'),
         'password' => env('PARTSLINK24_PASSWORD'),
         'timeout' => (int) env('PARTSLINK24_TIMEOUT', 30),
-        'country' => env('PARTSLINK24_COUNTRY', 'PT'),
         'lang' => env('PARTSLINK24_LANG', 'en'),
         // Seconds shaved off the authorize token TTL before treating it as expired.
         'token_ttl_buffer' => (int) env('PARTSLINK24_TOKEN_TTL_BUFFER', 30),
