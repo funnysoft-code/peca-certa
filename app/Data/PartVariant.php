@@ -26,6 +26,24 @@ final readonly class PartVariant implements JsonSerializable
     ) {}
 
     /**
+     * @param  array<array-key, mixed>  $data
+     */
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            brandName: is_string($data['brandName'] ?? null) ? $data['brandName'] : '',
+            articleNumber: is_string($data['articleNumber'] ?? null) ? $data['articleNumber'] : '',
+            traderArticleNumber: is_string($data['traderArticleNumber'] ?? null) ? $data['traderArticleNumber'] : '',
+            purchasePrice: is_numeric($data['purchasePrice'] ?? null) ? (float) $data['purchasePrice'] : null,
+            retailPrice: is_numeric($data['retailPrice'] ?? null) ? (float) $data['retailPrice'] : null,
+            currency: is_string($data['currency'] ?? null) ? $data['currency'] : '',
+            availableQuantity: is_numeric($data['availableQuantity'] ?? null) ? (int) $data['availableQuantity'] : 0,
+            inStock: is_bool($data['inStock'] ?? null) && $data['inStock'],
+            warehouse: is_string($data['warehouse'] ?? null) ? $data['warehouse'] : '',
+        );
+    }
+
+    /**
      * Each article comes back with one purchase (E) and one retail (V) price row
      * per warehouse. Stock is summed across warehouses; the price/location shown
      * is taken from the best-stocked warehouse so an in-stock part is never

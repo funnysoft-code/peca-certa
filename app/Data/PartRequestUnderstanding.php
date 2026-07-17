@@ -21,6 +21,22 @@ final readonly class PartRequestUnderstanding implements JsonSerializable
         public float $confidence,
     ) {}
 
+    /**
+     * @param  array<array-key, mixed>  $data
+     */
+    public static function fromArray(array $data): self
+    {
+        $clarifying = is_string($data['clarifyingQuestion'] ?? null) ? $data['clarifyingQuestion'] : null;
+
+        return new self(
+            category: is_string($data['category'] ?? null) ? $data['category'] : '',
+            searchTerm: is_string($data['searchTerm'] ?? null) ? $data['searchTerm'] : '',
+            keywords: self::toStringList($data['keywords'] ?? []),
+            clarifyingQuestion: $clarifying === '' ? null : $clarifying,
+            confidence: is_numeric($data['confidence'] ?? null) ? (float) $data['confidence'] : 0.0,
+        );
+    }
+
     public function needsClarification(): bool
     {
         return $this->clarifyingQuestion !== null && $this->clarifyingQuestion !== '';
@@ -38,5 +54,20 @@ final readonly class PartRequestUnderstanding implements JsonSerializable
             'clarifyingQuestion' => $this->clarifyingQuestion,
             'confidence' => $this->confidence,
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function toStringList(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            array_map(fn (mixed $v): string => is_string($v) ? $v : '', $value),
+            fn (string $v): bool => $v !== '',
+        ));
     }
 }

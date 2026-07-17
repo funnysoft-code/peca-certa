@@ -103,3 +103,38 @@ it('keeps articles without price rows as unavailable variants (TecDoc cross-refe
     expect($result->variants[1]->brandName)->toBe('JAPANPARTS')
         ->and($result->variants[1]->inStock)->toBeTrue();
 });
+
+it('rebuilds a PartVariant from a stored array', function (): void {
+    $variant = PartVariant::fromArray([
+        'brandName' => 'JAPANPARTS',
+        'articleNumber' => 'FO-398S',
+        'traderArticleNumber' => 'JFO-398',
+        'purchasePrice' => 1.70,
+        'retailPrice' => 2.26,
+        'currency' => 'EUR',
+        'availableQuantity' => 23,
+        'inStock' => true,
+        'warehouse' => '1 - Leiria',
+    ]);
+
+    expect($variant->brandName)->toBe('JAPANPARTS')
+        ->and($variant->purchasePrice)->toBe(1.70)
+        ->and($variant->retailPrice)->toBe(2.26)
+        ->and($variant->availableQuantity)->toBe(23)
+        ->and($variant->inStock)->toBeTrue()
+        ->and($variant->warehouse)->toBe('1 - Leiria');
+});
+
+it('rebuilds a PartVariant from an empty or malformed array', function (): void {
+    $variant = PartVariant::fromArray([]);
+
+    expect($variant->brandName)->toBe('')
+        ->and($variant->articleNumber)->toBe('')
+        ->and($variant->traderArticleNumber)->toBe('')
+        ->and($variant->purchasePrice)->toBeNull()
+        ->and($variant->retailPrice)->toBeNull()
+        ->and($variant->currency)->toBe('')
+        ->and($variant->availableQuantity)->toBe(0)
+        ->and($variant->inStock)->toBeFalse()
+        ->and($variant->warehouse)->toBe('');
+});
