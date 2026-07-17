@@ -36,6 +36,14 @@ declare namespace App {
         };
     }
     namespace Enums {
+        export type SearchRunKind = 'identify' | 'parts';
+        export type SearchRunStatus = 'pending' | 'running' | 'done' | 'failed';
         export type Supplier = 'autodelta' | 'autozitania';
+        export type SupplierLookupStatus =
+            | 'pending'
+            | 'running'
+            | 'done'
+            | 'failed'
+            | 'empty';
     }
 }
