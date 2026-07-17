@@ -18,9 +18,12 @@ final readonly class UnderstandPartRequest
         throw_unless($response instanceof StructuredAgentResponse, RuntimeException::class, 'PartRequestUnderstander did not return structured output.');
 
         $clarifying = is_string($response['clarifyingQuestion'] ?? null) ? $response['clarifyingQuestion'] : null;
+        $category = is_string($response['category'] ?? null) ? $response['category'] : '';
+        $searchTerm = is_string($response['searchTerm'] ?? null) ? $response['searchTerm'] : '';
 
         return new PartRequestUnderstanding(
-            category: is_string($response['category'] ?? null) ? $response['category'] : '',
+            category: $category,
+            searchTerm: $searchTerm === '' ? $category : $searchTerm,
             keywords: $this->toStringList($response['keywords'] ?? []),
             clarifyingQuestion: $clarifying === '' ? null : $clarifying,
             confidence: is_numeric($response['confidence'] ?? null) ? (float) $response['confidence'] : 0.0,

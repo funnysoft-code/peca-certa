@@ -15,6 +15,7 @@ final readonly class PartRequestUnderstanding implements JsonSerializable
      */
     public function __construct(
         public string $category,
+        public string $searchTerm,
         public array $keywords,
         public ?string $clarifyingQuestion,
         public float $confidence,
@@ -26,12 +27,13 @@ final readonly class PartRequestUnderstanding implements JsonSerializable
     }
 
     /**
-     * @return array{category: string, keywords: list<string>, clarifyingQuestion: string|null, confidence: float}
+     * @return array{category: string, searchTerm: string, keywords: list<string>, clarifyingQuestion: string|null, confidence: float}
      */
     public function jsonSerialize(): array
     {
         return [
             'category' => $this->category,
+            'searchTerm' => $this->searchTerm,
             'keywords' => $this->keywords,
             'clarifyingQuestion' => $this->clarifyingQuestion,
             'confidence' => $this->confidence,

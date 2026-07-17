@@ -8,7 +8,7 @@ use App\Data\PartRequestUnderstanding;
 use App\Data\PartSearchResult;
 
 it('serialises an identify result', function (): void {
-    $understanding = new PartRequestUnderstanding('filtro de óleo', ['óleo'], null, 0.9);
+    $understanding = new PartRequestUnderstanding('filtro de óleo', 'oil filter', ['óleo'], null, 0.9);
     $oePart = new OePart('OC 90', 'Filtro de óleo', 'OE');
     $delta = new PartSearchResult('OC 90', []);
 

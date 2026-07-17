@@ -13,6 +13,7 @@ declare namespace App {
         };
         export type PartRequestUnderstanding = {
             readonly category: string;
+            readonly searchTerm: string;
             readonly keywords: string[];
             readonly clarifyingQuestion: string | null;
             readonly confidence: number;
