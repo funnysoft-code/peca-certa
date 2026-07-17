@@ -42,7 +42,7 @@ final class PriceSupplierJob implements ShouldQueue
     public function middleware(): array
     {
         return $this->lookup->supplier === Supplier::AutoZitania
-            ? [new WithoutOverlapping('zitania')]
+            ? [new WithoutOverlapping('zitania')->expireAfter(150)]
             : [];
     }
 

@@ -22,7 +22,9 @@ it('builds SearchRunData from a run with lookups', function (): void {
         ->and($data->oeParts)->toHaveCount(1)
         ->and($data->oeParts[0]->oeNumber)->toBe('11427622446')
         ->and($data->lookups)->toHaveCount(1)
-        ->and($data->jsonSerialize())->toHaveKeys(['id', 'kind', 'status', 'understanding', 'oeParts', 'lookups']);
+        ->and($data->createdAt)->toBe($run->created_at?->toISOString())
+        ->and($data->createdAt)->not->toBeEmpty()
+        ->and($data->jsonSerialize())->toHaveKeys(['id', 'kind', 'status', 'understanding', 'oeParts', 'lookups', 'createdAt']);
 });
 
 it('builds SearchRunData from a run with no understanding, oe_parts or lookups', function (): void {
@@ -36,4 +38,13 @@ it('builds SearchRunData from a run with no understanding, oe_parts or lookups',
     expect($data->understanding)->toBeNull()
         ->and($data->oeParts)->toBe([])
         ->and($data->lookups)->toBe([]);
+});
+
+it('falls back to an empty string when the run has no created_at', function (): void {
+    $run = SearchRun::factory()->create();
+    $run->created_at = null;
+
+    $data = SearchRunData::fromModel($run->load('lookups'));
+
+    expect($data->createdAt)->toBe('');
 });

@@ -116,13 +116,16 @@ it('sets the correct queue and timeout for each supplier', function (): void {
         ->and($triesAttribute->tries)->toBe(2);
 });
 
-it('serializes without overlapping middleware for Auto Zitania only', function (): void {
+it('serializes without overlapping middleware for Auto Zitania only, with an expiry past the job timeout', function (): void {
     $autoDeltaLookup = SupplierLookup::factory()->make(['supplier' => Supplier::AutoDelta]);
     $autoZitaniaLookup = SupplierLookup::factory()->make(['supplier' => Supplier::AutoZitania]);
 
+    $autoZitaniaMiddleware = new PriceSupplierJob($autoZitaniaLookup)->middleware();
+
     expect(new PriceSupplierJob($autoDeltaLookup)->middleware())->toBe([])
-        ->and(new PriceSupplierJob($autoZitaniaLookup)->middleware())->toHaveCount(1)
-        ->and(new PriceSupplierJob($autoZitaniaLookup)->middleware()[0])->toBeInstanceOf(WithoutOverlapping::class);
+        ->and($autoZitaniaMiddleware)->toHaveCount(1)
+        ->and($autoZitaniaMiddleware[0])->toBeInstanceOf(WithoutOverlapping::class)
+        ->and($autoZitaniaMiddleware[0]->expiresAfter)->toBe(150);
 });
 
 it('marks the lookup failed, broadcasts, and completes the run on failure', function (): void {

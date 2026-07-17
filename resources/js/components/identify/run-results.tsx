@@ -52,6 +52,45 @@ function byBrandThenSupplier(a: ResultRow, b: ResultRow): number {
     );
 }
 
+type ProviderLink = {
+    supplier: App.Enums.Supplier;
+    query: string;
+    url: string;
+};
+
+// One link per (supplier, OE number) lookup that has a searchUrl, so up to 5
+// OE candidates each get their own Auto Delta link instead of collapsing to
+// one. Lookups that share the identical (supplier, searchUrl) — e.g. Auto
+// Zitânia's single branded entry URL repeated across every OE part — collapse
+// to one link.
+function toProviderLinks(
+    lookups: App.Data.SupplierLookupData[],
+): ProviderLink[] {
+    const byOeNumber = new Map<string, ProviderLink>();
+
+    for (const lookup of lookups) {
+        const url = lookup.result?.searchUrl;
+
+        if (!url) {
+            continue;
+        }
+
+        byOeNumber.set(`${lookup.supplier}:${lookup.query}`, {
+            supplier: lookup.supplier,
+            query: lookup.query,
+            url,
+        });
+    }
+
+    const byUrl = new Map<string, ProviderLink>();
+
+    for (const link of byOeNumber.values()) {
+        byUrl.set(`${link.supplier}:${link.url}`, link);
+    }
+
+    return Array.from(byUrl.values());
+}
+
 export function RunResults({
     lookups,
 }: {
@@ -71,15 +110,7 @@ export function RunResults({
     const unavailable = rows.filter((row) => !row.variant.inStock);
     const hasResults = rows.length > 0;
 
-    const providerLinks = Array.from(
-        new Map<App.Enums.Supplier, string>(
-            lookups.flatMap((lookup) =>
-                lookup.result?.searchUrl
-                    ? [[lookup.supplier, lookup.result.searchUrl] as const]
-                    : [],
-            ),
-        ),
-    );
+    const providerLinks = toProviderLinks(lookups);
 
     return (
         <div className="space-y-4">
@@ -113,20 +144,21 @@ export function RunResults({
 
             {providerLinks.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                    {providerLinks.map(([supplier, url]) => (
+                    {providerLinks.map((link) => (
                         <Button
-                            key={supplier}
+                            key={`${link.supplier}:${link.url}`}
                             asChild
                             variant="outline"
                             size="sm"
                         >
                             <a
-                                href={url}
+                                href={link.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                             >
                                 <ExternalLink className="size-4" />
-                                Abrir em {SUPPLIER_LABELS[supplier]}
+                                Abrir {link.query} em{' '}
+                                {SUPPLIER_LABELS[link.supplier]}
                             </a>
                         </Button>
                     ))}

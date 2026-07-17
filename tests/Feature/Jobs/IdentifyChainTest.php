@@ -156,11 +156,14 @@ it('no-ops when the run no longer exists in the database', function (): void {
     Bus::assertNotDispatched(PriceSupplierJob::class);
 });
 
-it('serializes with the partslink24 WithoutOverlapping middleware', function (): void {
+it('serializes with the partslink24 WithoutOverlapping middleware and an expiry past the job timeout', function (): void {
     $run = SearchRun::factory()->make();
 
-    expect(new IdentifyOePartsJob($run)->middleware())->toHaveCount(1)
-        ->and(new IdentifyOePartsJob($run)->middleware()[0])->toBeInstanceOf(WithoutOverlapping::class);
+    $middleware = new IdentifyOePartsJob($run)->middleware();
+
+    expect($middleware)->toHaveCount(1)
+        ->and($middleware[0])->toBeInstanceOf(WithoutOverlapping::class)
+        ->and($middleware[0]->expiresAfter)->toBe(150);
 });
 
 it('flips a running run to Failed and broadcasts when UnderstandRequestJob exhausts retries', function (): void {

@@ -39,7 +39,7 @@ final class IdentifyOePartsJob implements ShouldQueue
      */
     public function middleware(): array
     {
-        return [new WithoutOverlapping('partslink24')];
+        return [new WithoutOverlapping('partslink24')->expireAfter(150)];
     }
 
     public function handle(IdentifyOeParts $identify): void
@@ -77,6 +77,9 @@ final class IdentifyOePartsJob implements ShouldQueue
             return;
         }
 
+        /** @var list<SupplierLookup> $createdLookups */
+        $createdLookups = [];
+
         foreach ($oeParts as $part) {
             foreach ([Supplier::AutoDelta, Supplier::AutoZitania] as $supplier) {
                 $lookup = SupplierLookup::query()->firstOrCreate([
@@ -89,9 +92,13 @@ final class IdentifyOePartsJob implements ShouldQueue
                 ]);
 
                 if ($lookup->wasRecentlyCreated) {
-                    dispatch(new PriceSupplierJob($lookup));
+                    $createdLookups[] = $lookup;
                 }
             }
+        }
+
+        foreach ($createdLookups as $createdLookup) {
+            dispatch(new PriceSupplierJob($createdLookup));
         }
     }
 

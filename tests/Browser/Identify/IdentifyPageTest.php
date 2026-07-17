@@ -75,7 +75,7 @@ it('renders the persisted results of a completed run', function (): void {
     $page->assertSee('OC 90')
         ->assertSee('Fornecedor')
         ->assertSee('4.50')
-        ->assertSee('Abrir em Auto Delta')
+        ->assertSee('Abrir OC 90 em Auto Delta')
         ->assertPresent('a[href="https://web.tecalliance.net/search"]');
 });
 
