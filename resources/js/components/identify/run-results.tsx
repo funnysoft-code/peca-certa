@@ -60,8 +60,8 @@ type ProviderLink = {
 
 // One link per (supplier, OE number) lookup that has a searchUrl, so up to 5
 // OE candidates each get their own Auto Delta link instead of collapsing to
-// one. Lookups that share the identical (supplier, searchUrl) — e.g. Auto
-// Zitânia's single branded entry URL repeated across every OE part — collapse
+// one. Lookups that share the identical (supplier, searchUrl), e.g. Auto
+// Zitânia's single branded entry URL repeated across every OE part, collapse
 // to one link.
 function toProviderLinks(
     lookups: App.Data.SupplierLookupData[],
