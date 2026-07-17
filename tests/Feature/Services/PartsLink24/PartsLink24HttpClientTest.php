@@ -54,9 +54,9 @@ it('returns no parts for an empty query without any HTTP', function (): void {
 });
 
 it('is the bound implementation after Task 7', function (): void {
-    // Sanity: the contract resolves to the real client (kept green once binding is swapped).
+    // Sanity: the contract resolves to the real client.
     expect(resolve(PartsLink24Catalog::class))->toBeInstanceOf(PartsLink24HttpClient::class);
-})->skip('enable after Task 7 swaps the binding');
+});
 
 it('caps candidates at the configured maximum', function (): void {
     config()->set('suppliers.partslink24.max_candidates', 1);
