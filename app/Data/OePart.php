@@ -17,6 +17,18 @@ final readonly class OePart implements JsonSerializable
     ) {}
 
     /**
+     * @param  array<array-key, mixed>  $data
+     */
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            oeNumber: is_string($data['oeNumber'] ?? null) ? $data['oeNumber'] : '',
+            description: is_string($data['description'] ?? null) ? $data['description'] : '',
+            brand: is_string($data['brand'] ?? null) ? $data['brand'] : '',
+        );
+    }
+
+    /**
      * @return array{oeNumber: string, description: string, brand: string}
      */
     public function jsonSerialize(): array

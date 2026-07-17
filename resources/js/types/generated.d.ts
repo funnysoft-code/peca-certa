@@ -34,6 +34,25 @@ declare namespace App {
             readonly inStock: boolean;
             readonly warehouse: string;
         };
+        export type SearchRunData = {
+            readonly id: string;
+            readonly kind: App.Enums.SearchRunKind;
+            readonly status: App.Enums.SearchRunStatus;
+            readonly requestText: string | null;
+            readonly vin: string | null;
+            readonly reference: string | null;
+            readonly understanding: App.Data.PartRequestUnderstanding | null;
+            readonly oeParts: App.Data.OePart[];
+            readonly lookups: App.Data.SupplierLookupData[];
+        };
+        export type SupplierLookupData = {
+            readonly id: string;
+            readonly supplier: App.Enums.Supplier;
+            readonly query: string;
+            readonly oeDescription: string | null;
+            readonly status: App.Enums.SupplierLookupStatus;
+            readonly result: App.Data.PartSearchResult | null;
+        };
     }
     namespace Enums {
         export type SearchRunKind = 'identify' | 'parts';
