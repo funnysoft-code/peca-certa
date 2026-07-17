@@ -15,10 +15,11 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::post('parts/search', [PartSearchController::class, 'store'])
         ->middleware('throttle:30,1')
         ->name('parts.search');
-    Route::get('identify', [IdentifyController::class, 'index'])->name('identify.index');
+    Route::get('identify', [IdentifyController::class, 'create'])->name('identify.create');
     Route::post('identify', [IdentifyController::class, 'store'])
         ->middleware('throttle:10,1')
         ->name('identify.store');
+    Route::get('identify/{run}', [IdentifyController::class, 'show'])->name('identify.show');
 });
 
 require __DIR__.'/settings.php';

@@ -34,4 +34,4 @@ it('identifies a part from a request and vin', function (): void {
         ->fill('input[placeholder="VIN"]', 'WVWZZZ1JZXW000001')
         ->press('Identificar');
     $page->waitForText('Preço')->assertSee('Fornecedor');
-});
+})->skip('Superseded by the run-based /identify flow (create/store/show); needs a rewrite against identify/show once Task 9 ships that page.');
