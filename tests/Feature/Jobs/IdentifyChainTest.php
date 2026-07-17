@@ -8,6 +8,7 @@ use App\Ai\Agents\PartRequestUnderstander;
 use App\Data\OePart;
 use App\Enums\SearchRunStatus;
 use App\Enums\Supplier;
+use App\Events\SearchRunAdvanced;
 use App\Jobs\IdentifyOePartsJob;
 use App\Jobs\PriceSupplierJob;
 use App\Jobs\UnderstandRequestJob;
@@ -15,6 +16,7 @@ use App\Models\SearchRun;
 use App\Services\PartsLink24\Contracts\PartsLink24Catalog;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Event;
 
 it('understands the request, identifies OE parts, and fans out a supplier lookup per part per supplier', function (): void {
     Bus::fake([PriceSupplierJob::class]);
@@ -159,4 +161,100 @@ it('serializes with the partslink24 WithoutOverlapping middleware', function ():
 
     expect(new IdentifyOePartsJob($run)->middleware())->toHaveCount(1)
         ->and(new IdentifyOePartsJob($run)->middleware()[0])->toBeInstanceOf(WithoutOverlapping::class);
+});
+
+it('flips a running run to Failed and broadcasts when UnderstandRequestJob exhausts retries', function (): void {
+    Event::fake([SearchRunAdvanced::class]);
+
+    $run = SearchRun::factory()->create(['status' => SearchRunStatus::Running]);
+
+    new UnderstandRequestJob($run)->failed(new RuntimeException('boom'));
+
+    expect($run->refresh()->status)->toBe(SearchRunStatus::Failed);
+
+    Event::assertDispatched(SearchRunAdvanced::class, fn (SearchRunAdvanced $event): bool => $event->run->id === $run->id);
+});
+
+it('does not flip an already Done run when UnderstandRequestJob fails', function (): void {
+    Event::fake([SearchRunAdvanced::class]);
+
+    $run = SearchRun::factory()->create(['status' => SearchRunStatus::Done]);
+
+    new UnderstandRequestJob($run)->failed(new RuntimeException('boom'));
+
+    expect($run->refresh()->status)->toBe(SearchRunStatus::Done);
+
+    Event::assertNotDispatched(SearchRunAdvanced::class);
+});
+
+it('no-ops when UnderstandRequestJob fails after the run was deleted from the database', function (): void {
+    Event::fake([SearchRunAdvanced::class]);
+
+    $run = SearchRun::factory()->create(['status' => SearchRunStatus::Running]);
+    SearchRun::query()->whereKey($run->id)->delete();
+
+    new UnderstandRequestJob($run)->failed(new RuntimeException('boom'));
+
+    Event::assertNotDispatched(SearchRunAdvanced::class);
+});
+
+it('flips a running run to Failed and broadcasts when IdentifyOePartsJob exhausts retries', function (): void {
+    Event::fake([SearchRunAdvanced::class]);
+
+    $run = SearchRun::factory()->create(['status' => SearchRunStatus::Running]);
+
+    new IdentifyOePartsJob($run)->failed(new RuntimeException('boom'));
+
+    expect($run->refresh()->status)->toBe(SearchRunStatus::Failed);
+
+    Event::assertDispatched(SearchRunAdvanced::class, fn (SearchRunAdvanced $event): bool => $event->run->id === $run->id);
+});
+
+it('does not flip an already Done run when IdentifyOePartsJob fails', function (): void {
+    Event::fake([SearchRunAdvanced::class]);
+
+    $run = SearchRun::factory()->create(['status' => SearchRunStatus::Done]);
+
+    new IdentifyOePartsJob($run)->failed(new RuntimeException('boom'));
+
+    expect($run->refresh()->status)->toBe(SearchRunStatus::Done);
+
+    Event::assertNotDispatched(SearchRunAdvanced::class);
+});
+
+it('no-ops when IdentifyOePartsJob fails after the run was deleted from the database', function (): void {
+    Event::fake([SearchRunAdvanced::class]);
+
+    $run = SearchRun::factory()->create(['status' => SearchRunStatus::Running]);
+    SearchRun::query()->whereKey($run->id)->delete();
+
+    new IdentifyOePartsJob($run)->failed(new RuntimeException('boom'));
+
+    Event::assertNotDispatched(SearchRunAdvanced::class);
+});
+
+it('is idempotent under retry: running the fan-out twice still yields exactly 2N lookups and 2N dispatches', function (): void {
+    Bus::fake([PriceSupplierJob::class]);
+    PartRequestUnderstander::fake([
+        ['category' => 'filtro de óleo', 'searchTerm' => 'oil filter', 'keywords' => ['óleo'], 'clarifyingQuestion' => null, 'confidence' => 0.9],
+    ]);
+    $this->mock(PartsLink24Catalog::class)
+        ->shouldReceive('resolveOeParts')
+        ->twice()
+        ->andReturn([
+            new OePart('11427622446', 'oil filter element', 'OE'),
+            new OePart('11427566327', 'oil filter housing', 'OE'),
+        ]);
+
+    $run = SearchRun::factory()->create(['request_text' => 'filtro de óleo', 'vin' => 'WMWSU91010T717700']);
+
+    new UnderstandRequestJob($run)->handle(resolve(UnderstandPartRequest::class));
+
+    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class));
+    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class));
+
+    expect($run->refresh()->status)->toBe(SearchRunStatus::Running)
+        ->and($run->lookups()->count())->toBe(4);
+
+    Bus::assertDispatchedTimes(PriceSupplierJob::class, 4);
 });

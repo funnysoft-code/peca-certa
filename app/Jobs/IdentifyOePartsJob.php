@@ -19,6 +19,7 @@ use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
+use Throwable;
 
 #[Timeout(90)]
 #[Tries(2)]
@@ -78,16 +79,39 @@ final class IdentifyOePartsJob implements ShouldQueue
 
         foreach ($oeParts as $part) {
             foreach ([Supplier::AutoDelta, Supplier::AutoZitania] as $supplier) {
-                $lookup = SupplierLookup::query()->create([
+                $lookup = SupplierLookup::query()->firstOrCreate([
                     'search_run_id' => $run->id,
                     'supplier' => $supplier,
                     'query' => $part->oeNumber,
+                ], [
                     'oe_description' => $part->description,
                     'status' => SupplierLookupStatus::Pending,
                 ]);
 
-                dispatch(new PriceSupplierJob($lookup));
+                if ($lookup->wasRecentlyCreated) {
+                    dispatch(new PriceSupplierJob($lookup));
+                }
             }
         }
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        $run = $this->run->fresh();
+
+        if (! $run instanceof SearchRun) {
+            return;
+        }
+
+        $terminalStatuses = [SearchRunStatus::Done, SearchRunStatus::Failed];
+
+        if (in_array($run->status, $terminalStatuses, true)) {
+            return;
+        }
+
+        $run->status = SearchRunStatus::Failed;
+        $run->save();
+
+        event(new SearchRunAdvanced($run));
     }
 }

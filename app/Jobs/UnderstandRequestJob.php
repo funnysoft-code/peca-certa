@@ -13,6 +13,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\Attributes\Timeout;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\SerializesModels;
+use Throwable;
 
 #[Timeout(120)]
 #[Tries(1)]
@@ -45,5 +46,25 @@ final class UnderstandRequestJob implements ShouldQueue
 
             event(new SearchRunAdvanced($this->run));
         }
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        $run = $this->run->fresh();
+
+        if (! $run instanceof SearchRun) {
+            return;
+        }
+
+        $terminalStatuses = [SearchRunStatus::Done, SearchRunStatus::Failed];
+
+        if (in_array($run->status, $terminalStatuses, true)) {
+            return;
+        }
+
+        $run->status = SearchRunStatus::Failed;
+        $run->save();
+
+        event(new SearchRunAdvanced($run));
     }
 }
