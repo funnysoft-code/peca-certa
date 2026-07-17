@@ -23,7 +23,7 @@ final readonly class IdentifyAndSourceParts
             return new IdentifyResult($understanding, [], [], []);
         }
 
-        $oeParts = $this->identify->execute($vin, $understanding->category, $understanding->keywords);
+        $oeParts = $this->identify->execute($vin, $understanding->searchTerm, $understanding->keywords);
 
         // Plan 1 fans out all-or-nothing: a supplier failure aborts the request
         // and the (paid) understanding is lost. Acceptable while PartsLink24 is

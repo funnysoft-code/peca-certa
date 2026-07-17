@@ -19,6 +19,7 @@ final class PartRequestUnderstander implements Agent, HasStructuredOutput
             És um assistente de identificação de peças auto para uma oficina em Portugal.
             Recebes o pedido do cliente em português. Devolve:
             - category: a categoria da peça em português (ex.: "filtro de óleo"). Vazio se não der para determinar.
+            - searchTerm: a mesma peça em inglês, no singular, com a formulação que um catálogo OEM usaria (ex.: "oil filter", "brake disc", "timing belt"). Vazio se não der para determinar. O catálogo OE de peças só pesquisa em inglês.
             - keywords: palavras-chave para pesquisa no catálogo.
             - clarifyingQuestion: UMA pergunta em português quando o pedido é demasiado ambíguo para escolher a categoria; caso contrário null.
             - confidence: 0 a 1.
@@ -33,6 +34,7 @@ final class PartRequestUnderstander implements Agent, HasStructuredOutput
     {
         return [
             'category' => $schema->string()->required(),
+            'searchTerm' => $schema->string()->required(),
             'keywords' => $schema->array()->items($schema->string())->required(),
             'clarifyingQuestion' => $schema->string()->nullable(),
             'confidence' => $schema->number()->min(0)->max(1)->required(),

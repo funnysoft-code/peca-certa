@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Process;
 
 it('identifies a part from a request and vin', function (): void {
     PartRequestUnderstander::fake([
-        ['category' => 'filtro de óleo', 'keywords' => ['óleo'], 'clarifyingQuestion' => null, 'confidence' => 0.9],
+        ['category' => 'filtro de óleo', 'searchTerm' => 'oil filter', 'keywords' => ['óleo'], 'clarifyingQuestion' => null, 'confidence' => 0.9],
     ]);
     $this->mock(PartsLink24Catalog::class)->shouldReceive('resolveOeParts')->andReturn([new OePart('OC 90', 'Filtro', 'OE')]);
     config()->set('suppliers.autodelta.catalog_url', 'https://cat.test/WebCat30WS');

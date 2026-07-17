@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Process;
 
 it('understands, identifies, and prices when a vin is given', function (): void {
     PartRequestUnderstander::fake([
-        ['category' => 'filtro de óleo', 'keywords' => ['óleo'], 'clarifyingQuestion' => null, 'confidence' => 0.9],
+        ['category' => 'filtro de óleo', 'searchTerm' => 'oil filter', 'keywords' => ['óleo'], 'clarifyingQuestion' => null, 'confidence' => 0.9],
     ]);
     $this->mock(PartsLink24Catalog::class)
         ->shouldReceive('resolveOeParts')->once()
@@ -40,7 +40,7 @@ it('understands, identifies, and prices when a vin is given', function (): void 
 
 it('stops at the clarifying question and does not identify', function (): void {
     PartRequestUnderstander::fake([
-        ['category' => '', 'keywords' => [], 'clarifyingQuestion' => 'Qual é o motor?', 'confidence' => 0.2],
+        ['category' => '', 'searchTerm' => '', 'keywords' => [], 'clarifyingQuestion' => 'Qual é o motor?', 'confidence' => 0.2],
     ]);
     $this->mock(PartsLink24Catalog::class)->shouldNotReceive('resolveOeParts');
 
