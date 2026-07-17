@@ -53,3 +53,15 @@ it('rebuilds an understanding with an empty keywords list when keywords is not a
 
     expect($u->keywords)->toBe([]);
 });
+
+it('rebuilds an understanding with a real clarifying question', function (): void {
+    $u = PartRequestUnderstanding::fromArray([
+        'category' => 'filtro de óleo',
+        'searchTerm' => 'oil filter',
+        'keywords' => ['OC 90'],
+        'clarifyingQuestion' => 'Qual é o motor?',
+        'confidence' => 0.4,
+    ]);
+
+    expect($u->clarifyingQuestion)->toBe('Qual é o motor?');
+});

@@ -38,7 +38,7 @@ final readonly class PartVariant implements JsonSerializable
             retailPrice: is_numeric($data['retailPrice'] ?? null) ? (float) $data['retailPrice'] : null,
             currency: is_string($data['currency'] ?? null) ? $data['currency'] : '',
             availableQuantity: is_numeric($data['availableQuantity'] ?? null) ? (int) $data['availableQuantity'] : 0,
-            inStock: (bool) ($data['inStock'] ?? false),
+            inStock: is_bool($data['inStock'] ?? null) && $data['inStock'],
             warehouse: is_string($data['warehouse'] ?? null) ? $data['warehouse'] : '',
         );
     }
