@@ -17,14 +17,23 @@ try:
     data = json.load(sys.stdin)
 except Exception:
     sys.exit(0)
+# Claude Code: tool_input.file_path; Cursor: file_path / path / file
 inp = data.get("tool_input") or {}
-path = inp.get("file_path") or inp.get("notebook_path") or ""
+path = (
+    inp.get("file_path")
+    or inp.get("notebook_path")
+    or data.get("file_path")
+    or data.get("filePath")
+    or data.get("path")
+    or data.get("file")
+    or ""
+)
 print(path)
 ' 2>/dev/null)
 
 [[ -z "$FILE_PATH" ]] && exit 0
 
-REPO_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+REPO_ROOT="${CLAUDE_PROJECT_DIR:-${CURSOR_PROJECT_DIR:-$(pwd)}}"
 REL="${FILE_PATH#"${REPO_ROOT}"/}"
 
 deny() {

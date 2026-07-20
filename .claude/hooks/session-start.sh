@@ -8,7 +8,7 @@
 
 set -u
 
-REPO_ROOT="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+REPO_ROOT="${CLAUDE_PROJECT_DIR:-${CURSOR_PROJECT_DIR:-$(pwd)}}"
 cd "$REPO_ROOT" || exit 0
 
 PROGRESS="$REPO_ROOT/docs/agent/progress.md"

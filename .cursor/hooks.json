@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterFileEdit": [
+      {
+        "command": "bash .claude/hooks/format-on-edit.sh",
+        "timeout": 30
+      },
+      {
+        "command": "bash .claude/hooks/drift-autofix.sh",
+        "timeout": 60
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "bash .claude/hooks/safety-rails.sh",
+        "matcher": "Write|Edit",
+        "timeout": 10
+      }
+    ],
+    "stop": [
+      {
+        "command": "bash .claude/hooks/claude-md-updater.sh",
+        "timeout": 15
+      },
+      {
+        "command": "bash .claude/hooks/progress-scaffolder.sh",
+        "timeout": 15
+      }
+    ],
+    "sessionStart": [
+      {
+        "command": "bash .claude/hooks/session-start.sh",
+        "timeout": 15
+      }
+    ]
+  }
+}

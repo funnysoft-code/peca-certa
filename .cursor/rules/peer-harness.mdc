@@ -1,0 +1,17 @@
+---
+description: Claude Code + Cursor peer harness — full parity mirrors
+alwaysApply: true
+---
+
+# Peer harness
+
+Claude Code and Cursor are both supported harnesses for this repo.
+
+- **Claude Code SSOT:** `.claude/` (skills, hooks, commands, agents, settings)
+- **Cursor mirror:** `.cursor/` (skills/hooks/commands/agents are symlinks into `.claude/`)
+- Root `AGENTS.md` ↔ `CLAUDE.md` pairing (symlinks)
+- `boost.json` `agents` must be exactly `["claude_code", "cursor"]`
+
+Do NOT delete `.cursor/` or the mirror symlinks. When adding a skill/hook/command/agent, put it under `.claude/` and ensure the `.cursor/` symlink exists (re-run parity or create `ln -s`).
+
+When creating a `CLAUDE.md`, also create `AGENTS.md` → `CLAUDE.md` in the same directory (and vice versa).
