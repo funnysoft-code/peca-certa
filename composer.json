@@ -67,7 +67,7 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "bunx concurrently -c \"#0ea5e9,#93c5fd,#fb7185,#fdba74,#a78bfa\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"php artisan reverb:start\" \"bun run dev\" --names=server,queue,logs,reverb,vite --kill-others"
+            "bunx concurrently -c \"#0ea5e9,#93c5fd,#fb7185,#fdba74,#a78bfa\" \"php artisan serve\" \"php artisan horizon\" \"php artisan pail --timeout=0\" \"php artisan reverb:start\" \"bun run dev\" --names=server,horizon,logs,reverb,vite --kill-others"
         ],
         "lint": [
             "vendor/bin/rector --ansi",

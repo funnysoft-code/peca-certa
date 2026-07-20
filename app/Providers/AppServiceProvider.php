@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Services\PartsLink24\Contracts\PartsLink24Catalog;
+use App\Services\PartsLink24\PartsLink24HttpClient;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +19,10 @@ final class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(
+            PartsLink24Catalog::class,
+            PartsLink24HttpClient::class,
+        );
     }
 
     /**

@@ -10,9 +10,9 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'default' => env('AI_DEFAULT_PROVIDER', 'anthropic'),
+    'default' => env('AI_DEFAULT_PROVIDER', 'xai'),
 
-    'default_for_images' => env('AI_DEFAULT_IMAGE_PROVIDER', 'openai'),
+    'default_for_images' => env('AI_DEFAULT_IMAGE_PROVIDER', 'xai'),
 
     /*
     |--------------------------------------------------------------------------
@@ -74,6 +74,21 @@ return [
                 ],
                 'image' => [
                     'default' => env('OPENAI_DEFAULT_IMAGE_MODEL', 'dall-e-3'),
+                ],
+            ],
+        ],
+
+        'xai' => [
+            'driver' => 'xai',
+            'name' => 'xai',
+            'key' => env('XAI_API_KEY'),
+            'models' => [
+                'text' => [
+                    'default' => env('XAI_DEFAULT_MODEL', 'grok-4.3'),
+                    'cheapest' => env('XAI_CHEAPEST_MODEL', 'grok-4.3-fast'),
+                ],
+                'image' => [
+                    'default' => env('XAI_DEFAULT_IMAGE_MODEL', 'grok-imagine-image'),
                 ],
             ],
         ],

@@ -62,16 +62,16 @@
         },
         {
             "name": "aws/aws-sdk-php",
-            "version": "3.386.2",
+            "version": "3.387.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/aws/aws-sdk-php.git",
-                "reference": "accda84af79689415782908dfa2b4a0fe434e0a1"
+                "reference": "38422b3eaed583a6056cef6d40e5594cd90cc895"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/accda84af79689415782908dfa2b4a0fe434e0a1",
-                "reference": "accda84af79689415782908dfa2b4a0fe434e0a1",
+                "url": "https://api.github.com/repos/aws/aws-sdk-php/zipball/38422b3eaed583a6056cef6d40e5594cd90cc895",
+                "reference": "38422b3eaed583a6056cef6d40e5594cd90cc895",
                 "shasum": ""
             },
             "require": {
@@ -153,9 +153,9 @@
             "support": {
                 "forum": "https://github.com/aws/aws-sdk-php/discussions",
                 "issues": "https://github.com/aws/aws-sdk-php/issues",
-                "source": "https://github.com/aws/aws-sdk-php/tree/3.386.2"
+                "source": "https://github.com/aws/aws-sdk-php/tree/3.387.0"
             },
-            "time": "2026-06-29T18:07:20+00:00"
+            "time": "2026-06-30T18:31:55+00:00"
         },
         {
             "name": "bacon/bacon-qr-code",
@@ -14220,12 +14220,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/Roave/SecurityAdvisories.git",
-                "reference": "36ba91e82e1b493faef2c13277d6bd2669ea9f31"
+                "reference": "f6c7a3967e04a521b2fe61f258dc20138f9d2157"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/36ba91e82e1b493faef2c13277d6bd2669ea9f31",
-                "reference": "36ba91e82e1b493faef2c13277d6bd2669ea9f31",
+                "url": "https://api.github.com/repos/Roave/SecurityAdvisories/zipball/f6c7a3967e04a521b2fe61f258dc20138f9d2157",
+                "reference": "f6c7a3967e04a521b2fe61f258dc20138f9d2157",
                 "shasum": ""
             },
             "conflict": {
@@ -14837,7 +14837,7 @@
                 "paragonie/random_compat": "<2",
                 "paragonie/sodium_compat": "<1.24|>=2,<2.5",
                 "passbolt/passbolt_api": "<4.6.2",
-                "paymenter/paymenter": "<1.5",
+                "paymenter/paymenter": "<1.5.1",
                 "paypal/adaptivepayments-sdk-php": "<=3.9.2",
                 "paypal/invoice-sdk-php": "<=3.9",
                 "paypal/merchant-sdk-php": "<3.12",
@@ -15327,7 +15327,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-26T23:29:05+00:00"
+            "time": "2026-06-30T16:47:09+00:00"
         },
         {
             "name": "sebastian/cli-parser",

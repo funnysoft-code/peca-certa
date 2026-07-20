@@ -20,7 +20,7 @@ permissions:
 jobs:
   rector:
     name: Rector
-    runs-on: ubuntu-24.04-arm
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     timeout-minutes: 10
 
     steps:
@@ -30,7 +30,7 @@ jobs:
 
   pint:
     name: Pint
-    runs-on: ubuntu-24.04-arm
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     timeout-minutes: 5
 
     steps:
@@ -40,7 +40,7 @@ jobs:
 
   phpstan:
     name: PHPStan
-    runs-on: ubuntu-24.04-arm
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     timeout-minutes: 15
 
     steps:
@@ -50,7 +50,7 @@ jobs:
 
   lint:
     name: Lint & Format
-    runs-on: ubuntu-24.04-arm
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     timeout-minutes: 10
 
     steps:
@@ -73,7 +73,7 @@ jobs:
   # on generated.d.ts will always pass (file absent = no diff).
   typescript:
     name: TypeScript
-    runs-on: ubuntu-24.04-arm
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     timeout-minutes: 10
 
     steps:
@@ -95,7 +95,7 @@ jobs:
 
   test:
     name: Test
-    runs-on: ubuntu-24.04-arm
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     timeout-minutes: 30
 
     services:
@@ -192,7 +192,7 @@ jobs:
 
   browser-test:
     name: Browser Test
-    runs-on: ubuntu-24.04-arm
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
     timeout-minutes: 30
 
     services:

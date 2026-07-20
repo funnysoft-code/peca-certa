@@ -343,7 +343,8 @@ run_browser_tests() {
         bad "artisan missing — cannot run browser tests"
         exit 127
     fi
-    runq php artisan test --compact tests/Browser \
+    # PAO_DISABLE: laravel/pao flips the exit code to 1 even when all tests pass.
+    runq env PAO_DISABLE=1 php artisan test --compact tests/Browser \
         || { bad "pest (browser)"; exit 3; }
     ok "pest (browser)"
 }
