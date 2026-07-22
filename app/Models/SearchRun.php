@@ -45,6 +45,12 @@ final class SearchRun extends Model
         return $this->hasMany(SupplierLookup::class);
     }
 
+    /** @return HasMany<Finding, $this> */
+    public function findings(): HasMany
+    {
+        return $this->hasMany(Finding::class);
+    }
+
     /**
      * @return array<string, string>
      */

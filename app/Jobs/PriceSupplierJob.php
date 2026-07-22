@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Actions\PersistLookupFindings;
 use App\Actions\SearchAutoDeltaParts;
 use App\Actions\SearchAutoZitaniaParts;
 use App\Enums\SearchRunStatus;
@@ -46,8 +47,11 @@ final class PriceSupplierJob implements ShouldQueue
             : [];
     }
 
-    public function handle(SearchAutoDeltaParts $autoDelta, SearchAutoZitaniaParts $autoZitania): void
-    {
+    public function handle(
+        SearchAutoDeltaParts $autoDelta,
+        SearchAutoZitaniaParts $autoZitania,
+        PersistLookupFindings $persistLookupFindings,
+    ): void {
         $result = $this->lookup->supplier === Supplier::AutoZitania
             ? $autoZitania->execute($this->lookup->query)
             : $autoDelta->execute($this->lookup->query);
@@ -56,6 +60,8 @@ final class PriceSupplierJob implements ShouldQueue
             'result' => $result->jsonSerialize(),
             'status' => $result->variants === [] ? SupplierLookupStatus::Empty : SupplierLookupStatus::Done,
         ]);
+
+        $persistLookupFindings->execute($this->lookup->refresh());
 
         event(new SupplierResultReady($this->lookup));
 

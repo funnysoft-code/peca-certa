@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\PersistLookupFindings;
 use App\Actions\SearchAutoDeltaParts;
 use App\Actions\SearchAutoZitaniaParts;
 use App\Enums\SearchRunStatus;
@@ -10,6 +11,7 @@ use App\Enums\SupplierLookupStatus;
 use App\Events\SearchRunAdvanced;
 use App\Events\SupplierResultReady;
 use App\Jobs\PriceSupplierJob;
+use App\Models\Finding;
 use App\Models\SearchRun;
 use App\Models\SupplierLookup;
 use App\Services\AutoDelta\AutoDeltaToken;
@@ -40,13 +42,18 @@ it('prices a lookup, stores the result, broadcasts, and completes the run when l
     $run = SearchRun::factory()->create(['status' => SearchRunStatus::Running]);
     $lookup = SupplierLookup::factory()->for($run, 'run')->create(['supplier' => Supplier::AutoDelta, 'query' => 'OC90', 'status' => SupplierLookupStatus::Pending]);
 
-    new PriceSupplierJob($lookup)->handle(resolve(SearchAutoDeltaParts::class), resolve(SearchAutoZitaniaParts::class));
+    new PriceSupplierJob($lookup)->handle(
+        resolve(SearchAutoDeltaParts::class),
+        resolve(SearchAutoZitaniaParts::class),
+        resolve(PersistLookupFindings::class),
+    );
 
     $lookup->refresh();
     $run->refresh();
     expect($lookup->status)->toBe(SupplierLookupStatus::Done)
         ->and($lookup->result['query'])->toBe('OC90')
-        ->and($run->status)->toBe(SearchRunStatus::Done); // only lookup -> run completes
+        ->and($run->status)->toBe(SearchRunStatus::Done) // only lookup -> run completes
+        ->and(Finding::query()->where('supplier_lookup_id', $lookup->id)->count())->toBeGreaterThan(0);
     Event::assertDispatched(SupplierResultReady::class);
     Event::assertDispatched(SearchRunAdvanced::class); // completion
 });
@@ -62,9 +69,14 @@ it('marks the lookup empty when no variants come back', function (): void {
     $run = SearchRun::factory()->create(['status' => SearchRunStatus::Running]);
     $lookup = SupplierLookup::factory()->for($run, 'run')->create(['supplier' => Supplier::AutoDelta, 'query' => 'NOPE']);
 
-    new PriceSupplierJob($lookup)->handle(resolve(SearchAutoDeltaParts::class), resolve(SearchAutoZitaniaParts::class));
+    new PriceSupplierJob($lookup)->handle(
+        resolve(SearchAutoDeltaParts::class),
+        resolve(SearchAutoZitaniaParts::class),
+        resolve(PersistLookupFindings::class),
+    );
 
-    expect($lookup->refresh()->status)->toBe(SupplierLookupStatus::Empty);
+    expect($lookup->refresh()->status)->toBe(SupplierLookupStatus::Empty)
+        ->and(Finding::query()->where('supplier_lookup_id', $lookup->id)->count())->toBe(0);
 });
 
 it('does not complete the run while a sibling lookup is still pending', function (): void {
@@ -79,7 +91,11 @@ it('does not complete the run while a sibling lookup is still pending', function
     $done = SupplierLookup::factory()->for($run, 'run')->create(['supplier' => Supplier::AutoDelta, 'query' => 'A']);
     SupplierLookup::factory()->for($run, 'run')->create(['supplier' => Supplier::AutoZitania, 'query' => 'A', 'status' => SupplierLookupStatus::Pending]);
 
-    new PriceSupplierJob($done)->handle(resolve(SearchAutoDeltaParts::class), resolve(SearchAutoZitaniaParts::class));
+    new PriceSupplierJob($done)->handle(
+        resolve(SearchAutoDeltaParts::class),
+        resolve(SearchAutoZitaniaParts::class),
+        resolve(PersistLookupFindings::class),
+    );
 
     expect($run->refresh()->status)->toBe(SearchRunStatus::Running);
 });
@@ -95,9 +111,14 @@ it('prices via the Auto Zitania action when the lookup supplier is Auto Zitania'
     $run = SearchRun::factory()->create(['status' => SearchRunStatus::Running]);
     $lookup = SupplierLookup::factory()->for($run, 'run')->create(['supplier' => Supplier::AutoZitania, 'query' => 'OC 90', 'status' => SupplierLookupStatus::Pending]);
 
-    new PriceSupplierJob($lookup)->handle(resolve(SearchAutoDeltaParts::class), resolve(SearchAutoZitaniaParts::class));
+    new PriceSupplierJob($lookup)->handle(
+        resolve(SearchAutoDeltaParts::class),
+        resolve(SearchAutoZitaniaParts::class),
+        resolve(PersistLookupFindings::class),
+    );
 
-    expect($lookup->refresh()->status)->toBe(SupplierLookupStatus::Done);
+    expect($lookup->refresh()->status)->toBe(SupplierLookupStatus::Done)
+        ->and(Finding::query()->where('supplier_lookup_id', $lookup->id)->count())->toBeGreaterThan(0);
 });
 
 it('sets the correct queue and timeout for each supplier', function (): void {
