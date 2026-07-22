@@ -13,8 +13,8 @@ use App\Models\User;
 
 test('guest pages have no smoke', function (): void {
     visit([
+        '/',
         '/login',
-        '/register',
         '/forgot-password',
         '/two-factor-challenge',
     ])->assertNoSmoke();
@@ -25,12 +25,11 @@ test('authenticated pages have no smoke', function (): void {
     $this->actingAs($user);
 
     visit([
-        '/',
+        '/identify',
+        '/parts',
         '/settings/profile',
-        '/settings/password',
-        '/settings/email',
-        '/settings/two-factor',
-        '/settings/delete-account',
+        '/settings/security',
+        '/settings/appearance',
     ])->assertNoSmoke();
 });
 
@@ -51,11 +50,11 @@ test('user can log in interactively', function (): void {
     // Wait for Inertia's initial XHR hydration to complete before interacting.
     $page->waitForEvent('networkidle');
 
-    $page->assertSee('Log in')
+    $page->assertSee('Entrar')
         ->fill('#email', $user->email)
         ->fill('#password', 'password')
         ->press('@login-button')
-        ->assertPathIs('/dashboard')
+        ->assertPathIs('/identify')
         ->assertNoJavaScriptErrors();
 
     $this->assertAuthenticated();

@@ -21,7 +21,7 @@ test('users can authenticate using the login screen', function (): void {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertRedirect(route('identify.create', absolute: false));
 });
 
 test('users with two factor enabled are redirected to two factor challenge', function (): void {
