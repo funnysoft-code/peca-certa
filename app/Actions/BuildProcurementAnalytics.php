@@ -134,8 +134,8 @@ final readonly class BuildProcurementAnalytics
         int $limit,
     ): array {
         $select = $column === 'brand'
-            ? 'brand as key, COUNT(*) as aggregate_count, SUM(CASE WHEN in_stock = 1 THEN 1 ELSE 0 END) as in_stock_count'
-            : 'supplier as key, COUNT(*) as aggregate_count, SUM(CASE WHEN in_stock = 1 THEN 1 ELSE 0 END) as in_stock_count';
+            ? 'brand as key, COUNT(*) as aggregate_count, SUM(CASE WHEN in_stock THEN 1 ELSE 0 END) as in_stock_count'
+            : 'supplier as key, COUNT(*) as aggregate_count, SUM(CASE WHEN in_stock THEN 1 ELSE 0 END) as in_stock_count';
 
         /** @var Collection<int, object{key: mixed, aggregate_count: int|string|float, in_stock_count: int|string|float}> $groups */
         $groups = Finding::query()
