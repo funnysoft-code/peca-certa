@@ -75,7 +75,7 @@ return [
     |
     */
 
-    'home' => '/dashboard',
+    'home' => '/identify',
 
     /*
     |--------------------------------------------------------------------------
@@ -163,7 +163,7 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Public registration is disabled — operators are provisioned by admin.
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([
