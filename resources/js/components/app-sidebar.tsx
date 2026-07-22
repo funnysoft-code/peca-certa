@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { ScanSearch, Search } from 'lucide-react';
+import { ChartColumn, ScanSearch, Search } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -12,6 +12,7 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { index as analyticsIndex } from '@/routes/analytics';
 import { create as identifyCreate } from '@/routes/identify';
 import { index as partsIndex } from '@/routes/parts';
 import type { NavItem } from '@/types';
@@ -26,6 +27,11 @@ const mainNavItems: NavItem[] = [
         title: 'Peças',
         href: partsIndex(),
         icon: Search,
+    },
+    {
+        title: 'Análises',
+        href: analyticsIndex(),
+        icon: ChartColumn,
     },
 ];
 

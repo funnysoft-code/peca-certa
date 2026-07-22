@@ -27,6 +27,7 @@ test('authenticated pages have no smoke', function (): void {
     visit([
         '/identify',
         '/parts',
+        '/analytics',
         '/settings/profile',
         '/settings/security',
         '/settings/appearance',

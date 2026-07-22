@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\CancelIdentifyController;
 use App\Http\Controllers\IdentifyController;
 use App\Http\Controllers\PartSearchController;
+use App\Http\Controllers\ProcurementAnalyticsController;
 use App\Http\Controllers\ResumeIdentifyController;
 use App\Http\Controllers\SearchRunFindingsController;
 use Illuminate\Support\Facades\Route;
@@ -39,6 +40,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->name('identify.cancel');
     Route::get('search-runs/{run}/findings', SearchRunFindingsController::class)
         ->name('search-runs.findings.index');
+    Route::get('analytics', ProcurementAnalyticsController::class)
+        ->name('analytics.index');
 });
 
 require __DIR__.'/settings.php';
