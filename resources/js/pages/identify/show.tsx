@@ -1,5 +1,6 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { EchoListener } from '@/components/echo-listener';
+import { AgentSteps } from '@/components/identify/agent-steps';
 import { RunResults } from '@/components/identify/run-results';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useSearchRunStream } from '@/hooks/use-search-run-stream';
-import { create, resume } from '@/routes/identify';
+import { cancel, create, resume } from '@/routes/identify';
 
 type Props = { run: App.Data.SearchRunData };
 
@@ -18,7 +19,14 @@ const STATUS_LABELS: Record<App.Enums.SearchRunStatus, string> = {
     needs_input: 'Aguarda resposta',
     done: 'Concluído',
     failed: 'Falhou',
+    cancelled: 'Cancelada',
 };
+
+function isCancellable(status: App.Enums.SearchRunStatus): boolean {
+    return (
+        status === 'pending' || status === 'running' || status === 'needs_input'
+    );
+}
 
 function StatusIndicator({ status }: { status: App.Enums.SearchRunStatus }) {
     if (status === 'pending' || status === 'running') {
@@ -30,7 +38,7 @@ function StatusIndicator({ status }: { status: App.Enums.SearchRunStatus }) {
         );
     }
 
-    if (status === 'needs_input') {
+    if (status === 'needs_input' || status === 'cancelled') {
         return <Badge variant="outline">{STATUS_LABELS[status]}</Badge>;
     }
 
@@ -38,6 +46,27 @@ function StatusIndicator({ status }: { status: App.Enums.SearchRunStatus }) {
         <Badge variant={status === 'failed' ? 'destructive' : 'default'}>
             {STATUS_LABELS[status]}
         </Badge>
+    );
+}
+
+function CancelButton({
+    runId,
+    disabled,
+}: {
+    runId: string;
+    disabled?: boolean;
+}) {
+    return (
+        <Button
+            type="button"
+            variant="outline"
+            disabled={disabled}
+            onClick={() => {
+                router.post(cancel.url(runId), {}, { preserveScroll: true });
+            }}
+        >
+            Cancelar
+        </Button>
     );
 }
 
@@ -110,15 +139,18 @@ function ClarificationForm({ run }: { run: App.Data.SearchRunData }) {
                         </p>
                     )}
                 </div>
-                <Button type="submit" disabled={form.processing}>
-                    {form.processing ? (
-                        <>
-                            <Spinner className="size-4" />A enviar…
-                        </>
-                    ) : (
-                        'Continuar identificação'
-                    )}
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                    <Button type="submit" disabled={form.processing}>
+                        {form.processing ? (
+                            <>
+                                <Spinner className="size-4" />A enviar…
+                            </>
+                        ) : (
+                            'Continuar identificação'
+                        )}
+                    </Button>
+                    <CancelButton runId={run.id} disabled={form.processing} />
+                </div>
             </form>
         </div>
     );
@@ -134,7 +166,7 @@ export default function IdentifyShow({ run: initialRun }: Props) {
             <Head title={run.requestText ?? 'Identificação de peça'} />
             <EchoListener
                 channel={`search-run.${run.id}`}
-                events={['.run.advanced', '.lookup.ready']}
+                events={['.run.advanced', '.lookup.ready', '.agent.step']}
                 onEvent={handleEvent}
             />
             <div className="mx-auto w-full max-w-3xl space-y-6 p-4">
@@ -148,7 +180,13 @@ export default function IdentifyShow({ run: initialRun }: Props) {
                             {run.vin ? ` · VIN: ${run.vin}` : ''}
                         </p>
                     </div>
-                    <StatusIndicator status={run.status} />
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                        <StatusIndicator status={run.status} />
+                        {isCancellable(run.status) &&
+                            run.status !== 'needs_input' && (
+                                <CancelButton runId={run.id} />
+                            )}
+                    </div>
                 </div>
 
                 {run.status === 'failed' && (
@@ -163,11 +201,20 @@ export default function IdentifyShow({ run: initialRun }: Props) {
                     </Alert>
                 )}
 
-                {isAnalyzing && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Spinner className="size-4" />A identificar peça no
-                        catálogo OE…
-                    </div>
+                {run.status === 'cancelled' && (
+                    <Alert>
+                        <AlertTitle>Identificação cancelada.</AlertTitle>
+                        <AlertDescription>
+                            Pode iniciar uma nova identificação quando quiser.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
+                {(isAnalyzing || (run.agentSteps?.length ?? 0) > 0) && (
+                    <AgentSteps
+                        steps={run.agentSteps ?? []}
+                        live={isAnalyzing}
+                    />
                 )}
 
                 {run.status === 'needs_input' && (

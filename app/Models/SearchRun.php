@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $reference
  * @property array<string, mixed>|null $understanding
  * @property list<array<string, mixed>>|null $messages
+ * @property list<array<string, mixed>>|null $agent_steps
  * @property array<string, mixed>|null $pending_question
  * @property list<array<string, mixed>>|null $oe_parts
  * @property SearchRunStatus $status
@@ -61,6 +62,7 @@ final class SearchRun extends Model
             'status' => SearchRunStatus::class,
             'understanding' => 'array',
             'messages' => 'array',
+            'agent_steps' => 'array',
             'pending_question' => 'array',
             'oe_parts' => 'array',
         ];

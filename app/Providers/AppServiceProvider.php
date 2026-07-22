@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Listeners\RecordIdentifyAgentToolProgress;
 use App\Services\PartsLink24\Contracts\PartsLink24Catalog;
 use App\Services\PartsLink24\PartsLink24HttpClient;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
+use Laravel\Ai\Events\InvokingTool;
+use Laravel\Ai\Events\ToolInvoked;
 
 final class AppServiceProvider extends ServiceProvider
 {
@@ -33,6 +37,13 @@ final class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureInertiaSsr();
+        $this->configureAiListeners();
+    }
+
+    private function configureAiListeners(): void
+    {
+        Event::listen(InvokingTool::class, [RecordIdentifyAgentToolProgress::class, 'handleInvoking']);
+        Event::listen(ToolInvoked::class, [RecordIdentifyAgentToolProgress::class, 'handleInvoked']);
     }
 
     /**

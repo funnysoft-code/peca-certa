@@ -1,5 +1,13 @@
 declare namespace App {
     namespace Data {
+        export type AgentStep = {
+            readonly id: string;
+            readonly tool: string;
+            readonly label: string;
+            readonly status: string;
+            readonly detail: string | null;
+            readonly at: string;
+        };
         export type FindingData = {
             readonly id: string;
             readonly supplier: App.Enums.Supplier;
@@ -65,6 +73,7 @@ declare namespace App {
             readonly pendingQuestion: App.Data.IdentifyClarification | null;
             readonly oeParts: App.Data.OePart[];
             readonly lookups: App.Data.SupplierLookupData[];
+            readonly agentSteps: App.Data.AgentStep[];
             readonly createdAt: string;
             readonly authorName: string;
         };
@@ -84,7 +93,8 @@ declare namespace App {
             | 'running'
             | 'needs_input'
             | 'done'
-            | 'failed';
+            | 'failed'
+            | 'cancelled';
         export type Supplier = 'autodelta' | 'autozitania';
         export type SupplierLookupStatus =
             | 'pending'

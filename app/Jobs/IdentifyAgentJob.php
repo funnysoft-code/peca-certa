@@ -49,14 +49,8 @@ final class IdentifyAgentJob implements ShouldQueue
             return;
         }
 
-        $terminal = [SearchRunStatus::Done, SearchRunStatus::Failed];
-
-        if (in_array($run->status, $terminal, true)) {
-            return;
-        }
-
-        // NeedsInput should only resume via ResumeIdentifyRun (status reset to pending first).
-        if ($run->status === SearchRunStatus::NeedsInput) {
+        if ($run->status->isTerminal() || $run->status === SearchRunStatus::NeedsInput) {
+            // NeedsInput only resumes via ResumeIdentifyRun (status reset to pending first).
             return;
         }
 
@@ -67,13 +61,7 @@ final class IdentifyAgentJob implements ShouldQueue
     {
         $run = $this->run->fresh();
 
-        if (! $run instanceof SearchRun) {
-            return;
-        }
-
-        $terminal = [SearchRunStatus::Done, SearchRunStatus::Failed];
-
-        if (in_array($run->status, $terminal, true)) {
+        if (! $run instanceof SearchRun || $run->status->isTerminal()) {
             return;
         }
 

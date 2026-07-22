@@ -15,6 +15,7 @@ const STATUS_LABELS: Record<App.Enums.SearchRunStatus, string> = {
     needs_input: 'Aguarda resposta',
     done: 'Concluído',
     failed: 'Falhou',
+    cancelled: 'Cancelada',
 };
 
 function StatusIndicator({ status }: { status: App.Enums.SearchRunStatus }) {

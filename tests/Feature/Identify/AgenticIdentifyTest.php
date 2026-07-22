@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Enums\SearchRunKind;
 use App\Enums\SearchRunStatus;
+use App\Enums\SupplierLookupStatus;
 use App\Jobs\IdentifyAgentJob;
 use App\Jobs\IdentifyOePartsJob;
 use App\Jobs\UnderstandRequestJob;
 use App\Models\SearchRun;
+use App\Models\SupplierLookup;
 use App\Models\User;
 use Illuminate\Support\Facades\Bus;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -110,4 +112,81 @@ it('exposes pendingQuestion on the show page payload', function (): void {
             ->where('run.pendingQuestion.question', 'Motor ou caixa?')
             ->where('run.pendingQuestion.options', ['Motor', 'Caixa']),
         );
+});
+
+it('cancels a needs_input run and clears the pending question', function (): void {
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $run = SearchRun::factory()->for($user)->create([
+        'status' => SearchRunStatus::NeedsInput,
+        'pending_question' => [
+            'question' => 'Motor ou caixa?',
+            'options' => ['Motor', 'Caixa'],
+        ],
+        'messages' => [
+            ['role' => 'user', 'content' => 'VIN: x'],
+        ],
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('identify.cancel', $run))
+        ->assertRedirect(route('identify.show', $run))
+        ->assertSessionHas('status', 'Identificação cancelada.');
+
+    $run->refresh();
+
+    expect($run->status)->toBe(SearchRunStatus::Cancelled)
+        ->and($run->pending_question)->toBeNull()
+        ->and($run->messages)->toHaveCount(2)
+        ->and($run->messages[1]['content'])->toContain('cancelou');
+});
+
+it('cancels mid-pricing runs and fails unfinished lookups', function (): void {
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $run = SearchRun::factory()->for($user)->create([
+        'status' => SearchRunStatus::Running,
+    ]);
+
+    $pending = SupplierLookup::factory()->for($run, 'run')->create([
+        'status' => SupplierLookupStatus::Pending,
+    ]);
+
+    $done = SupplierLookup::factory()->for($run, 'run')->create([
+        'status' => SupplierLookupStatus::Done,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('identify.cancel', $run))
+        ->assertRedirect(route('identify.show', $run));
+
+    expect($run->refresh()->status)->toBe(SearchRunStatus::Cancelled)
+        ->and($pending->refresh()->status)->toBe(SupplierLookupStatus::Failed)
+        ->and($pending->error)->toContain('Cancelado')
+        ->and($done->refresh()->status)->toBe(SupplierLookupStatus::Done);
+});
+
+it('rejects cancel when the run is already done', function (): void {
+    $user = User::factory()->create(['email_verified_at' => now()]);
+    $run = SearchRun::factory()->for($user)->create([
+        'status' => SearchRunStatus::Done,
+    ]);
+
+    $this->actingAs($user)
+        ->from(route('identify.show', $run))
+        ->post(route('identify.cancel', $run))
+        ->assertRedirect(route('identify.show', $run))
+        ->assertSessionHasErrors('run');
+
+    expect($run->refresh()->status)->toBe(SearchRunStatus::Done);
+});
+
+it('forbids cancelling another users run', function (): void {
+    $owner = User::factory()->create(['email_verified_at' => now()]);
+    $run = SearchRun::factory()->for($owner)->create([
+        'status' => SearchRunStatus::NeedsInput,
+    ]);
+    $other = User::factory()->create(['email_verified_at' => now()]);
+
+    $this->actingAs($other)
+        ->post(route('identify.cancel', $run))
+        ->assertForbidden();
 });

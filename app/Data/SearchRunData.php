@@ -16,6 +16,7 @@ final readonly class SearchRunData implements JsonSerializable
     /**
      * @param  list<OePart>  $oeParts
      * @param  list<SupplierLookupData>  $lookups
+     * @param  list<AgentStep>  $agentSteps
      */
     public function __construct(
         public string $id,
@@ -28,6 +29,7 @@ final readonly class SearchRunData implements JsonSerializable
         public ?IdentifyClarification $pendingQuestion,
         public array $oeParts,
         public array $lookups,
+        public array $agentSteps,
         public string $createdAt,
         public string $authorName,
     ) {}
@@ -36,6 +38,11 @@ final readonly class SearchRunData implements JsonSerializable
     {
         $author = $run->user;
         $authorName = $author === null ? '' : $author->name;
+
+        $agentSteps = array_map(
+            AgentStep::fromArray(...),
+            $run->agent_steps ?? [],
+        );
 
         return new self(
             id: $run->id,
@@ -48,13 +55,14 @@ final readonly class SearchRunData implements JsonSerializable
             pendingQuestion: $run->pending_question === null ? null : IdentifyClarification::fromArray($run->pending_question),
             oeParts: array_map(OePart::fromArray(...), $run->oe_parts ?? []),
             lookups: array_values($run->lookups->map(SupplierLookupData::fromModel(...))->all()),
+            agentSteps: $agentSteps,
             createdAt: $run->created_at?->toISOString() ?? '',
             authorName: $authorName,
         );
     }
 
     /**
-     * @return array{id: string, kind: SearchRunKind, status: SearchRunStatus, requestText: string|null, vin: string|null, reference: string|null, understanding: PartRequestUnderstanding|null, pendingQuestion: IdentifyClarification|null, oeParts: list<OePart>, lookups: list<SupplierLookupData>, createdAt: string, authorName: string}
+     * @return array{id: string, kind: SearchRunKind, status: SearchRunStatus, requestText: string|null, vin: string|null, reference: string|null, understanding: PartRequestUnderstanding|null, pendingQuestion: IdentifyClarification|null, oeParts: list<OePart>, lookups: list<SupplierLookupData>, agentSteps: list<AgentStep>, createdAt: string, authorName: string}
      */
     public function jsonSerialize(): array
     {
@@ -69,6 +77,7 @@ final readonly class SearchRunData implements JsonSerializable
             'pendingQuestion' => $this->pendingQuestion,
             'oeParts' => $this->oeParts,
             'lookups' => $this->lookups,
+            'agentSteps' => $this->agentSteps,
             'createdAt' => $this->createdAt,
             'authorName' => $this->authorName,
         ];

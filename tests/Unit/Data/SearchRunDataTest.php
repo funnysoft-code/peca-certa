@@ -25,7 +25,8 @@ it('builds SearchRunData from a run with lookups', function (): void {
         ->and($data->createdAt)->toBe($run->created_at?->toISOString())
         ->and($data->createdAt)->not->toBeEmpty()
         ->and($data->authorName)->toBe($run->user?->name)
-        ->and($data->jsonSerialize())->toHaveKeys(['id', 'kind', 'status', 'understanding', 'oeParts', 'lookups', 'createdAt', 'authorName']);
+        ->and($data->agentSteps)->toBe([])
+        ->and($data->jsonSerialize())->toHaveKeys(['id', 'kind', 'status', 'understanding', 'oeParts', 'lookups', 'agentSteps', 'createdAt', 'authorName']);
 });
 
 it('builds SearchRunData from a run with no understanding, oe_parts or lookups', function (): void {

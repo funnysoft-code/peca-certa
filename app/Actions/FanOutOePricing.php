@@ -22,6 +22,12 @@ final readonly class FanOutOePricing
      */
     public function execute(SearchRun $run, array $oeParts): void
     {
+        $run->refresh();
+
+        if ($run->status->isTerminal()) {
+            return;
+        }
+
         $run->oe_parts = array_map(
             fn (OePart $part): array => $part->jsonSerialize(),
             $oeParts,

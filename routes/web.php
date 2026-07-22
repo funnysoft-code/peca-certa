@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\CancelIdentifyController;
 use App\Http\Controllers\IdentifyController;
 use App\Http\Controllers\PartSearchController;
 use App\Http\Controllers\ResumeIdentifyController;
@@ -33,6 +34,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::post('identify/{run}/resume', ResumeIdentifyController::class)
         ->middleware('throttle:30,1')
         ->name('identify.resume');
+    Route::post('identify/{run}/cancel', CancelIdentifyController::class)
+        ->middleware('throttle:30,1')
+        ->name('identify.cancel');
     Route::get('search-runs/{run}/findings', SearchRunFindingsController::class)
         ->name('search-runs.findings.index');
 });

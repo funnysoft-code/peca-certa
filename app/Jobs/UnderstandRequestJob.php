@@ -56,9 +56,7 @@ final class UnderstandRequestJob implements ShouldQueue
             return;
         }
 
-        $terminalStatuses = [SearchRunStatus::Done, SearchRunStatus::Failed];
-
-        if (in_array($run->status, $terminalStatuses, true)) {
+        if ($run->status->isTerminal()) {
             return;
         }
 

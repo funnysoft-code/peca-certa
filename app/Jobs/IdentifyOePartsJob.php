@@ -53,9 +53,7 @@ final class IdentifyOePartsJob implements ShouldQueue
             return;
         }
 
-        $terminalStatuses = [SearchRunStatus::Done, SearchRunStatus::Failed, SearchRunStatus::NeedsInput];
-
-        if (in_array($run->status, $terminalStatuses, true)) {
+        if ($run->status->isTerminal() || $run->status === SearchRunStatus::NeedsInput) {
             return;
         }
 
@@ -70,13 +68,7 @@ final class IdentifyOePartsJob implements ShouldQueue
     {
         $run = $this->run->fresh();
 
-        if (! $run instanceof SearchRun) {
-            return;
-        }
-
-        $terminalStatuses = [SearchRunStatus::Done, SearchRunStatus::Failed];
-
-        if (in_array($run->status, $terminalStatuses, true)) {
+        if (! $run instanceof SearchRun || $run->status->isTerminal()) {
             return;
         }
 

@@ -14,7 +14,7 @@
 #
 # Exit codes: 2=pint 3=pest(browser) 4=phpstan 5=js-lint 6=js-types 7=wayfinder-drift
 #             8=ts-transform-drift 9=rector 10=type-coverage 11=code-coverage
-#             127=tool-missing 0=pass
+#             12=frontend-build 127=tool-missing 0=pass
 #
 # Full mode also enforces: pest --type-coverage --min=100 (exit 10) and
 # code coverage --exactly=100.0 via bin/coverage.sh (exit 11; uses a loaded
@@ -70,7 +70,8 @@ Modes:
 
 Exit codes: 2=pint 3=pest(browser) 4=phpstan 5=js-lint 6=js-types
             7=wayfinder-drift 8=ts-transform-drift 9=rector
-            10=type-coverage 11=code-coverage 127=tool-missing
+            10=type-coverage 11=code-coverage 12=frontend-build
+            127=tool-missing
 
 Fix commands:
   exit 2  → vendor/bin/pint --dirty
@@ -79,6 +80,7 @@ Fix commands:
   exit 7  → php artisan wayfinder:generate --with-form
   exit 8  → php artisan typescript:transform
   exit 9  → vendor/bin/rector
+  exit 12 → bun run build
 EOF
             exit 0
             ;;
@@ -329,6 +331,25 @@ run_code_coverage() {
     ok "code coverage (100%)"
 }
 
+run_frontend_build() {
+    # Fresh Vite manifest so Pest browser never hits a stale public/build.
+    # Always skipped in --fast mode (no browser step either).
+    [[ "$FAST" -eq 1 ]] && return 0
+
+    if ! [[ -d tests/Browser ]]; then
+        return 0
+    fi
+
+    step "bun run build (for browser tests)"
+    if ! have bun; then
+        bad "bun missing — cannot build frontend for browser tests"
+        exit 127
+    fi
+    runq bun run build \
+        || { bad "frontend build (bun run build)"; exit 12; }
+    ok "frontend build"
+}
+
 run_browser_tests() {
     # Always skipped in --fast mode. Browser tests run serially (Playwright), no coverage.
     [[ "$FAST" -eq 1 ]] && return 0
@@ -360,6 +381,7 @@ run_js_lint
 run_js_types
 run_type_coverage
 run_code_coverage
+run_frontend_build
 run_browser_tests
 
 printf '✔ quality-gate passed\n'

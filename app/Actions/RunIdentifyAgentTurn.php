@@ -11,6 +11,7 @@ use App\Data\OePart;
 use App\Enums\SearchRunStatus;
 use App\Events\SearchRunAdvanced;
 use App\Models\SearchRun;
+use Illuminate\Support\Facades\Context;
 use Laravel\Ai\Messages\Message;
 use Laravel\Ai\Messages\MessageRole;
 use Laravel\Ai\Responses\StructuredAgentResponse;
@@ -26,6 +27,7 @@ final readonly class RunIdentifyAgentTurn
     {
         $run->status = SearchRunStatus::Running;
         $run->pending_question = null;
+        $run->agent_steps = [];
         $run->save();
         event(new SearchRunAdvanced($run));
 
@@ -35,10 +37,16 @@ final readonly class RunIdentifyAgentTurn
         $maxSteps = config()->integer('identify.max_tool_steps');
         $timeout = config()->integer('identify.turn_timeout_seconds');
 
-        $response = new IdentifyPartAgent($history, $maxSteps, $timeout)->prompt(
-            $prompt,
-            timeout: $timeout,
-        );
+        Context::add('identify.search_run_id', $run->id);
+
+        try {
+            $response = new IdentifyPartAgent($history, $maxSteps, $timeout)->prompt(
+                $prompt,
+                timeout: $timeout,
+            );
+        } finally {
+            Context::forget('identify.search_run_id');
+        }
 
         throw_unless(
             $response instanceof StructuredAgentResponse,
@@ -50,7 +58,15 @@ final readonly class RunIdentifyAgentTurn
         $payload = $response->toArray();
         $result = IdentifyAgentResult::fromArray($payload);
 
-        $messages = $run->messages ?? [];
+        // Operator may cancel while the LLM turn is still in flight.
+        $fresh = $run->fresh();
+
+        if ($fresh instanceof SearchRun && $fresh->status->isTerminal()) {
+            return $result;
+        }
+
+        $target = $fresh instanceof SearchRun ? $fresh : $run;
+        $messages = $target->messages ?? [];
 
         if (! $promptAlreadyStored) {
             $messages[] = [
@@ -64,35 +80,36 @@ final readonly class RunIdentifyAgentTurn
             'content' => json_encode($result->jsonSerialize(), JSON_THROW_ON_ERROR),
             'status' => $result->status,
         ];
-        $run->messages = $messages;
+
+        $target->messages = $messages;
 
         if ($result->needsInput()) {
-            $run->pending_question = new IdentifyClarification(
+            $target->pending_question = new IdentifyClarification(
                 question: (string) $result->question,
                 options: $result->options,
             )->jsonSerialize();
-            $run->status = SearchRunStatus::NeedsInput;
-            $run->save();
-            event(new SearchRunAdvanced($run));
+            $target->status = SearchRunStatus::NeedsInput;
+            $target->save();
+            event(new SearchRunAdvanced($target));
 
             return $result;
         }
 
         if ($result->hasSelectedParts()) {
-            $run->save();
-            $this->fanOutOePricing->execute($run, $result->oeParts);
+            $target->save();
+            $this->fanOutOePricing->execute($target, $result->oeParts);
 
             return $result;
         }
 
-        $run->oe_parts = array_map(
+        $target->oe_parts = array_map(
             fn (OePart $part): array => $part->jsonSerialize(),
             $result->oeParts,
         );
-        $run->status = SearchRunStatus::Done;
-        $run->pending_question = null;
-        $run->save();
-        event(new SearchRunAdvanced($run));
+        $target->status = SearchRunStatus::Done;
+        $target->pending_question = null;
+        $target->save();
+        event(new SearchRunAdvanced($target));
 
         return $result;
     }

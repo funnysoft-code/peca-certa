@@ -87,9 +87,7 @@ final class PriceSupplierJob implements ShouldQueue
         DB::transaction(function () use (&$run): void {
             $run = SearchRun::query()->whereKey($this->lookup->search_run_id)->lockForUpdate()->first();
 
-            $terminalStatuses = [SearchRunStatus::Done, SearchRunStatus::Failed];
-
-            if (! $run instanceof SearchRun || in_array($run->status, $terminalStatuses, true)) {
+            if (! $run instanceof SearchRun || $run->status->isTerminal()) {
                 $run = null;
 
                 return;

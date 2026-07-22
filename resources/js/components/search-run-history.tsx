@@ -53,6 +53,7 @@ const STATUS_LABELS: Record<App.Enums.SearchRunStatus, string> = {
     needs_input: 'Aguarda resposta',
     done: 'Concluído',
     failed: 'Falhou',
+    cancelled: 'Cancelada',
 };
 
 const STATUS_VARIANTS: Record<
@@ -64,6 +65,7 @@ const STATUS_VARIANTS: Record<
     needs_input: 'outline',
     done: 'default',
     failed: 'destructive',
+    cancelled: 'outline',
 };
 
 function visitFilters(indexUrl: string, filters: Filters, page?: number): void {

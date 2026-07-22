@@ -14,4 +14,21 @@ enum SearchRunStatus: string
     case NeedsInput = 'needs_input';
     case Done = 'done';
     case Failed = 'failed';
+    case Cancelled = 'cancelled';
+
+    public function isTerminal(): bool
+    {
+        return match ($this) {
+            self::Done, self::Failed, self::Cancelled => true,
+            self::Pending, self::Running, self::NeedsInput => false,
+        };
+    }
+
+    public function isCancellable(): bool
+    {
+        return match ($this) {
+            self::Pending, self::Running, self::NeedsInput => true,
+            self::Done, self::Failed, self::Cancelled => false,
+        };
+    }
 }
