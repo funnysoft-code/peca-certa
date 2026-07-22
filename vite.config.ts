@@ -11,11 +11,11 @@ export default defineConfig({
     },
     lint: {
         options: {
-            // typeAware rules still use TS program where available. Full
-            // typeCheck is redundant with the CI TypeScript job (tsc --noEmit)
-            // and currently crashes tsgolint on Linux ARM with "Invalid tsconfig"
-            // against TS 6 path mapping (local Darwin is fine).
-            typeAware: true,
+            // Disable type-aware / typeCheck here: oxlint-tsgolint on Linux ARM
+            // (Blacksmith) fails with bare "Invalid tsconfig" under TypeScript 6,
+            // while local Darwin is clean. Types are enforced by the CI
+            // TypeScript job (`tsc --noEmit`) and local `bun run test:types`.
+            typeAware: false,
             typeCheck: false,
         },
         plugins: ['eslint', 'typescript', 'unicorn', 'oxc', 'react'],
