@@ -11,8 +11,12 @@ export default defineConfig({
     },
     lint: {
         options: {
+            // typeAware rules still use TS program where available. Full
+            // typeCheck is redundant with the CI TypeScript job (tsc --noEmit)
+            // and currently crashes tsgolint on Linux ARM with "Invalid tsconfig"
+            // against TS 6 path mapping (local Darwin is fine).
             typeAware: true,
-            typeCheck: true,
+            typeCheck: false,
         },
         plugins: ['eslint', 'typescript', 'unicorn', 'oxc', 'react'],
         ignorePatterns: ['vite.config.ts', 'public/**'],
