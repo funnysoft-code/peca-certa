@@ -101,35 +101,33 @@ export function DataTable<TData, TValue>({
                                         key={cell.id}
                                         className={cell.column.columnDef.meta?.cellClassName}
                                     >
-                                        {cell.getIsGrouped() ? (
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center gap-1.5 text-left hover:underline"
-                                                onClick={row.getToggleExpandedHandler()}
-                                            >
-                                                {row.getIsExpanded() ? (
-                                                    <ChevronDown className="size-4 shrink-0" />
-                                                ) : (
-                                                    <ChevronRight className="size-4 shrink-0" />
-                                                )}
-                                                <span>
-                                                    {flexRender(
-                                                        cell.column.columnDef.cell,
-                                                        cell.getContext(),
+                                        {row.getIsGrouped() ? (
+                                            // Group header: only the grouping column, never
+                                            // leaf values or column aggregates/totals.
+                                            cell.getIsGrouped() ? (
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex items-center gap-1.5 text-left hover:underline"
+                                                    onClick={row.getToggleExpandedHandler()}
+                                                >
+                                                    {row.getIsExpanded() ? (
+                                                        <ChevronDown className="size-4 shrink-0" />
+                                                    ) : (
+                                                        <ChevronRight className="size-4 shrink-0" />
                                                     )}
-                                                </span>
-                                                <span className="text-muted-foreground tabular-nums">
-                                                    ({row.subRows.length})
-                                                </span>
-                                            </button>
-                                        ) : cell.getIsAggregated() ? (
-                                            cell.column.columnDef.aggregatedCell
-                                                ? flexRender(
-                                                      cell.column.columnDef.aggregatedCell,
-                                                      cell.getContext(),
-                                                  )
-                                                : null
-                                        ) : cell.getIsPlaceholder() ? null : (
+                                                    <span>
+                                                        {flexRender(
+                                                            cell.column.columnDef.cell,
+                                                            cell.getContext(),
+                                                        )}
+                                                    </span>
+                                                    <span className="text-muted-foreground tabular-nums">
+                                                        ({row.subRows.length})
+                                                    </span>
+                                                </button>
+                                            ) : null
+                                        ) : cell.getIsAggregated() ||
+                                          cell.getIsPlaceholder() ? null : (
                                             flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext(),

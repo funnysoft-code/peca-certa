@@ -67,6 +67,7 @@ const columns: ColumnDef<ResultRow>[] = [
         id: 'supplier',
         accessorFn: (row) => row.supplier,
         enableGrouping: true,
+        aggregationFn: undefined,
         header: ({ column }) => (
             <SortableHeader
                 label="Fornecedor"
@@ -84,6 +85,7 @@ const columns: ColumnDef<ResultRow>[] = [
         id: 'brand',
         accessorFn: (row) => row.variant.brandName,
         enableGrouping: false,
+        aggregationFn: undefined,
         header: ({ column }) => (
             <SortableHeader
                 label="Marca"
@@ -103,6 +105,7 @@ const columns: ColumnDef<ResultRow>[] = [
         id: 'article',
         accessorFn: (row) => row.variant.articleNumber,
         enableGrouping: false,
+        aggregationFn: undefined,
         header: ({ column }) => (
             <SortableHeader
                 label="Artigo"
@@ -118,6 +121,7 @@ const columns: ColumnDef<ResultRow>[] = [
         id: 'price',
         accessorFn: (row) => row.price,
         enableGrouping: false,
+        aggregationFn: undefined,
         sortingFn: (a, b) => {
             const priceA = a.original.price;
             const priceB = b.original.price;
@@ -162,6 +166,7 @@ const columns: ColumnDef<ResultRow>[] = [
         id: 'stock',
         accessorFn: (row) => stockSortValue(row),
         enableGrouping: false,
+        aggregationFn: undefined,
         header: ({ column }) => (
             <div className="text-right">
                 <SortableHeader
