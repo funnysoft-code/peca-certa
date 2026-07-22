@@ -1,0 +1,66 @@
+{
+  "demo": false,
+  "data": {
+    "vin": "WMWSU91010T717700",
+    "description": "MINI R56 LCI- 3 doors- PEPPER WHITE (850)",
+    "resultStatus": "VEHICLE_IDENTIFIED",
+    "link": {
+      "wid": "mainGroupsTable",
+      "path": "/p5bmw/extern/groups/main-vin?lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+    },
+    "segments": {
+      "vinfoBasic": {
+        "records": [
+          {
+            "values": {
+              "description": "Vehicle Identification No.",
+              "value": "WMWSU91010T717700"
+            }
+          },
+          {
+            "values": {
+              "description": "Model Designation",
+              "value": "MINI R56 LCI"
+            }
+          },
+          {
+            "values": {
+              "description": "Date of production",
+              "value": "12.07.2013"
+            }
+          },
+          {
+            "values": {
+              "description": "Color",
+              "value": "PEPPER WHITE (850)"
+            }
+          },
+          {
+            "values": {
+              "description": "Upholstery",
+              "value": "DINAMICA\\-/LEDER CARBON BLACK (GSE1)"
+            }
+          },
+          {
+            "values": {
+              "description": "Drive",
+              "value": "FWD"
+            }
+          },
+          {
+            "values": {
+              "description": "Type code",
+              "value": "SU91"
+            }
+          },
+          {
+            "values": {
+              "description": "Model",
+              "value": "John Cooper Works"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

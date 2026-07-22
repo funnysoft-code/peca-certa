@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\SearchRunKind;
 use App\Enums\SearchRunStatus;
+use App\Jobs\IdentifyAgentJob;
 use App\Jobs\IdentifyOePartsJob;
 use App\Jobs\UnderstandRequestJob;
 use App\Models\SearchRun;
@@ -52,7 +53,7 @@ it('requires a vin', function (): void {
         ->assertJsonValidationErrorFor('vin');
 });
 
-it('creates a search run, dispatches the job chain, and redirects to the run page', function (): void {
+it('creates a search run, dispatches IdentifyAgentJob, and redirects to the run page', function (): void {
     Bus::fake();
     $user = User::factory()->create(['email_verified_at' => now()]);
 
@@ -69,7 +70,9 @@ it('creates a search run, dispatches the job chain, and redirects to the run pag
 
     $response->assertRedirect(route('identify.show', $run));
 
-    Bus::assertChained([UnderstandRequestJob::class, IdentifyOePartsJob::class]);
+    Bus::assertDispatched(IdentifyAgentJob::class);
+    Bus::assertNotDispatched(UnderstandRequestJob::class);
+    Bus::assertNotDispatched(IdentifyOePartsJob::class);
 });
 
 it('shows the run page for the owner', function (): void {

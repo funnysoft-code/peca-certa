@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\FanOutOePricing;
 use App\Actions\IdentifyOeParts;
 use App\Actions\UnderstandPartRequest;
 use App\Ai\Agents\PartRequestUnderstander;
@@ -30,7 +31,7 @@ it('understands the request, identifies OE parts, and fans out a supplier lookup
     $run = SearchRun::factory()->create(['request_text' => 'filtro de óleo', 'vin' => 'WMWSU91010T717700']);
 
     new UnderstandRequestJob($run)->handle(resolve(UnderstandPartRequest::class));
-    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class));
+    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class), resolve(FanOutOePricing::class));
 
     $run->refresh();
 
@@ -63,7 +64,7 @@ it('fans out N OE parts into 2N lookups and 2N dispatched jobs', function (): vo
     $run = SearchRun::factory()->create(['request_text' => 'filtro de óleo', 'vin' => 'WMWSU91010T717700']);
 
     new UnderstandRequestJob($run)->handle(resolve(UnderstandPartRequest::class));
-    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class));
+    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class), resolve(FanOutOePricing::class));
 
     expect($run->refresh()->oe_parts)->toHaveCount(3)
         ->and($run->lookups()->count())->toBe(6);
@@ -81,7 +82,7 @@ it('sets the run to Done on clarification and the identify job no-ops', function
     $run = SearchRun::factory()->create(['request_text' => 'uma peça']);
 
     new UnderstandRequestJob($run)->handle(resolve(UnderstandPartRequest::class));
-    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class));
+    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class), resolve(FanOutOePricing::class));
 
     expect($run->refresh()->status)->toBe(SearchRunStatus::Done)
         ->and($run->lookups()->count())->toBe(0)
@@ -102,7 +103,7 @@ it('sets the run to Done when no OE parts are identified', function (): void {
     $run = SearchRun::factory()->create(['request_text' => 'peça rara', 'vin' => 'WMWSU91010T717700']);
 
     new UnderstandRequestJob($run)->handle(resolve(UnderstandPartRequest::class));
-    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class));
+    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class), resolve(FanOutOePricing::class));
 
     expect($run->refresh()->status)->toBe(SearchRunStatus::Done)
         ->and($run->oe_parts)->toBe([])
@@ -135,7 +136,7 @@ it('does not identify when the run is already terminal (aborted mid-chain)', fun
         'understanding' => ['category' => 'x', 'searchTerm' => 'x', 'keywords' => [], 'clarifyingQuestion' => null, 'confidence' => 0.9],
     ]);
 
-    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class));
+    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class), resolve(FanOutOePricing::class));
 
     expect($run->refresh()->oe_parts)->toBeNull()
         ->and($run->lookups()->count())->toBe(0);
@@ -151,7 +152,7 @@ it('no-ops when the run no longer exists in the database', function (): void {
     $run = SearchRun::factory()->create();
     SearchRun::query()->whereKey($run->id)->delete();
 
-    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class));
+    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class), resolve(FanOutOePricing::class));
 
     Bus::assertNotDispatched(PriceSupplierJob::class);
 });
@@ -253,8 +254,8 @@ it('is idempotent under retry: running the fan-out twice still yields exactly 2N
 
     new UnderstandRequestJob($run)->handle(resolve(UnderstandPartRequest::class));
 
-    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class));
-    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class));
+    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class), resolve(FanOutOePricing::class));
+    new IdentifyOePartsJob($run)->handle(resolve(IdentifyOeParts::class), resolve(FanOutOePricing::class));
 
     expect($run->refresh()->status)->toBe(SearchRunStatus::Running)
         ->and($run->lookups()->count())->toBe(4);

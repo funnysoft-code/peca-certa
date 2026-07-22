@@ -12,6 +12,7 @@ type Props = { run: App.Data.SearchRunData };
 const STATUS_LABELS: Record<App.Enums.SearchRunStatus, string> = {
     pending: 'Pendente',
     running: 'A processar…',
+    needs_input: 'Aguarda resposta',
     done: 'Concluído',
     failed: 'Falhou',
 };

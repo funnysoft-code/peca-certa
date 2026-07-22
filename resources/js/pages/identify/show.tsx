@@ -1,17 +1,21 @@
-import { Head } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import { EchoListener } from '@/components/echo-listener';
 import { RunResults } from '@/components/identify/run-results';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { useSearchRunStream } from '@/hooks/use-search-run-stream';
-import { create } from '@/routes/identify';
+import { create, resume } from '@/routes/identify';
 
 type Props = { run: App.Data.SearchRunData };
 
 const STATUS_LABELS: Record<App.Enums.SearchRunStatus, string> = {
     pending: 'Pendente',
     running: 'A processar…',
+    needs_input: 'Aguarda resposta',
     done: 'Concluído',
     failed: 'Falhou',
 };
@@ -26,6 +30,10 @@ function StatusIndicator({ status }: { status: App.Enums.SearchRunStatus }) {
         );
     }
 
+    if (status === 'needs_input') {
+        return <Badge variant="outline">{STATUS_LABELS[status]}</Badge>;
+    }
+
     return (
         <Badge variant={status === 'failed' ? 'destructive' : 'default'}>
             {STATUS_LABELS[status]}
@@ -33,13 +41,93 @@ function StatusIndicator({ status }: { status: App.Enums.SearchRunStatus }) {
     );
 }
 
+function ClarificationForm({ run }: { run: App.Data.SearchRunData }) {
+    const form = useForm<{ answer: string; option: string }>({
+        answer: '',
+        option: '',
+    });
+
+    if (!run.pendingQuestion) {
+        return null;
+    }
+
+    return (
+        <div className="space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm">
+            <div>
+                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Precisamos de mais detalhe
+                </p>
+                <p className="mt-1 text-sm font-medium">
+                    {run.pendingQuestion.question}
+                </p>
+            </div>
+
+            {run.pendingQuestion.options.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                    {run.pendingQuestion.options.map((option) => (
+                        <Button
+                            key={option}
+                            type="button"
+                            size="sm"
+                            variant={
+                                form.data.option === option
+                                    ? 'default'
+                                    : 'outline'
+                            }
+                            onClick={() => form.setData('option', option)}
+                        >
+                            {option}
+                        </Button>
+                    ))}
+                </div>
+            )}
+
+            <form
+                className="space-y-3"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    form.post(resume.url(run.id), {
+                        preserveScroll: true,
+                    });
+                }}
+            >
+                <div className="space-y-1.5">
+                    <Label htmlFor="identify-answer">
+                        Resposta (texto livre)
+                    </Label>
+                    <Input
+                        id="identify-answer"
+                        value={form.data.answer}
+                        onChange={(event) =>
+                            form.setData('answer', event.target.value)
+                        }
+                        placeholder="Descreva com mais pormenor se as opções não chegarem…"
+                        maxLength={1000}
+                    />
+                    {form.errors.answer && (
+                        <p className="text-sm text-destructive">
+                            {form.errors.answer}
+                        </p>
+                    )}
+                </div>
+                <Button type="submit" disabled={form.processing}>
+                    {form.processing ? (
+                        <>
+                            <Spinner className="size-4" />A enviar…
+                        </>
+                    ) : (
+                        'Continuar identificação'
+                    )}
+                </Button>
+            </form>
+        </div>
+    );
+}
+
 export default function IdentifyShow({ run: initialRun }: Props) {
     const { run, handleEvent } = useSearchRunStream(initialRun);
 
-    const isAnalyzing =
-        run.understanding === null &&
-        run.status !== 'done' &&
-        run.status !== 'failed';
+    const isAnalyzing = run.status === 'pending' || run.status === 'running';
 
     return (
         <>
@@ -78,8 +166,13 @@ export default function IdentifyShow({ run: initialRun }: Props) {
 
                 {isAnalyzing && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Spinner className="size-4" />A analisar o pedido…
+                        <Spinner className="size-4" />A identificar peça no
+                        catálogo OE…
                     </div>
+                )}
+
+                {run.status === 'needs_input' && (
+                    <ClarificationForm run={run} />
                 )}
 
                 {run.understanding && (
@@ -91,15 +184,6 @@ export default function IdentifyShow({ run: initialRun }: Props) {
                             {run.understanding.category}
                         </p>
                     </div>
-                )}
-
-                {run.understanding?.clarifyingQuestion && (
-                    <Alert>
-                        <AlertTitle>É necessária mais informação</AlertTitle>
-                        <AlertDescription>
-                            {run.understanding.clarifyingQuestion}
-                        </AlertDescription>
-                    </Alert>
                 )}
 
                 {run.oeParts.length > 0 && (
