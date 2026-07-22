@@ -1,0 +1,204 @@
+{
+  "demo": false,
+  "data": {
+    "records": [
+      {
+        "characteristic": "sectionrow",
+        "id": "hdr0",
+        "description": "Lubricat.syst.-oil filter,heat exchanger",
+        "values": {
+          "description": "Lubricat.syst.\\-oil filter,heat exchanger"
+        }
+      },
+      {
+        "id": "1",
+        "partno": "11428643745",
+        "description": "Oil filter with plastic cover",
+        "link": {
+          "wid": "partinfo",
+          "path": "/p5bmw/extern/partinfo/vin?btnr=11_4574&hg=11&lang=en&partno=8643745&pos=1&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "presel": true,
+        "pos": "01",
+        "hotspotImageIds": [
+          "_DFLT_"
+        ],
+        "hotspotId": "1",
+        "values": {
+          "qty": "1",
+          "pos": "01",
+          "partno": "11 42 8 643 745",
+          "description": "Oil filter with plastic cover"
+        }
+      },
+      {
+        "id": "2",
+        "partno": "11427557011",
+        "description": "Oil filter cover",
+        "link": {
+          "wid": "partinfo",
+          "path": "/p5bmw/extern/partinfo/vin?btnr=11_4574&hg=11&lang=en&partno=7557011&pos=2&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "pos": "02",
+        "hotspotImageIds": [
+          "_DFLT_"
+        ],
+        "hotspotId": "2",
+        "values": {
+          "qty": "1",
+          "pos": "02",
+          "partno": "11 42 7 557 011",
+          "description": "Oil filter cover"
+        }
+      },
+      {
+        "id": "3",
+        "partno": "11427622446",
+        "description": "Set oil-filter element",
+        "link": {
+          "wid": "partinfo",
+          "path": "/p5bmw/extern/partinfo/vin?btnr=11_4574&hg=11&lang=en&partno=7622446&pos=3&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "pos": "03",
+        "hotspotImageIds": [
+          "_DFLT_"
+        ],
+        "hotspotId": "3",
+        "values": {
+          "qty": "1",
+          "pos": "03",
+          "partno": "11 42 7 622 446",
+          "description": "Set oil\\-filter element"
+        }
+      },
+      {
+        "id": "4",
+        "partno": "11427552687",
+        "description": "Heat exchanger",
+        "link": {
+          "wid": "partinfo",
+          "path": "/p5bmw/extern/partinfo/vin?btnr=11_4574&hg=11&lang=en&partno=7552687&pos=4&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "pos": "04",
+        "hotspotImageIds": [
+          "_DFLT_"
+        ],
+        "hotspotId": "4",
+        "values": {
+          "qty": "1",
+          "pos": "04",
+          "partno": "11 42 7 552 687",
+          "description": "Heat exchanger"
+        }
+      },
+      {
+        "id": "5",
+        "partno": "11428643758",
+        "description": "Gasket set",
+        "link": {
+          "wid": "partinfo",
+          "path": "/p5bmw/extern/partinfo/vin?btnr=11_4574&hg=11&lang=en&partno=8643758&pos=5&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "pos": "05",
+        "hotspotImageIds": [
+          "_DFLT_"
+        ],
+        "hotspotId": "5",
+        "values": {
+          "qty": "1",
+          "pos": "05",
+          "partno": "11 42 8 643 758",
+          "description": "Gasket set"
+        }
+      },
+      {
+        "id": "6",
+        "partno": "11428643747",
+        "description": "Gasket set",
+        "link": {
+          "wid": "partinfo",
+          "path": "/p5bmw/extern/partinfo/vin?btnr=11_4574&hg=11&lang=en&partno=8643747&pos=6&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "pos": "06",
+        "hotspotImageIds": [
+          "_DFLT_"
+        ],
+        "hotspotId": "6",
+        "values": {
+          "qty": "1",
+          "pos": "06",
+          "partno": "11 42 8 643 747",
+          "description": "Gasket set"
+        }
+      },
+      {
+        "id": "7",
+        "partno": "07129904819",
+        "description": "Torx-bolt with washer",
+        "link": {
+          "wid": "partinfo",
+          "path": "/p5bmw/extern/partinfo/vin?btnr=11_4574&hg=11&lang=en&partno=9904819&pos=7&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "pos": "07",
+        "hotspotImageIds": [
+          "_DFLT_"
+        ],
+        "hotspotId": "7",
+        "values": {
+          "qty": "5",
+          "remark": "M6X16\\-8.8\\-ZNNIV",
+          "pos": "07",
+          "partno": "07 12 9 904 819",
+          "description": "Torx\\-bolt with washer"
+        }
+      },
+      {
+        "id": "8",
+        "partno": "07147543755",
+        "description": "Hex Bolt with washer",
+        "link": {
+          "wid": "partinfo",
+          "path": "/p5bmw/extern/partinfo/vin?btnr=11_4574&hg=11&lang=en&partno=7543755&pos=8&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "pos": "08",
+        "hotspotImageIds": [
+          "_DFLT_"
+        ],
+        "hotspotId": "8",
+        "values": {
+          "qty": "4",
+          "remark": "M6X30",
+          "pos": "08",
+          "partno": "07 14 7 543 755",
+          "description": "Hex Bolt with washer"
+        }
+      },
+      {
+        "id": "9",
+        "partno": "12617592532",
+        "description": "Oil pressure sensor",
+        "link": {
+          "wid": "partinfo",
+          "path": "/p5bmw/extern/partinfo/vin?btnr=11_4574&hg=11&lang=en&partno=7592532&pos=9&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "pos": "09",
+        "hotspotImageIds": [
+          "_DFLT_"
+        ],
+        "hotspotId": "9",
+        "values": {
+          "qty": "1",
+          "pos": "09",
+          "partno": "12 61 7 592 532",
+          "description": "Oil pressure sensor"
+        }
+      }
+    ],
+    "images": [
+      {
+        "id": "_DFLT_",
+        "name": "11_4574"
+      }
+    ]
+  }
+}

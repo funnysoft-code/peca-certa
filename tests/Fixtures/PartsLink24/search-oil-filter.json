@@ -1,6 +1,148 @@
-{"data":{"records":[
-  {"recordContext":{"bidata_part_no":"11427557011"},"values":{"partno":"11 42 7 557 011","name":"[Oil] [filter] cover"}},
-  {"recordContext":{"bidata_part_no":"11427622446"},"values":{"partno":"11 42 7 622 446","name":"Set [oil]\\-[filter] element"}},
-  {"recordContext":{"bidata_part_no":"11427622446"},"values":{"partno":"11 42 7 622 446","name":"Set [oil]\\-[filter] element"}},
-  {"recordContext":{"bidata_part_no":"11428643745"},"values":{"partno":"11 42 8 643 745","name":"[Oil] [filter] with plastic cover"}}
-]}}
+{
+  "search": {
+    "wid": "searchresult",
+    "path": "/p5bmw/extern/search/vin?lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700&q="
+  },
+  "demo": false,
+  "data": {
+    "records": [
+      {
+        "p5goto": {
+          "pid": "bom",
+          "ws": [
+            {
+              "wid": "bomlist",
+              "path": "/p5bmw/extern/bom/vin?btnr=11_4574&hg=11&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700",
+              "id": "2"
+            }
+          ]
+        },
+        "recordContext": {
+          "bidata_bt_page": "11_4574",
+          "bidata_group_hierarchy": [
+            {
+              "id": "11",
+              "type": "maingroup"
+            },
+            {
+              "id": "30",
+              "type": "subgroup"
+            }
+          ],
+          "bidata_part_no": "11427557011"
+        },
+        "values": {
+          "btnr": "11_4574",
+          "partno": "11 42 7 557 011",
+          "name": "[Oil] [filter] cover",
+          "hg": "11",
+          "fg": "30"
+        }
+      },
+      {
+        "p5goto": {
+          "pid": "bom",
+          "ws": [
+            {
+              "wid": "bomlist",
+              "path": "/p5bmw/extern/bom/vin?btnr=02_0090&hg=02&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700",
+              "id": "1"
+            }
+          ]
+        },
+        "recordContext": {
+          "bidata_bt_page": "02_0090",
+          "bidata_group_hierarchy": [
+            {
+              "id": "02",
+              "type": "maingroup"
+            },
+            {
+              "id": "05",
+              "type": "subgroup"
+            }
+          ],
+          "bidata_part_no": "11427622446"
+        },
+        "values": {
+          "btnr": "02_0090",
+          "partno": "11 42 7 622 446",
+          "name": "Set [oil]\\-[filter] element",
+          "hg": "02",
+          "fg": "05"
+        }
+      },
+      {
+        "p5goto": {
+          "pid": "bom",
+          "ws": [
+            {
+              "wid": "bomlist",
+              "path": "/p5bmw/extern/bom/vin?btnr=11_4574&hg=11&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700",
+              "id": "1"
+            }
+          ]
+        },
+        "recordContext": {
+          "bidata_bt_page": "11_4574",
+          "bidata_group_hierarchy": [
+            {
+              "id": "11",
+              "type": "maingroup"
+            },
+            {
+              "id": "30",
+              "type": "subgroup"
+            }
+          ],
+          "bidata_part_no": "11428643745"
+        },
+        "values": {
+          "btnr": "11_4574",
+          "partno": "11 42 8 643 745",
+          "name": "[Oil] [filter] with plastic cover",
+          "hg": "11",
+          "fg": "30"
+        }
+      },
+      {
+        "p5goto": {
+          "pid": "bom",
+          "ws": [
+            {
+              "wid": "bomlist",
+              "path": "/p5bmw/extern/bom/vin?btnr=11_4574&hg=11&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700",
+              "id": "3"
+            }
+          ]
+        },
+        "recordContext": {
+          "bidata_bt_page": "11_4574",
+          "bidata_group_hierarchy": [
+            {
+              "id": "11",
+              "type": "maingroup"
+            },
+            {
+              "id": "30",
+              "type": "subgroup"
+            }
+          ],
+          "bidata_part_no": "11427622446"
+        },
+        "values": {
+          "btnr": "11_4574",
+          "partno": "11 42 7 622 446",
+          "name": "Set [oil]\\-[filter] element",
+          "hg": "11",
+          "fg": "30"
+        }
+      }
+    ]
+  },
+  "catalogContext": {
+    "bidata_brand": "Mini",
+    "bidata_service": "mini_parts",
+    "bidata_vin": "WMWSU91010T717700"
+  }
+}

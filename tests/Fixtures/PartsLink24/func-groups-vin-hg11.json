@@ -1,0 +1,81 @@
+{
+  "demo": false,
+  "data": {
+    "records": [
+      {
+        "characteristic": "sectionrow",
+        "id": "05",
+        "values": {
+          "fg": "05",
+          "descr": "Engine"
+        }
+      },
+      {
+        "id": "11_4531",
+        "link": {
+          "wid": "bomlist",
+          "path": "/p5bmw/extern/bom/vin?btnr=11_4531&hg=11&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "values": {
+          "descr": "11_4531 – Power Plant"
+        }
+      },
+      {
+        "characteristic": "sectionrow",
+        "id": "10",
+        "values": {
+          "fg": "10",
+          "descr": "Engine housing"
+        }
+      },
+      {
+        "id": "11_4532",
+        "link": {
+          "wid": "bomlist",
+          "path": "/p5bmw/extern/bom/vin?btnr=11_4532&hg=11&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "values": {
+          "descr": "11_4532 – Engine block"
+        }
+      },
+      {
+        "id": "11_4559",
+        "link": {
+          "wid": "bomlist",
+          "path": "/p5bmw/extern/bom/vin?btnr=11_4559&hg=11&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "values": {
+          "descr": "11_4559 – Engine block mounting parts"
+        }
+      },
+      {
+        "id": "11_4537",
+        "link": {
+          "wid": "bomlist",
+          "path": "/p5bmw/extern/bom/vin?btnr=11_4537&hg=11&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "values": {
+          "descr": "11_4537 – Oil pan/oil level indicator"
+        }
+      },
+      {
+        "characteristic": "sectionrow",
+        "id": "15",
+        "values": {
+          "fg": "15",
+          "descr": "Cylinder head"
+        }
+      },
+      {
+        "id": "11_4584",
+        "link": {
+          "wid": "bomlist",
+          "path": "/p5bmw/extern/bom/vin?btnr=11_4584&hg=11&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "values": {
+          "descr": "11_4584 – Cylinder head"
+        }
+      }
+    ]
+  }
+}

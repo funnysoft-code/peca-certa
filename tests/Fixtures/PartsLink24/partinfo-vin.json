@@ -1,0 +1,100 @@
+{
+  "demo": false,
+  "data": {
+    "segments": {
+      "partinfoContext": {
+        "records": [
+          {
+            "id": "Pos.",
+            "values": {
+              "name": "Pos.",
+              "value": "01"
+            }
+          },
+          {
+            "id": "Part no.",
+            "values": {
+              "name": "Part no.",
+              "value": "11 42 8 643 745"
+            }
+          },
+          {
+            "id": "Description",
+            "values": {
+              "name": "Description",
+              "value": "Oil filter with plastic cover"
+            }
+          },
+          {
+            "id": "Unit",
+            "values": {
+              "name": "Unit",
+              "value": "1"
+            }
+          }
+        ]
+      },
+      "partinforeach": {
+        "records": [
+          {
+            "fixedWidthFont": true,
+            "values": {
+              "text": "Bis(alpha,alpha\\-dimethylbenzyl) peroxide"
+            }
+          },
+          {
+            "fixedWidthFont": true,
+            "values": {
+              "text": "80\\-43\\-3"
+            }
+          }
+        ]
+      },
+      "techinfo": {
+        "records": [
+          {
+            "id": "Unit of Quantity",
+            "values": {
+              "name": "Unit of Quantity",
+              "value": "piece"
+            }
+          },
+          {
+            "id": "Weight",
+            "values": {
+              "name": "Weight",
+              "value": "1281.390"
+            }
+          }
+        ]
+      }
+    },
+    "records": [
+      {
+        "partno": "11428643745",
+        "description": "Oil filter with plastic cover",
+        "pos": "01",
+        "values": {
+          "price": {
+            "price": "€375.25",
+            "currency": "EUR",
+            "objType": "price"
+          },
+          "discountGroup": "BJ",
+          "partno": "11 42 8 643 745",
+          "name": "Oil filter with plastic cover"
+        },
+        "qty": 1,
+        "orderable": true,
+        "prechecked": true,
+        "partInfoContext": {
+          "bidata_currency": "EUR",
+          "bidata_discountGroup": "BJ",
+          "bidata_listPrice": "€375.25",
+          "bidata_part_no": "11428643745"
+        },
+        "assortment": "OR"
+      }
+    ]
+  }
+}

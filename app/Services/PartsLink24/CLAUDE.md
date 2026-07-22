@@ -1,8 +1,10 @@
 # PartsLink24 Service
 
-- `PartsLink24Catalog` (contract) resolves VIN + category to OE parts.
-- `PartsLink24HttpClient` is the bound implementation (`AppServiceProvider::register()`) and drives the real API.
-- `FakePartsLink24Catalog` remains in the codebase as a deterministic stand-in for tests that bind it explicitly (decouples the identify flow from HTTP).
-- Real API: JSON REST, `POST /auth/ext/api/1.1/login` with `{account, user, password}` to get a token; catalogs under `/pl24-*/ext/api/1.0/`. Single concurrent session limit (like Auto Zitania).
+- `PartsLink24Catalog` (contract) resolves VIN + category to OE parts for the legacy identify fan-out path.
+- `PartsLink24HttpClient` is the bound catalog implementation (`AppServiceProvider::register()`) and drives the real API via `PartsLink24Client`.
+- `FakePartsLink24Catalog` remains for tests that bind it explicitly.
+- `PartsLink24Client` is the low-level HTTP surface for F7T-48 agent tools: `searchByVin`, `decodeVin`, `listMainGroups`, `listSubGroups`, `listBomParts`, `getPartInfo`.
+- Real API: login → authorize (Bearer JWT) → `/{group}/extern/…` GETs. Single concurrent session (`squeezeOut: true`).
 - Credentials via `config('suppliers.partslink24.*')`, never `env()` directly.
-- `PartsLink24Brand` (value object) + `VinBrandResolver` route a VIN to the right catalog: the resolver reads the WMI map from `config('suppliers.partslink24.brands.*')`, uppercases the VIN's first 3 characters, and returns the matching brand's service and group, or null for an unknown WMI or a too-short VIN.
+- `PartsLink24Brand` + `VinBrandResolver` map VIN WMI → catalog service/group.
+- Recon + frozen tool contract: `docs/partslink24/recon.md`, `docs/partslink24/agent-tool-contract.md`.

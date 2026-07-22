@@ -1,0 +1,62 @@
+{
+  "demo": false,
+  "data": {
+    "records": [
+      {
+        "id": "88",
+        "link": {
+          "wid": "subGroupsTable",
+          "path": "/p5bmw/extern/groups/func-vin?hg=88&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "values": {
+          "id": "88",
+          "description": "Value Parts&Packages Service and Repair"
+        }
+      },
+      {
+        "id": "01",
+        "link": {
+          "wid": "subGroupsTable",
+          "path": "/p5bmw/extern/groups/func-vin?hg=01&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "values": {
+          "id": "01",
+          "description": "Technical Literature"
+        }
+      },
+      {
+        "id": "02",
+        "link": {
+          "wid": "subGroupsTable",
+          "path": "/p5bmw/extern/groups/func-vin?hg=02&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "values": {
+          "id": "02",
+          "description": "Scopes of service and repair work"
+        }
+      },
+      {
+        "id": "03",
+        "link": {
+          "wid": "subGroupsTable",
+          "path": "/p5bmw/extern/groups/func-vin?hg=03&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "values": {
+          "id": "03",
+          "description": "Retrofitting / conversion / accessories"
+        }
+      },
+      {
+        "id": "04",
+        "link": {
+          "wid": "subGroupsTable",
+          "path": "/p5bmw/extern/groups/func-vin?hg=04&lang=en&serviceName=mini_parts&upds=2026-07-14--10-15&vin=WMWSU91010T717700"
+        },
+        "values": {
+          "id": "04",
+          "description": "Parts Repair Service"
+        }
+      }
+    ]
+  }
+}
