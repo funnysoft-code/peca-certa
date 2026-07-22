@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 
-it('searches a part and shows variants in a tab', function (): void {
+it('searches a part and shows variants on the run page', function (): void {
     config()->set('suppliers.autodelta.catalog_url', 'https://cat.test/WebCat30WS');
     config()->set('suppliers.autodelta.search_url', 'https://cat.test/Tecdoc');
     config()->set('suppliers.autodelta.catalog_id', 'CAT');
@@ -31,11 +31,14 @@ it('searches a part and shows variants in a tab', function (): void {
     $page->fill('input[placeholder="Referência da peça"]', 'OC90')
         ->press('Pesquisar');
 
+    $page->waitForEvent('networkidle');
+
     $page->waitForText('Preço')
         ->assertSee('Fornecedor')
+        ->assertSee('OC90')
         ->assertPresent('a[href*="web.tecalliance.net"]');
 
-    $page->waitForText('Abrir em Auto Delta');
+    $page->waitForText('Abrir OC90 em Auto Delta');
 
     $page->waitForText('Auto Zitânia')
         ->assertSee('Disponível');

@@ -19,9 +19,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::redirect('dashboard', '/identify')->name('dashboard');
 
     Route::get('parts', [PartSearchController::class, 'index'])->name('parts.index');
-    Route::post('parts/search', [PartSearchController::class, 'store'])
+    Route::post('parts', [PartSearchController::class, 'store'])
         ->middleware('throttle:30,1')
-        ->name('parts.search');
+        ->name('parts.store');
+    Route::get('parts/{run}', [PartSearchController::class, 'show'])->name('parts.show');
     Route::get('identify', [IdentifyController::class, 'create'])->name('identify.create');
     Route::post('identify', [IdentifyController::class, 'store'])
         ->middleware('throttle:10,1')

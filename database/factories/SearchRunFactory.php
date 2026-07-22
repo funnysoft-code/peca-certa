@@ -31,4 +31,14 @@ final class SearchRunFactory extends Factory
             'status' => SearchRunStatus::Pending,
         ];
     }
+
+    public function parts(): self
+    {
+        return $this->state(fn (): array => [
+            'kind' => SearchRunKind::Parts,
+            'request_text' => null,
+            'vin' => null,
+            'reference' => fake()->bothify('?? ###'),
+        ]);
+    }
 }
