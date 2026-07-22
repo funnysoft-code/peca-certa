@@ -19,14 +19,31 @@ trait UsesXaiProviderOptions
             return [];
         }
 
+        $options = [];
+
         $serviceTier = config('ai.providers.xai.service_tier');
 
-        if (blank($serviceTier)) {
-            return [];
+        if (filled($serviceTier)) {
+            $options['service_tier'] = $serviceTier;
         }
 
-        return [
-            'service_tier' => $serviceTier,
-        ];
+        $promptCacheKey = $this->xaiPromptCacheKey();
+
+        if (filled($promptCacheKey)) {
+            // Responses API sticky routing for prompt-cache hits.
+            // https://docs.x.ai/developers/advanced-api-usage/prompt-caching/maximizing-cache-hits
+            $options['prompt_cache_key'] = $promptCacheKey;
+        }
+
+        return $options;
+    }
+
+    /**
+     * Stable key for xAI Responses API prompt_cache_key.
+     * Override per agent (per-run for multi-turn; shared for single-shot agents).
+     */
+    protected function xaiPromptCacheKey(): ?string
+    {
+        return null;
     }
 }

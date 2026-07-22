@@ -43,4 +43,11 @@ final class PartRequestUnderstander implements Agent, HasProviderOptions, HasStr
             'confidence' => $schema->number()->min(0)->max(1)->required(),
         ];
     }
+
+    protected function xaiPromptCacheKey(): ?string
+    {
+        $key = config('ai.providers.xai.prompt_cache_keys.part_request_understander');
+
+        return is_string($key) && $key !== '' ? $key : null;
+    }
 }

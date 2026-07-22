@@ -21,6 +21,7 @@ final readonly class RunIdentifyAgentTurn
 {
     public function __construct(
         private FanOutOePricing $fanOutOePricing,
+        private LogAgentTokenUsage $logAgentTokenUsage,
     ) {}
 
     public function execute(SearchRun $run): IdentifyAgentResult
@@ -36,11 +37,12 @@ final readonly class RunIdentifyAgentTurn
         $history = $this->toMessages($historyRows);
         $maxSteps = config()->integer('identify.max_tool_steps');
         $timeout = config()->integer('identify.turn_timeout_seconds');
+        $promptCacheKey = 'identify-run:'.$run->id;
 
         Context::add('identify.search_run_id', $run->id);
 
         try {
-            $response = new IdentifyPartAgent($history, $maxSteps, $timeout)->prompt(
+            $response = new IdentifyPartAgent($history, $maxSteps, $timeout, $promptCacheKey)->prompt(
                 $prompt,
                 timeout: $timeout,
             );
@@ -53,6 +55,11 @@ final readonly class RunIdentifyAgentTurn
             RuntimeException::class,
             'IdentifyPartAgent did not return structured output.',
         );
+
+        $this->logAgentTokenUsage->execute(IdentifyPartAgent::class, $response->usage, [
+            'search_run_id' => $run->id,
+            'prompt_cache_key' => $promptCacheKey,
+        ]);
 
         /** @var array<array-key, mixed> $payload */
         $payload = $response->toArray();

@@ -11,11 +11,19 @@ use RuntimeException;
 
 final readonly class UnderstandPartRequest
 {
+    public function __construct(
+        private LogAgentTokenUsage $logAgentTokenUsage,
+    ) {}
+
     public function execute(string $request): PartRequestUnderstanding
     {
         $response = (new PartRequestUnderstander)->prompt($request);
 
         throw_unless($response instanceof StructuredAgentResponse, RuntimeException::class, 'PartRequestUnderstander did not return structured output.');
+
+        $this->logAgentTokenUsage->execute(PartRequestUnderstander::class, $response->usage, [
+            'prompt_cache_key' => config('ai.providers.xai.prompt_cache_keys.part_request_understander'),
+        ]);
 
         $clarifying = is_string($response['clarifyingQuestion'] ?? null) ? $response['clarifyingQuestion'] : null;
         $category = is_string($response['category'] ?? null) ? $response['category'] : '';

@@ -85,6 +85,14 @@ return [
             // Priority Processing: higher scheduling priority (premium token rate).
             // See https://docs.x.ai/developers/advanced-api-usage/priority-processing
             'service_tier' => env('XAI_SERVICE_TIER', 'priority'),
+            // Sticky prompt-cache keys (Responses API prompt_cache_key).
+            // Identify runs use identify-run:{search_run_id} from the action, not config.
+            'prompt_cache_keys' => [
+                'part_request_understander' => env(
+                    'XAI_PROMPT_CACHE_KEY_PART_REQUEST',
+                    'peca-certa:part-request-understander',
+                ),
+            ],
             'models' => [
                 'text' => [
                     'default' => env('XAI_DEFAULT_MODEL', 'grok-4.3'),

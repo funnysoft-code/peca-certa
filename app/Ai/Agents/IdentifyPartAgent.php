@@ -38,6 +38,7 @@ final readonly class IdentifyPartAgent implements Agent, Conversational, HasProv
         private array $history = [],
         private ?int $maxSteps = null,
         private ?int $timeoutSeconds = null,
+        private ?string $promptCacheKey = null,
     ) {}
 
     public function maxSteps(): ?int
@@ -108,5 +109,10 @@ final readonly class IdentifyPartAgent implements Agent, Conversational, HasProv
             'options' => $schema->array()->items($schema->string())->required(),
             'confidence' => $schema->number()->min(0)->max(1)->required(),
         ];
+    }
+
+    protected function xaiPromptCacheKey(): ?string
+    {
+        return $this->promptCacheKey;
     }
 }
