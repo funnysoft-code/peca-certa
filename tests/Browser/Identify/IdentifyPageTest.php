@@ -87,9 +87,9 @@ it('submits the identify form and lands on the run page', function (): void {
     $page = visit('/identify');
     $page->waitForEvent('networkidle');
 
-    $page->fill('input[placeholder="Pedido do cliente"]', 'filtro de óleo para Golf')
-        ->fill('input[placeholder="VIN"]', 'WVWZZZ1JZXW000001')
-        ->press('Identificar');
+    $page->fill('#request', 'filtro de óleo para Golf')
+        ->fill('#vin', 'WVWZZZ1JZXW000001')
+        ->click('form button[type="submit"]');
 
     $page->waitForEvent('networkidle');
 
