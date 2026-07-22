@@ -2,12 +2,14 @@ import type { ImgHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
 type Props = ImgHTMLAttributes<HTMLImageElement> & {
+    /** `full` = wordmark (logo-light), `mark` = square app icon from r2cz-auto */
     variant?: 'mark' | 'full';
 };
 
 /**
- * R2CZ Auto logo mark (favicon-style) or full wordmark.
- * Assets live in public/ (ported from r2cz-auto).
+ * Official R2CZ Auto brand assets (from ~/Code/r2cz-auto):
+ * - full → public/logo-light.svg (wordmark for dark backgrounds)
+ * - mark → public/logo-icon.svg (app icon / favicon mark)
  */
 export default function AppLogoIcon({
     className,
@@ -28,9 +30,9 @@ export default function AppLogoIcon({
 
     return (
         <img
-            src="/favicon.svg"
+            src="/logo-icon.svg"
             alt={alt}
-            className={cn('size-8', className)}
+            className={cn('size-8 rounded-md', className)}
             {...props}
         />
     );
