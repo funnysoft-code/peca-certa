@@ -10,12 +10,12 @@
     "license": "MIT",
     "require": {
         "php": "^8.5",
+        "aws/aws-sdk-php": "^3.388",
         "inertiajs/inertia-laravel": "^3.0",
         "laravel/ai": "^0.7",
         "laravel/chisel": "^0.1.0",
         "laravel/fortify": "^1.36",
         "laravel/framework": "^13.0",
-        "laravel/horizon": "^5.47",
         "laravel/nightwatch": "^1.28",
         "laravel/octane": "^2.17",
         "laravel/reverb": "^1.10",
@@ -67,7 +67,7 @@
         ],
         "dev": [
             "Composer\\Config::disableProcessTimeout",
-            "bunx concurrently -c \"#0ea5e9,#93c5fd,#fb7185,#fdba74,#a78bfa\" \"php artisan serve\" \"php artisan horizon\" \"php artisan pail --timeout=0\" \"php artisan reverb:start\" \"bun run dev\" --names=server,horizon,logs,reverb,vite --kill-others"
+            "bunx concurrently -c \"#0ea5e9,#93c5fd,#fb7185,#fdba74,#a78bfa\" \"php artisan serve\" \"php artisan queue:listen --tries=1\" \"php artisan pail --timeout=0\" \"php artisan reverb:start\" \"bun run dev\" --names=server,queue,logs,reverb,vite --kill-others"
         ],
         "lint": [
             "vendor/bin/rector --ansi",

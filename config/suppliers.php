@@ -23,8 +23,13 @@ return [
         'entry_url' => env('AUTOZITANIA_ENTRY_URL', 'https://web2.carparts-cat.com/default.aspx?11=102&14=15&1115=1&1281=17=0&10=CB42290652B84321A1D2E66B1FA73DCE102015&12=1400'),
         'username' => env('AUTOZITANIA_USERNAME'),
         'password' => env('AUTOZITANIA_PASSWORD'),
+        // Local Bun + Playwright sidecar. Unused when `http_url` is set.
         'bun_binary' => env('AUTOZITANIA_BUN_BINARY', 'bun'),
         'script_timeout' => (int) env('AUTOZITANIA_SCRIPT_TIMEOUT', 120),
+        // Production: Cloudflare Browser Rendering Worker (`workers/zitania-browser`).
+        // When non-empty, AutoZitaniaClient POSTs { reference } instead of shelling out.
+        'http_url' => env('AUTOZITANIA_HTTP_URL', ''),
+        'http_token' => env('AUTOZITANIA_HTTP_TOKEN', ''),
     ],
 
     'partslink24' => [

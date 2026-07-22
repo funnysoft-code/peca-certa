@@ -2,13 +2,12 @@
 
 ## Conventions
 
-- `final class` extending `ServiceProvider` (or `HorizonApplicationServiceProvider` for Horizon).
+- `final class` extending `ServiceProvider`.
 - `declare(strict_types=1)` at the top of every file.
 - `register()` for service container bindings. `boot()` for event listeners, observers, rate limiters, Fortify config, and gate definitions.
 - Rate limiters defined in `boot()` via `RateLimiter::for()` keyed by `user_id ?: IP`.
 - Model observers registered via `Model::observe(ObserverClass::class)` in `boot()`.
 - Fortify views use `Inertia::render()` — no Blade views for auth pages.
-- Dashboard gates (`viewHorizon`) check `$user->isAdmin()` (or equivalent role check).
 - Password defaults: production requires 12+ chars with mixed case, numbers, symbols, uncompromised; non-production requires 8+ chars.
 - `AppServiceProvider::boot()` also handles: `trustProxies('*')`, CSRF-expiry redirect, `encryptCookies` exceptions, `Inertia::handleExceptionsUsing()` for HTTP error codes → shared `error` page.
 - Register middleware in `bootstrap/app.php` — not in providers.
@@ -19,7 +18,6 @@
 |----------|---------|
 | `AppServiceProvider` | Boot: event listeners, observers, rate limiters, Fortify bindings, password rules, proxy trust, Inertia exception mapping |
 | `FortifyServiceProvider` | Auth actions, Inertia views, login/2FA rate limiting |
-| `HorizonServiceProvider` | Horizon gate authorization (when Horizon is installed) |
 
 ## Patterns
 

@@ -3,12 +3,15 @@
 declare(strict_types=1);
 
 use App\Actions\SearchAutoZitaniaParts;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 
 beforeEach(function (): void {
     config()->set('suppliers.autozitania.username', 'user');
     config()->set('suppliers.autozitania.password', 'secret');
     config()->set('suppliers.autozitania.entry_url', 'https://portal.test/entry?11=102');
+    config()->set('suppliers.autozitania.http_url', '');
+    config()->set('suppliers.autozitania.http_token', '');
 });
 
 it('maps sidecar output to part variants', function (): void {
@@ -33,6 +36,25 @@ it('maps sidecar output to part variants', function (): void {
 
         return str_contains($command, 'bin/zitania-search.ts') && str_contains($command, 'OC 90');
     });
+});
+
+it('maps http worker output to part variants', function (): void {
+    config()->set('suppliers.autozitania.http_url', 'https://zitania-browser.test/search');
+    config()->set('suppliers.autozitania.http_token', 'secret-token');
+
+    $fixture = (string) file_get_contents(base_path('tests/Fixtures/AutoZitania/search-output.json'));
+    Http::fake([
+        'https://zitania-browser.test/search' => Http::response($fixture, 200),
+    ]);
+
+    $result = resolve(SearchAutoZitaniaParts::class)->execute('OC 90');
+
+    expect($result->variants)->toHaveCount(6)
+        ->and($result->variants[0]->retailPrice)->toBe(34.38);
+
+    Http::assertSent(fn (array $request): bool => $request->url() === 'https://zitania-browser.test/search'
+        && $request->hasHeader('Authorization', 'Bearer secret-token')
+        && $request['reference'] === 'OC 90');
 });
 
 it('coerces malformed variant values defensively', function (): void {
@@ -63,6 +85,16 @@ it('returns empty variants when the sidecar reports none', function (): void {
 
 it('throws when the sidecar exits non-zero', function (): void {
     Process::fake(['*' => Process::result(errorOutput: 'login failed', exitCode: 1)]);
+
+    resolve(SearchAutoZitaniaParts::class)->execute('OC 90');
+})->throws(RuntimeException::class, 'Auto Zitania search failed');
+
+it('throws when the http worker returns an error', function (): void {
+    config()->set('suppliers.autozitania.http_url', 'https://zitania-browser.test/search');
+
+    Http::fake([
+        'https://zitania-browser.test/search' => Http::response(['error' => 'login failed'], 502),
+    ]);
 
     resolve(SearchAutoZitaniaParts::class)->execute('OC 90');
 })->throws(RuntimeException::class, 'Auto Zitania search failed');

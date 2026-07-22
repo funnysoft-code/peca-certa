@@ -21,8 +21,8 @@ return [
     |
     | Name of the queue that BroadcastAgent jobs are dispatched to. Isolated
     | from `default` so long-running streaming workloads do not starve fast
-    | jobs (emails, scout indexing, notifications). Horizon defines a
-    | dedicated `supervisor-ai` listening on this queue — keep both in sync.
+    | jobs (emails, scout indexing, notifications). Production uses a Laravel
+    | Cloud managed queue named `ai` — keep both in sync.
     |
     */
 

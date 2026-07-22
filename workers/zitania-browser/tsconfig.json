@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ES2022",
+        "moduleResolution": "Bundler",
+        // DOM is required for Playwright page.evaluate() browser-side callbacks.
+        "lib": ["ES2022", "DOM"],
+        "types": ["@cloudflare/workers-types"],
+        "strict": true,
+        "skipLibCheck": true,
+        "noEmit": true,
+        "isolatedModules": true
+    },
+    "include": ["src/**/*.ts"]
+}

@@ -142,7 +142,6 @@ if ! grep -q '# --- Workspace isolation ---' .env; then
 
 # --- Workspace isolation ---
 REDIS_PREFIX=${DB_NAME}_database_
-HORIZON_PREFIX=${DB_NAME}_horizon:
 EOF
 fi
 

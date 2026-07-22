@@ -56,7 +56,9 @@ export default defineConfig({
         ],
     },
     staged: {
-        '*.{js,ts,tsx}': 'vp check --fix',
+        // App frontend only. Cloudflare Workers live under workers/ with their
+        // own package.json and are typechecked via wrangler there.
+        '{resources,bin}/**/*.{js,ts,tsx}': 'vp check --fix',
         '*.php': [
             'vendor/bin/rector process --no-diffs --no-progress-bar',
             'vendor/bin/pint',

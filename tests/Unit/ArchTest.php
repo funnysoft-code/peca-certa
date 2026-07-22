@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Request;
-use App\Providers\HorizonServiceProvider;
 use App\Providers\TypeScriptTransformerServiceProvider;
 
 // -------------------------------------------------------------------------
@@ -15,7 +14,6 @@ arch()->preset()->php();
 arch()->preset()->strict()->ignoring([
     Controller::class,
     Request::class,
-    HorizonServiceProvider::class,
     TypeScriptTransformerServiceProvider::class,
 ]);
 arch()->preset()->laravel()->ignoring([
