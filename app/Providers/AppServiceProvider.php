@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Inertia\Inertia;
 
 final class AppServiceProvider extends ServiceProvider
 {
@@ -31,6 +32,16 @@ final class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureInertiaSsr();
+    }
+
+    /**
+     * SSR is only for the public landing gate (`home`).
+     * Authenticated operator UI (and auth pages) stay client-rendered.
+     */
+    private function configureInertiaSsr(): void
+    {
+        Inertia::disableSsr(fn (): bool => ! request()->routeIs('home'));
     }
 
     /**

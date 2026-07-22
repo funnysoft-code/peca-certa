@@ -17,6 +17,8 @@ return [
     |
     */
 
+    // SSR stays on globally, but AppServiceProvider disables it for every
+    // route except `home` (public landing). Authenticated pages are CSR-only.
     'ssr' => [
         'enabled' => env('INERTIA_SSR_ENABLED', true),
         'url' => env('INERTIA_SSR_URL', 'http://127.0.0.1:13714'),
