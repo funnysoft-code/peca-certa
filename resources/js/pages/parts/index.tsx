@@ -31,16 +31,27 @@ export default function PartsIndex() {
 
     return (
         <>
-            <Head title="Pesquisa de peças" />
-            <div className="p-6">
-                <div className="mb-4 flex items-center gap-1 border-b">
+            <Head title="Peças" />
+            <div className="p-4 md:p-6">
+                <div className="mb-6 space-y-1">
+                    <h1 className="font-display text-xl font-semibold tracking-tight">
+                        Pesquisa de peças
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        Consulte preços e disponibilidade por referência OE ou
+                        aftermarket.
+                    </p>
+                </div>
+
+                <div className="mb-4 flex items-center gap-1 overflow-x-auto border-b border-border">
                     {tabs.map((tab, i) => (
                         <button
                             key={tab.id}
+                            type="button"
                             onClick={() => setActive(tab.id)}
                             className={`flex items-center gap-2 rounded-t-md px-4 py-2 text-sm transition-colors ${
                                 active === tab.id
-                                    ? 'bg-muted font-medium'
+                                    ? 'bg-muted font-medium text-foreground'
                                     : 'text-muted-foreground hover:text-foreground'
                             }`}
                         >
@@ -64,6 +75,7 @@ export default function PartsIndex() {
                         title="Nova pesquisa"
                     >
                         <Plus className="size-4" />
+                        <span className="sr-only">Nova pesquisa</span>
                     </Button>
                 </div>
 
@@ -81,7 +93,7 @@ export default function PartsIndex() {
 PartsIndex.layout = {
     breadcrumbs: [
         {
-            title: 'Pesquisa de peças',
+            title: 'Peças',
             href: index(),
         },
     ],

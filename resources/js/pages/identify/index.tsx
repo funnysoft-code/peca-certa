@@ -26,10 +26,12 @@ const STATUS_VARIANTS: Record<
 export default function IdentifyIndex({ recentRuns }: Props) {
     return (
         <>
-            <Head title="Identificar peça" />
-            <div className="mx-auto w-full max-w-3xl space-y-8 p-4">
+            <Head title="Identificar" />
+            <div className="mx-auto w-full max-w-3xl space-y-8 p-4 md:p-6">
                 <div className="space-y-1">
-                    <h1 className="text-lg font-semibold">Identificar peça</h1>
+                    <h1 className="font-display text-xl font-semibold tracking-tight">
+                        Identificar peça
+                    </h1>
                     <p className="text-sm text-muted-foreground">
                         Descreva o pedido do cliente e o VIN do veículo para
                         identificar a peça OE e procurar preços nos
@@ -37,14 +39,16 @@ export default function IdentifyIndex({ recentRuns }: Props) {
                     </p>
                 </div>
 
-                <IdentifyForm />
+                <div className="rounded-xl border border-border bg-card p-4 shadow-sm md:p-6">
+                    <IdentifyForm />
+                </div>
 
-                {recentRuns.length > 0 && (
+                {recentRuns.length > 0 ? (
                     <div className="space-y-3">
                         <h2 className="text-sm font-medium text-muted-foreground">
                             Pesquisas recentes
                         </h2>
-                        <ul className="divide-y rounded-md border">
+                        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
                             {recentRuns.map((run) => (
                                 <li key={run.id}>
                                     <Link
@@ -73,6 +77,10 @@ export default function IdentifyIndex({ recentRuns }: Props) {
                             ))}
                         </ul>
                     </div>
+                ) : (
+                    <div className="rounded-xl border border-dashed border-border bg-card/50 px-4 py-8 text-center text-sm text-muted-foreground">
+                        Ainda não há pesquisas. Submeta um pedido para começar.
+                    </div>
                 )}
             </div>
         </>
@@ -80,5 +88,5 @@ export default function IdentifyIndex({ recentRuns }: Props) {
 }
 
 IdentifyIndex.layout = {
-    breadcrumbs: [{ title: 'Identificar peça', href: create() }],
+    breadcrumbs: [{ title: 'Identificar', href: create() }],
 };
