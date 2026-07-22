@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Ai\Agents\IdentifyPartAgent;
 use App\Ai\Agents\PartRequestUnderstander;
+use App\Ai\Concerns\UsesXaiProviderOptions;
 use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Gateway\TextGenerationOptions;
 
@@ -57,4 +58,20 @@ it('omits prompt_cache_key when identify agent has none and understander config 
 
     expect(new IdentifyPartAgent([])->providerOptions(Lab::xAI))->toBe([])
         ->and(new PartRequestUnderstander()->providerOptions(Lab::xAI))->toBe([]);
+});
+
+it('uses the trait default prompt cache key when an agent does not override it', function (): void {
+    config(['ai.providers.xai.service_tier' => 'priority']);
+
+    $agent = new class
+    {
+        use UsesXaiProviderOptions;
+
+        public function options(Lab|string $provider): array
+        {
+            return $this->providerOptions($provider);
+        }
+    };
+
+    expect($agent->options(Lab::xAI))->toBe(['service_tier' => 'priority']);
 });

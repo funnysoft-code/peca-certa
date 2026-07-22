@@ -362,3 +362,68 @@ it('covers RunIdentifyAgentTurn when agent returns selected with empty parts via
     expect($run->refresh()->status)->toBe(SearchRunStatus::Done)
         ->and($run->oe_parts)->toBe([]);
 });
+
+it('returns agent result without mutating a run cancelled mid-turn', function (): void {
+    Bus::fake([PriceSupplierJob::class]);
+    IdentifyPartAgent::fake([
+        [
+            'status' => 'selected',
+            'oeParts' => [
+                ['oeNumber' => '11427622446', 'description' => 'Oil filter', 'brand' => 'OE'],
+            ],
+            'question' => null,
+            'options' => [],
+            'confidence' => 0.95,
+        ],
+    ]);
+
+    $run = SearchRun::factory()->create([
+        'request_text' => 'filtro',
+        'vin' => 'WMWSU91010T717700',
+        'status' => SearchRunStatus::Running,
+        'messages' => [],
+    ]);
+
+    // Simulate cancel while the LLM turn is in flight: status is terminal before persistence.
+    SearchRun::query()->whereKey($run->id)->update([
+        'status' => SearchRunStatus::Cancelled->value,
+    ]);
+
+    // Force the turn to re-read terminal status after the fake agent returns.
+    // execute() itself sets Running first; cancel after that via model observer is hard,
+    // so we cancel inside a partially-applied flow by running execute then immediately
+    // re-checking: instead, mark cancelled and call execute which sets Running again.
+    // Cover the mid-turn branch by updating to Cancelled after agent responds via fake sequence:
+
+    // Use a custom path: run execute on a clone that we cancel between prompt and persist
+    // by patching status after the agent fake returns — Event/DB hook:
+    $run->refresh();
+    $run->status = SearchRunStatus::Running;
+    $run->save();
+
+    IdentifyPartAgent::fake([
+        function () use ($run): array {
+            SearchRun::query()->whereKey($run->id)->update([
+                'status' => SearchRunStatus::Cancelled->value,
+            ]);
+
+            return [
+                'status' => 'selected',
+                'oeParts' => [
+                    ['oeNumber' => '11427622446', 'description' => 'Oil filter', 'brand' => 'OE'],
+                ],
+                'question' => null,
+                'options' => [],
+                'confidence' => 0.95,
+            ];
+        },
+    ]);
+
+    $result = resolve(RunIdentifyAgentTurn::class)->execute($run->fresh());
+
+    expect($result->status)->toBe('selected')
+        ->and($run->refresh()->status)->toBe(SearchRunStatus::Cancelled)
+        ->and($run->messages ?? [])->toBe([]);
+
+    Bus::assertNotDispatched(PriceSupplierJob::class);
+});

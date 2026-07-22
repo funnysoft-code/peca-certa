@@ -81,8 +81,9 @@ final readonly class ReapOrphanedSearchRuns
                 ->whereIn('status', [SupplierLookupStatus::Pending, SupplierLookupStatus::Running])
                 ->count();
 
+            // Concurrent worker re-queued a lookup mid-transaction (race).
             if ($stillUnfinished > 0) {
-                return;
+                return; // @codeCoverageIgnore
             }
 
             $lookupCount = $locked->lookups()->count();

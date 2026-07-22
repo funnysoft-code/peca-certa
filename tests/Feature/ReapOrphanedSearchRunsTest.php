@@ -101,6 +101,23 @@ it('ignores needs_input and done runs', function (): void {
     Event::assertNotDispatched(SearchRunAdvanced::class);
 });
 
+it('reapRun returns false for missing or already-terminal runs', function (): void {
+    Event::fake([SearchRunAdvanced::class, SupplierResultReady::class]);
+
+    $action = resolve(ReapOrphanedSearchRuns::class);
+    $reapRun = new ReflectionMethod(ReapOrphanedSearchRuns::class, 'reapRun');
+
+    $done = SearchRun::factory()->create([
+        'status' => SearchRunStatus::Done,
+        'updated_at' => now()->subHours(2),
+    ]);
+
+    expect($reapRun->invoke($action, '00000000-0000-4000-8000-000000000001'))->toBeFalse()
+        ->and($reapRun->invoke($action, $done->id))->toBeFalse();
+
+    Event::assertNotDispatched(SearchRunAdvanced::class);
+});
+
 it('command closes orphans and accepts minutes override', function (): void {
     Event::fake([SearchRunAdvanced::class, SupplierResultReady::class]);
 

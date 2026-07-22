@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Request;
+use App\Listeners\RecordIdentifyAgentToolProgress;
 use App\Providers\TypeScriptTransformerServiceProvider;
 
 // -------------------------------------------------------------------------
@@ -18,6 +19,8 @@ arch()->preset()->strict()->ignoring([
 ]);
 arch()->preset()->laravel()->ignoring([
     Request::class,
+    // Multi-method tool listener; registered as handleInvoking / handleInvoked.
+    RecordIdentifyAgentToolProgress::class,
 ]);
 arch()->preset()->security()->ignoring([
     'assert',
