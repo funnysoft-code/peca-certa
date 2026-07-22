@@ -3,51 +3,40 @@ import { EchoListener } from '@/components/echo-listener';
 import { AgentSteps } from '@/components/identify/agent-steps';
 import { RunResults } from '@/components/identify/run-results';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+    Item,
+    ItemContent,
+    ItemDescription,
+    ItemGroup,
+    ItemTitle,
+} from '@/components/ui/item';
+import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useSearchRunStream } from '@/hooks/use-search-run-stream';
+import {
+    isSearchRunCancellable,
+    searchRunProgressValue,
+    SearchRunStatusBadge,
+} from '@/lib/search-run-status';
 import { cancel, create, resume } from '@/routes/identify';
 
 type Props = { run: App.Data.SearchRunData };
-
-const STATUS_LABELS: Record<App.Enums.SearchRunStatus, string> = {
-    pending: 'Pendente',
-    running: 'A processar…',
-    needs_input: 'Aguarda resposta',
-    done: 'Concluído',
-    failed: 'Falhou',
-    cancelled: 'Cancelada',
-};
-
-function isCancellable(status: App.Enums.SearchRunStatus): boolean {
-    return (
-        status === 'pending' || status === 'running' || status === 'needs_input'
-    );
-}
-
-function StatusIndicator({ status }: { status: App.Enums.SearchRunStatus }) {
-    if (status === 'pending' || status === 'running') {
-        return (
-            <Badge variant="secondary" className="gap-1.5">
-                <Spinner className="size-3" />
-                {STATUS_LABELS[status]}
-            </Badge>
-        );
-    }
-
-    if (status === 'needs_input' || status === 'cancelled') {
-        return <Badge variant="outline">{STATUS_LABELS[status]}</Badge>;
-    }
-
-    return (
-        <Badge variant={status === 'failed' ? 'destructive' : 'default'}>
-            {STATUS_LABELS[status]}
-        </Badge>
-    );
-}
 
 function CancelButton({
     runId,
@@ -81,78 +70,82 @@ function ClarificationForm({ run }: { run: App.Data.SearchRunData }) {
     }
 
     return (
-        <div className="space-y-4 rounded-xl border border-border bg-card p-4 shadow-sm">
-            <div>
-                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    Precisamos de mais detalhe
-                </p>
-                <p className="mt-1 text-sm font-medium">
+        <Card>
+            <CardHeader>
+                <CardDescription>Precisamos de mais detalhe</CardDescription>
+                <CardTitle className="text-base">
                     {run.pendingQuestion.question}
-                </p>
-            </div>
-
-            {run.pendingQuestion.options.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                    {run.pendingQuestion.options.map((option) => (
-                        <Button
-                            key={option}
-                            type="button"
-                            size="sm"
-                            variant={
-                                form.data.option === option
-                                    ? 'default'
-                                    : 'outline'
-                            }
-                            onClick={() => form.setData('option', option)}
-                        >
-                            {option}
-                        </Button>
-                    ))}
-                </div>
-            )}
-
-            <form
-                className="space-y-3"
-                onSubmit={(event) => {
-                    event.preventDefault();
-                    form.post(resume.url(run.id), {
-                        preserveScroll: true,
-                    });
-                }}
-            >
-                <div className="space-y-1.5">
-                    <Label htmlFor="identify-answer">
-                        Resposta (texto livre)
-                    </Label>
-                    <Input
-                        id="identify-answer"
-                        value={form.data.answer}
-                        onChange={(event) =>
-                            form.setData('answer', event.target.value)
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+                {run.pendingQuestion.options.length > 0 && (
+                    <ToggleGroup
+                        type="single"
+                        value={form.data.option}
+                        onValueChange={(value) =>
+                            form.setData('option', value ?? '')
                         }
-                        placeholder="Descreva com mais pormenor se as opções não chegarem…"
-                        maxLength={1000}
-                    />
-                    {form.errors.answer && (
-                        <p className="text-sm text-destructive">
-                            {form.errors.answer}
-                        </p>
-                    )}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <Button type="submit" disabled={form.processing}>
-                        {form.processing ? (
-                            <>
-                                <Spinner className="size-4" />A enviar…
-                            </>
-                        ) : (
-                            'Continuar identificação'
-                        )}
-                    </Button>
-                    <CancelButton runId={run.id} disabled={form.processing} />
-                </div>
-            </form>
-        </div>
+                        variant="outline"
+                        className="flex flex-wrap justify-start gap-2"
+                    >
+                        {run.pendingQuestion.options.map((option) => (
+                            <ToggleGroupItem
+                                key={option}
+                                value={option}
+                                className="px-3"
+                            >
+                                {option}
+                            </ToggleGroupItem>
+                        ))}
+                    </ToggleGroup>
+                )}
+
+                <form
+                    className="flex flex-col gap-3"
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        form.post(resume.url(run.id), {
+                            preserveScroll: true,
+                        });
+                    }}
+                >
+                    <FieldGroup>
+                        <Field
+                            data-invalid={form.errors.answer ? true : undefined}
+                        >
+                            <FieldLabel htmlFor="identify-answer">
+                                Resposta (texto livre)
+                            </FieldLabel>
+                            <Input
+                                id="identify-answer"
+                                value={form.data.answer}
+                                onChange={(event) =>
+                                    form.setData('answer', event.target.value)
+                                }
+                                placeholder="Descreva com mais pormenor se as opções não chegarem…"
+                                maxLength={1000}
+                                aria-invalid={
+                                    form.errors.answer ? true : undefined
+                                }
+                            />
+                            <FieldError>{form.errors.answer}</FieldError>
+                        </Field>
+                    </FieldGroup>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Button type="submit" disabled={form.processing}>
+                            {form.processing && (
+                                <Spinner data-icon="inline-start" />
+                            )}
+                            Continuar identificação
+                        </Button>
+                        <CancelButton
+                            runId={run.id}
+                            disabled={form.processing}
+                        />
+                    </div>
+                </form>
+            </CardContent>
+        </Card>
     );
 }
 
@@ -160,6 +153,11 @@ export default function IdentifyShow({ run: initialRun }: Props) {
     const { run, handleEvent } = useSearchRunStream(initialRun);
 
     const isAnalyzing = run.status === 'pending' || run.status === 'running';
+    const progress = searchRunProgressValue(
+        run.status,
+        run.lookups,
+        run.oeParts.length,
+    );
 
     return (
         <>
@@ -169,9 +167,9 @@ export default function IdentifyShow({ run: initialRun }: Props) {
                 events={['.run.advanced', '.lookup.ready', '.agent.step']}
                 onEvent={handleEvent}
             />
-            <div className="mx-auto w-full max-w-3xl space-y-6 p-4">
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4">
                 <div className="flex items-start justify-between gap-4">
-                    <div>
+                    <div className="flex min-w-0 flex-col gap-1">
                         <h1 className="text-lg font-semibold">
                             {run.requestText ?? 'Identificação de peça'}
                         </h1>
@@ -181,13 +179,26 @@ export default function IdentifyShow({ run: initialRun }: Props) {
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center justify-end gap-2">
-                        <StatusIndicator status={run.status} />
-                        {isCancellable(run.status) &&
+                        <SearchRunStatusBadge status={run.status} />
+                        {isSearchRunCancellable(run.status) &&
                             run.status !== 'needs_input' && (
                                 <CancelButton runId={run.id} />
                             )}
                     </div>
                 </div>
+
+                {(isAnalyzing || run.status === 'needs_input') && (
+                    <div className="flex flex-col gap-2">
+                        <Progress value={progress} aria-label="Progresso" />
+                        <p className="text-xs text-muted-foreground">
+                            {run.status === 'needs_input'
+                                ? 'Aguarda resposta do operador'
+                                : run.oeParts.length > 0
+                                  ? 'A consultar fornecedores…'
+                                  : 'A identificar a peça OE…'}
+                        </p>
+                    </div>
+                )}
 
                 {run.status === 'failed' && (
                     <Alert variant="destructive">
@@ -222,44 +233,49 @@ export default function IdentifyShow({ run: initialRun }: Props) {
                 )}
 
                 {run.understanding && (
-                    <div className="rounded-md border p-4">
-                        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                            Categoria identificada
-                        </p>
-                        <p className="mt-1 text-sm font-medium">
-                            {run.understanding.category}
-                        </p>
-                    </div>
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardDescription>
+                                Categoria identificada
+                            </CardDescription>
+                            <CardTitle className="text-base">
+                                {run.understanding.category}
+                            </CardTitle>
+                        </CardHeader>
+                    </Card>
                 )}
 
                 {run.oeParts.length > 0 && (
-                    <div className="space-y-2">
+                    <div className="flex flex-col gap-2">
                         <h2 className="text-sm font-medium text-muted-foreground">
                             Peças OE identificadas
                         </h2>
-                        <ul className="grid gap-2 sm:grid-cols-2">
+                        <ItemGroup className="grid gap-2 sm:grid-cols-2">
                             {run.oeParts.map((part) => (
-                                <li
+                                <Item
                                     key={part.oeNumber}
-                                    className="rounded-md border p-3 text-sm"
+                                    variant="outline"
+                                    size="sm"
                                 >
-                                    <p className="font-mono font-medium">
-                                        {part.oeNumber}
-                                    </p>
-                                    <p className="text-muted-foreground">
-                                        {part.description}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {part.brand}
-                                    </p>
-                                </li>
+                                    <ItemContent>
+                                        <ItemTitle className="font-mono">
+                                            {part.oeNumber}
+                                        </ItemTitle>
+                                        <ItemDescription>
+                                            {part.description}
+                                            {part.brand
+                                                ? ` · ${part.brand}`
+                                                : ''}
+                                        </ItemDescription>
+                                    </ItemContent>
+                                </Item>
                             ))}
-                        </ul>
+                        </ItemGroup>
                     </div>
                 )}
 
                 {run.lookups.length > 0 && (
-                    <div className="space-y-2">
+                    <div className="flex flex-col gap-2">
                         <h2 className="text-sm font-medium text-muted-foreground">
                             Resultados
                         </h2>

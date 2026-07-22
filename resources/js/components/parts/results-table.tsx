@@ -1,16 +1,51 @@
 import { type ColumnDef } from '@tanstack/react-table';
-import { ArrowUpDown, ChevronLeft, ChevronRight, Group } from 'lucide-react';
+import {
+    ArrowUpDown,
+    ChevronLeft,
+    ChevronRight,
+    CopyIcon,
+    Group,
+    MoreHorizontalIcon,
+    SearchIcon,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuGroup,
+    ContextMenuItem,
+    ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { DataTable } from '@/components/ui/data-table';
-import { Input } from '@/components/ui/input';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from '@/components/ui/input-group';
 import { Toggle } from '@/components/ui/toggle';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     FINDINGS_PAGE_SIZE_PRESETS,
     type FindingsPageSize,
     type PaginatedFindings,
 } from '@/hooks/use-search-run-findings';
-import { cn } from '@/lib/utils';
 
 const SUPPLIER_LABELS: Record<App.Enums.Supplier, string> = {
     autodelta: 'Auto Delta',
@@ -30,6 +65,15 @@ function stockLabel(finding: App.Data.FindingData): string {
     }
 
     return finding.inStock ? 'Disponível' : 'Indisponível';
+}
+
+async function copyText(value: string, label: string): Promise<void> {
+    try {
+        await navigator.clipboard.writeText(value);
+        toast.success(`${label} copiado`);
+    } catch {
+        toast.error(`Não foi possível copiar ${label.toLowerCase()}`);
+    }
 }
 
 function SortableHeader({
@@ -89,6 +133,46 @@ function nextSort(current: string | null, field: string): string | null {
     }
 
     return field;
+}
+
+function RowActions({ finding }: { finding: App.Data.FindingData }) {
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Ações da linha"
+                >
+                    <MoreHorizontalIcon />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+                <DropdownMenuGroup>
+                    <DropdownMenuItem
+                        onClick={() => void copyText(finding.article, 'Artigo')}
+                    >
+                        <CopyIcon />
+                        Copiar artigo
+                    </DropdownMenuItem>
+                    {finding.traderArticleNumber ? (
+                        <DropdownMenuItem
+                            onClick={() =>
+                                void copyText(
+                                    finding.traderArticleNumber,
+                                    'Ref. fornecedor',
+                                )
+                            }
+                        >
+                            <CopyIcon />
+                            Copiar ref. fornecedor
+                        </DropdownMenuItem>
+                    ) : null}
+                </DropdownMenuGroup>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
 }
 
 type ResultsTableProps = {
@@ -229,19 +313,31 @@ export function ResultsTable({
                     </div>
                 ),
                 cell: ({ row }) => (
-                    <span
-                        className={
-                            row.original.inStock
-                                ? 'text-emerald-600 tabular-nums'
-                                : 'text-muted-foreground tabular-nums'
-                        }
-                    >
-                        {stockLabel(row.original)}
-                    </span>
+                    <div className="flex justify-end">
+                        <Badge
+                            variant={
+                                row.original.inStock ? 'secondary' : 'outline'
+                            }
+                            className="tabular-nums"
+                        >
+                            {stockLabel(row.original)}
+                        </Badge>
+                    </div>
                 ),
                 meta: {
                     headerClassName: 'text-right',
                     cellClassName: 'text-right',
+                },
+            },
+            {
+                id: 'actions',
+                enableGrouping: false,
+                enableSorting: false,
+                header: () => <span className="sr-only">Ações</span>,
+                cell: ({ row }) => <RowActions finding={row.original} />,
+                meta: {
+                    headerClassName: 'w-10',
+                    cellClassName: 'w-10',
                 },
             },
         ],
@@ -252,21 +348,26 @@ export function ResultsTable({
     const meta = findings?.meta;
     const lastPage = meta?.last_page ?? 1;
     const total = meta?.total ?? 0;
+    const showEmpty = !loading && rows.length === 0;
 
     return (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <Input
-                    value={searchInput}
-                    onChange={(event) => {
-                        const value = event.target.value;
-                        setSearchInput(value);
-                        onSearchChange(value);
-                    }}
-                    placeholder="Pesquisar fornecedor, marca ou artigo…"
-                    className="sm:max-w-xs"
-                    aria-label="Pesquisar resultados"
-                />
+                <InputGroup className="sm:max-w-xs">
+                    <InputGroupAddon align="inline-start">
+                        <SearchIcon />
+                    </InputGroupAddon>
+                    <InputGroupInput
+                        value={searchInput}
+                        onChange={(event) => {
+                            const value = event.target.value;
+                            setSearchInput(value);
+                            onSearchChange(value);
+                        }}
+                        placeholder="Pesquisar fornecedor, marca ou artigo…"
+                        aria-label="Pesquisar resultados"
+                    />
+                </InputGroup>
 
                 <div className="flex flex-wrap items-center justify-end gap-2">
                     <Toggle
@@ -302,37 +403,76 @@ export function ResultsTable({
                 </p>
             )}
 
-            <div className={cn(loading && 'opacity-60 transition-opacity')}>
-                <DataTable
-                    columns={columns}
-                    data={rows}
-                    emptyMessage={
-                        loading ? 'A carregar resultados…' : 'Sem resultados.'
-                    }
-                    getRowId={(row) => row.id}
-                    grouping={groupBySupplier ? ['supplier'] : []}
-                />
-            </div>
+            {showEmpty ? (
+                <Empty className="border border-dashed">
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <SearchIcon />
+                        </EmptyMedia>
+                        <EmptyTitle>Sem resultados</EmptyTitle>
+                        <EmptyDescription>
+                            Ajuste a pesquisa ou mostre indisponíveis.
+                        </EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
+            ) : (
+                <ContextMenu>
+                    <ContextMenuTrigger asChild>
+                        <div>
+                            <DataTable
+                                columns={columns}
+                                data={rows}
+                                emptyMessage={
+                                    loading
+                                        ? 'A carregar resultados…'
+                                        : 'Sem resultados.'
+                                }
+                                getRowId={(row) => row.id}
+                                grouping={groupBySupplier ? ['supplier'] : []}
+                                loading={loading}
+                            />
+                        </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                        <ContextMenuGroup>
+                            <ContextMenuItem disabled>
+                                Clique direito numa linha para copiar
+                            </ContextMenuItem>
+                        </ContextMenuGroup>
+                    </ContextMenuContent>
+                </ContextMenu>
+            )}
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>Por página</span>
-                    <div className="flex gap-1">
+                    <ToggleGroup
+                        type="single"
+                        value={String(perPage)}
+                        onValueChange={(value) => {
+                            if (!value) {
+                                return;
+                            }
+
+                            const size = Number(value) as FindingsPageSize;
+
+                            if (FINDINGS_PAGE_SIZE_PRESETS.includes(size)) {
+                                onPerPageChange(size);
+                            }
+                        }}
+                        variant="outline"
+                        size="sm"
+                    >
                         {FINDINGS_PAGE_SIZE_PRESETS.map((size) => (
-                            <Button
+                            <ToggleGroupItem
                                 key={size}
-                                type="button"
-                                size="sm"
-                                variant={
-                                    perPage === size ? 'default' : 'outline'
-                                }
-                                className="h-8 w-10 px-0"
-                                onClick={() => onPerPageChange(size)}
+                                value={String(size)}
+                                className="min-w-10"
                             >
                                 {size}
-                            </Button>
+                            </ToggleGroupItem>
                         ))}
-                    </div>
+                    </ToggleGroup>
                     {total > 0 && (
                         <span className="tabular-nums">
                             {meta?.from ?? 0}–{meta?.to ?? 0} de {total}

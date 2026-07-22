@@ -12,6 +12,7 @@ import {
 } from '@tanstack/react-table';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     Table,
     TableBody,
@@ -29,6 +30,8 @@ type DataTableProps<TData, TValue> = {
     getRowId?: (originalRow: TData, index: number) => string;
     /** Column ids to group by (e.g. `['supplier']`). Empty = flat list. */
     grouping?: GroupingState;
+    loading?: boolean;
+    skeletonRows?: number;
 };
 
 export function DataTable<TData, TValue>({
@@ -37,6 +40,8 @@ export function DataTable<TData, TValue>({
     emptyMessage = 'Sem resultados.',
     getRowId,
     grouping = [],
+    loading = false,
+    skeletonRows = 5,
 }: DataTableProps<TData, TValue>) {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [expanded, setExpanded] = useState<ExpandedState>(true);
@@ -67,7 +72,12 @@ export function DataTable<TData, TValue>({
     });
 
     return (
-        <div className="overflow-hidden rounded-md border">
+        <div
+            className={cn(
+                'overflow-hidden rounded-md border',
+                loading && data.length > 0 && 'opacity-70 transition-opacity',
+            )}
+        >
             <Table>
                 <TableHeader>
                     {table.getHeaderGroups().map((headerGroup) => (
@@ -75,7 +85,10 @@ export function DataTable<TData, TValue>({
                             {headerGroup.headers.map((header) => (
                                 <TableHead
                                     key={header.id}
-                                    className={header.column.columnDef.meta?.headerClassName}
+                                    className={
+                                        header.column.columnDef.meta
+                                            ?.headerClassName
+                                    }
                                 >
                                     {header.isPlaceholder
                                         ? null
@@ -89,64 +102,95 @@ export function DataTable<TData, TValue>({
                     ))}
                 </TableHeader>
                 <TableBody>
-                    {table.getRowModel().rows.length > 0 ? (
-                        table.getRowModel().rows.map((row) => (
-                            <TableRow
-                                key={row.id}
-                                className={cn(row.getIsGrouped() && 'bg-muted/50 font-medium')}
-                                data-state={row.getIsGrouped() ? 'grouped' : undefined}
-                            >
-                                {row.getVisibleCells().map((cell) => (
-                                    <TableCell
-                                        key={cell.id}
-                                        className={cell.column.columnDef.meta?.cellClassName}
-                                    >
-                                        {row.getIsGrouped() ? (
-                                            // Group header: only the grouping column, never
-                                            // leaf values or column aggregates/totals.
-                                            cell.getIsGrouped() ? (
-                                                <button
-                                                    type="button"
-                                                    className="inline-flex items-center gap-1.5 text-left hover:underline"
-                                                    onClick={row.getToggleExpandedHandler()}
-                                                >
-                                                    {row.getIsExpanded() ? (
-                                                        <ChevronDown className="size-4 shrink-0" />
-                                                    ) : (
-                                                        <ChevronRight className="size-4 shrink-0" />
-                                                    )}
-                                                    <span>
-                                                        {flexRender(
-                                                            cell.column.columnDef.cell,
-                                                            cell.getContext(),
+                    {loading && data.length === 0
+                        ? Array.from({ length: skeletonRows }).map(
+                              (_, rowIndex) => (
+                                  <TableRow key={`skeleton-${rowIndex}`}>
+                                      {columns.map((column, colIndex) => (
+                                          <TableCell
+                                              key={`skeleton-${rowIndex}-${column.id ?? colIndex}`}
+                                          >
+                                              <Skeleton className="h-4 w-full" />
+                                          </TableCell>
+                                      ))}
+                                  </TableRow>
+                              ),
+                          )
+                        : table.getRowModel().rows.length > 0
+                          ? table.getRowModel().rows.map((row) => (
+                                <TableRow
+                                    key={row.id}
+                                    className={cn(
+                                        row.getIsGrouped() &&
+                                            'bg-muted/50 font-medium',
+                                    )}
+                                    data-state={
+                                        row.getIsGrouped()
+                                            ? 'grouped'
+                                            : undefined
+                                    }
+                                >
+                                    {row.getVisibleCells().map((cell) => (
+                                        <TableCell
+                                            key={cell.id}
+                                            className={
+                                                cell.column.columnDef.meta
+                                                    ?.cellClassName
+                                            }
+                                        >
+                                            {row.getIsGrouped() ? (
+                                                // Group header: only the grouping column, never
+                                                // leaf values or column aggregates/totals.
+                                                cell.getIsGrouped() ? (
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex items-center gap-1.5 text-left hover:underline"
+                                                        onClick={row.getToggleExpandedHandler()}
+                                                    >
+                                                        {row.getIsExpanded() ? (
+                                                            <ChevronDown className="size-4 shrink-0" />
+                                                        ) : (
+                                                            <ChevronRight className="size-4 shrink-0" />
                                                         )}
-                                                    </span>
-                                                    <span className="text-muted-foreground tabular-nums">
-                                                        ({row.subRows.length})
-                                                    </span>
-                                                </button>
-                                            ) : null
-                                        ) : cell.getIsAggregated() ||
-                                          cell.getIsPlaceholder() ? null : (
-                                            flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext(),
-                                            )
-                                        )}
+                                                        <span>
+                                                            {flexRender(
+                                                                cell.column
+                                                                    .columnDef
+                                                                    .cell,
+                                                                cell.getContext(),
+                                                            )}
+                                                        </span>
+                                                        <span className="text-muted-foreground tabular-nums">
+                                                            (
+                                                            {
+                                                                row.subRows
+                                                                    .length
+                                                            }
+                                                            )
+                                                        </span>
+                                                    </button>
+                                                ) : null
+                                            ) : cell.getIsAggregated() ||
+                                              cell.getIsPlaceholder() ? null : (
+                                                flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext(),
+                                                )
+                                            )}
+                                        </TableCell>
+                                    ))}
+                                </TableRow>
+                            ))
+                          : (
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={columns.length}
+                                        className="h-24 text-center text-muted-foreground"
+                                    >
+                                        {emptyMessage}
                                     </TableCell>
-                                ))}
-                            </TableRow>
-                        ))
-                    ) : (
-                        <TableRow>
-                            <TableCell
-                                colSpan={columns.length}
-                                className="h-24 text-center text-muted-foreground"
-                            >
-                                {emptyMessage}
-                            </TableCell>
-                        </TableRow>
-                    )}
+                                </TableRow>
+                            )}
                 </TableBody>
             </Table>
         </div>

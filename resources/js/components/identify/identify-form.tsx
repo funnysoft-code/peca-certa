@@ -1,9 +1,23 @@
 import { useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
+import { Textarea } from '@/components/ui/textarea';
 import { store as identifyStore } from '@/routes/identify';
 
 type IdentifyFormData = { request: string; vin: string };
@@ -17,35 +31,73 @@ export function IdentifyForm() {
     }
 
     return (
-        <form onSubmit={submit} className="space-y-4">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                <div className="flex-1 space-y-1.5">
-                    <Label htmlFor="request">Pedido do cliente</Label>
-                    <Input
-                        id="request"
-                        value={form.data.request}
-                        onChange={(e) =>
-                            form.setData('request', e.target.value)
-                        }
-                        placeholder="Pedido do cliente"
-                        autoFocus
-                    />
-                    <InputError message={form.errors.request} />
-                </div>
-                <div className="space-y-1.5 sm:w-56">
-                    <Label htmlFor="vin">VIN</Label>
-                    <Input
-                        id="vin"
-                        value={form.data.vin}
-                        onChange={(e) => form.setData('vin', e.target.value)}
-                        placeholder="VIN"
-                    />
-                    <InputError message={form.errors.vin} />
-                </div>
-            </div>
-            <Button type="submit" disabled={form.processing}>
-                {form.processing ? 'A identificar…' : 'Identificar'}
-            </Button>
-        </form>
+        <Card>
+            <CardHeader>
+                <CardTitle>Novo pedido</CardTitle>
+                <CardDescription>
+                    Descreva o pedido do cliente e o VIN do veículo.
+                </CardDescription>
+            </CardHeader>
+            <form onSubmit={submit} className="flex flex-col">
+                <CardContent>
+                    <FieldGroup>
+                        <Field
+                            data-invalid={
+                                form.errors.request ? true : undefined
+                            }
+                        >
+                            <FieldLabel htmlFor="request">
+                                Pedido do cliente
+                            </FieldLabel>
+                            <Textarea
+                                id="request"
+                                value={form.data.request}
+                                onChange={(e) =>
+                                    form.setData('request', e.target.value)
+                                }
+                                placeholder="Ex.: filtro de óleo do Mini Cooper S 2013…"
+                                autoFocus
+                                rows={3}
+                                aria-invalid={
+                                    form.errors.request ? true : undefined
+                                }
+                            />
+                            <FieldError>{form.errors.request}</FieldError>
+                        </Field>
+
+                        <Field
+                            data-invalid={form.errors.vin ? true : undefined}
+                        >
+                            <FieldLabel htmlFor="vin">VIN</FieldLabel>
+                            <Input
+                                id="vin"
+                                value={form.data.vin}
+                                onChange={(e) =>
+                                    form.setData('vin', e.target.value)
+                                }
+                                placeholder="VIN do veículo"
+                                autoComplete="off"
+                                aria-invalid={
+                                    form.errors.vin ? true : undefined
+                                }
+                            />
+                            <FieldError>{form.errors.vin}</FieldError>
+                        </Field>
+                    </FieldGroup>
+                </CardContent>
+                <CardFooter className="border-t pt-6">
+                    <Button
+                        type="submit"
+                        disabled={form.processing}
+                        data-test="identify-submit"
+                    >
+                        {form.processing && (
+                            <Spinner data-icon="inline-start" />
+                        )}
+                        {form.processing ? 'A identificar…' : 'Identificar'}
+                    </Button>
+                </CardFooter>
+            </form>
+        </Card>
     );
 }

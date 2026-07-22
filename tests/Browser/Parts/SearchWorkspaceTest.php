@@ -28,8 +28,8 @@ it('searches a part and shows variants on the run page', function (): void {
     $page = visit('/parts');
     $page->waitForEvent('networkidle');
 
-    $page->fill('input[placeholder="Referência da peça"]', 'OC90')
-        ->press('Pesquisar');
+    $page->fill('#reference', 'OC90')
+        ->press('@parts-submit');
 
     $page->waitForEvent('networkidle');
 

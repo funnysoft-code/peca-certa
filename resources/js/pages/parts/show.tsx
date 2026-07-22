@@ -2,41 +2,24 @@ import { Head } from '@inertiajs/react';
 import { EchoListener } from '@/components/echo-listener';
 import { RunResults } from '@/components/identify/run-results';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
-import { Spinner } from '@/components/ui/spinner';
+import { Progress } from '@/components/ui/progress';
 import { useSearchRunStream } from '@/hooks/use-search-run-stream';
+import {
+    searchRunProgressValue,
+    SearchRunStatusBadge,
+} from '@/lib/search-run-status';
 import { index } from '@/routes/parts';
 
 type Props = { run: App.Data.SearchRunData };
 
-const STATUS_LABELS: Record<App.Enums.SearchRunStatus, string> = {
-    pending: 'Pendente',
-    running: 'A processar…',
-    needs_input: 'Aguarda resposta',
-    done: 'Concluído',
-    failed: 'Falhou',
-    cancelled: 'Cancelada',
-};
-
-function StatusIndicator({ status }: { status: App.Enums.SearchRunStatus }) {
-    if (status === 'pending' || status === 'running') {
-        return (
-            <Badge variant="secondary" className="gap-1.5">
-                <Spinner className="size-3" />
-                {STATUS_LABELS[status]}
-            </Badge>
-        );
-    }
-
-    return (
-        <Badge variant={status === 'failed' ? 'destructive' : 'default'}>
-            {STATUS_LABELS[status]}
-        </Badge>
-    );
-}
-
 export default function PartsShow({ run: initialRun }: Props) {
     const { run, handleEvent } = useSearchRunStream(initialRun);
+    const isAnalyzing = run.status === 'pending' || run.status === 'running';
+    const progress = searchRunProgressValue(
+        run.status,
+        run.lookups,
+        run.oeParts.length,
+    );
 
     return (
         <>
@@ -46,9 +29,9 @@ export default function PartsShow({ run: initialRun }: Props) {
                 events={['.run.advanced', '.lookup.ready']}
                 onEvent={handleEvent}
             />
-            <div className="mx-auto w-full max-w-3xl space-y-6 p-4">
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4">
                 <div className="flex items-start justify-between gap-4">
-                    <div>
+                    <div className="flex min-w-0 flex-col gap-1">
                         <h1 className="font-mono text-lg font-semibold">
                             {run.reference ?? 'Pesquisa de peça'}
                         </h1>
@@ -58,8 +41,17 @@ export default function PartsShow({ run: initialRun }: Props) {
                             Preços e disponibilidade nos fornecedores
                         </p>
                     </div>
-                    <StatusIndicator status={run.status} />
+                    <SearchRunStatusBadge status={run.status} />
                 </div>
+
+                {isAnalyzing && (
+                    <div className="flex flex-col gap-2">
+                        <Progress value={progress} aria-label="Progresso" />
+                        <p className="text-xs text-muted-foreground">
+                            A consultar fornecedores…
+                        </p>
+                    </div>
+                )}
 
                 {run.status === 'failed' && (
                     <Alert variant="destructive">

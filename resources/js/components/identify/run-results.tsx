@@ -102,9 +102,9 @@ export function RunResults({ run }: { run: App.Data.SearchRunData }) {
     const providerLinks = toProviderLinks(lookups);
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
             {pending.length > 0 && (
-                <div className="space-y-2">
+                <div className="flex flex-col gap-2">
                     <p className="text-sm text-muted-foreground">
                         A pesquisar em{' '}
                         {pending
@@ -113,7 +113,8 @@ export function RunResults({ run }: { run: App.Data.SearchRunData }) {
                         …
                     </p>
                     {showInitialSkeleton && (
-                        <div className="space-y-2">
+                        <div className="flex flex-col gap-2">
+                            <Skeleton className="h-10 w-full" />
                             <Skeleton className="h-10 w-full" />
                             <Skeleton className="h-10 w-full" />
                         </div>

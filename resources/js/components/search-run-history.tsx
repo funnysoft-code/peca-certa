@@ -1,9 +1,33 @@
 import { Link, router } from '@inertiajs/react';
+import { HistoryIcon, SearchIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import {
+    Empty,
+    EmptyDescription,
+    EmptyHeader,
+    EmptyMedia,
+    EmptyTitle,
+} from '@/components/ui/empty';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from '@/components/ui/input-group';
+import {
+    Item,
+    ItemActions,
+    ItemContent,
+    ItemDescription,
+    ItemGroup,
+    ItemTitle,
+} from '@/components/ui/item';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import {
+    SEARCH_RUN_STATUS_LABELS,
+    SEARCH_RUN_STATUS_VARIANTS,
+} from '@/lib/search-run-status';
 import { formatRelativeTime } from '@/lib/utils';
 
 type Scope = 'everyone' | 'mine';
@@ -45,27 +69,6 @@ type Props = {
     primaryLabel: (run: App.Data.SearchRunData) => string;
     emptyNoRuns: string;
     emptyNoMatches: string;
-};
-
-const STATUS_LABELS: Record<App.Enums.SearchRunStatus, string> = {
-    pending: 'Pendente',
-    running: 'Em curso',
-    needs_input: 'Aguarda resposta',
-    done: 'Concluído',
-    failed: 'Falhou',
-    cancelled: 'Cancelada',
-};
-
-const STATUS_VARIANTS: Record<
-    App.Enums.SearchRunStatus,
-    'default' | 'secondary' | 'destructive' | 'outline'
-> = {
-    pending: 'outline',
-    running: 'secondary',
-    needs_input: 'outline',
-    done: 'default',
-    failed: 'destructive',
-    cancelled: 'outline',
 };
 
 function visitFilters(indexUrl: string, filters: Filters, page?: number): void {
@@ -116,7 +119,7 @@ export function SearchRunHistory({
     }
 
     return (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <h2 className="text-sm font-medium text-muted-foreground">
                     Histórico de pesquisas
@@ -145,13 +148,20 @@ export function SearchRunHistory({
                         onSubmit={submitSearch}
                         className="flex min-w-0 flex-1 gap-2 sm:max-w-xs"
                     >
-                        <Input
-                            value={query}
-                            onChange={(event) => setQuery(event.target.value)}
-                            placeholder="Pesquisar pedido, VIN, ref., autor…"
-                            aria-label="Pesquisar no histórico"
-                            className="h-8"
-                        />
+                        <InputGroup className="h-8">
+                            <InputGroupAddon align="inline-start">
+                                <SearchIcon />
+                            </InputGroupAddon>
+                            <InputGroupInput
+                                value={query}
+                                onChange={(event) =>
+                                    setQuery(event.target.value)
+                                }
+                                placeholder="Pesquisar pedido, VIN, ref., autor…"
+                                aria-label="Pesquisar no histórico"
+                                className="h-8"
+                            />
+                        </InputGroup>
                         <Button type="submit" size="sm" variant="secondary">
                             Filtrar
                         </Button>
@@ -160,42 +170,61 @@ export function SearchRunHistory({
             </div>
 
             {isEmpty ? (
-                <div className="rounded-xl border border-dashed border-border bg-card/50 px-4 py-8 text-center text-sm text-muted-foreground">
-                    {hasQuery ? emptyNoMatches : emptyNoRuns}
-                </div>
+                <Empty className="border border-dashed">
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <HistoryIcon />
+                        </EmptyMedia>
+                        <EmptyTitle>
+                            {hasQuery
+                                ? 'Sem correspondências'
+                                : 'Sem pesquisas ainda'}
+                        </EmptyTitle>
+                        <EmptyDescription>
+                            {hasQuery ? emptyNoMatches : emptyNoRuns}
+                        </EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
             ) : (
                 <>
-                    <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+                    <ItemGroup className="gap-2">
                         {runs.data.map((run) => (
-                            <li key={run.id}>
-                                <Link
-                                    href={showUrl(run.id)}
-                                    className="flex items-center justify-between gap-4 px-4 py-3 text-sm transition-colors hover:bg-muted/50"
-                                >
-                                    <span className="min-w-0 flex-1 space-y-0.5">
-                                        <span className="block truncate font-medium">
+                            <Item
+                                key={run.id}
+                                variant="outline"
+                                size="sm"
+                                asChild
+                            >
+                                <Link href={showUrl(run.id)}>
+                                    <ItemContent>
+                                        <ItemTitle className="truncate">
                                             {primaryLabel(run)}
-                                        </span>
-                                        <span className="block truncate text-xs text-muted-foreground">
+                                        </ItemTitle>
+                                        <ItemDescription>
                                             {run.authorName || 'Desconhecido'}
-                                        </span>
-                                    </span>
-                                    <span className="flex shrink-0 items-center gap-3 text-muted-foreground">
+                                            {' · '}
+                                            {formatRelativeTime(run.createdAt)}
+                                        </ItemDescription>
+                                    </ItemContent>
+                                    <ItemActions>
                                         <Badge
                                             variant={
-                                                STATUS_VARIANTS[run.status]
+                                                SEARCH_RUN_STATUS_VARIANTS[
+                                                    run.status
+                                                ]
                                             }
                                         >
-                                            {STATUS_LABELS[run.status]}
+                                            {
+                                                SEARCH_RUN_STATUS_LABELS[
+                                                    run.status
+                                                ]
+                                            }
                                         </Badge>
-                                        <span>
-                                            {formatRelativeTime(run.createdAt)}
-                                        </span>
-                                    </span>
+                                    </ItemActions>
                                 </Link>
-                            </li>
+                            </Item>
                         ))}
-                    </ul>
+                    </ItemGroup>
 
                     {runs.meta.last_page > 1 && (
                         <div className="flex items-center justify-between gap-3 text-sm">

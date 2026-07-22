@@ -1,8 +1,27 @@
 import { useForm } from '@inertiajs/react';
+import { SearchIcon } from 'lucide-react';
 import type { FormEvent } from 'react';
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import {
+    Field,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupInput,
+} from '@/components/ui/input-group';
+import { Spinner } from '@/components/ui/spinner';
 import { store as partsStore } from '@/routes/parts';
 
 type PartsSearchFormData = { reference: string };
@@ -16,20 +35,61 @@ export function PartsSearchForm() {
     }
 
     return (
-        <form onSubmit={submit} className="flex gap-2">
-            <div className="flex-1 space-y-1.5">
-                <Input
-                    id="reference"
-                    value={form.data.reference}
-                    onChange={(e) => form.setData('reference', e.target.value)}
-                    placeholder="Referência da peça"
-                    autoFocus
-                />
-                <InputError message={form.errors.reference} />
-            </div>
-            <Button type="submit" disabled={form.processing}>
-                {form.processing ? 'A pesquisar…' : 'Pesquisar'}
-            </Button>
-        </form>
+        <Card>
+            <CardHeader>
+                <CardTitle>Nova pesquisa</CardTitle>
+                <CardDescription>
+                    Referência OE ou aftermarket para consultar preços.
+                </CardDescription>
+            </CardHeader>
+            <form onSubmit={submit} className="flex flex-col">
+                <CardContent>
+                    <FieldGroup>
+                        <Field
+                            data-invalid={
+                                form.errors.reference ? true : undefined
+                            }
+                        >
+                            <FieldLabel htmlFor="reference">
+                                Referência
+                            </FieldLabel>
+                            <InputGroup>
+                                <InputGroupAddon align="inline-start">
+                                    <SearchIcon />
+                                </InputGroupAddon>
+                                <InputGroupInput
+                                    id="reference"
+                                    value={form.data.reference}
+                                    onChange={(e) =>
+                                        form.setData(
+                                            'reference',
+                                            e.target.value,
+                                        )
+                                    }
+                                    placeholder="Ex.: 11427622446"
+                                    autoFocus
+                                    aria-invalid={
+                                        form.errors.reference ? true : undefined
+                                    }
+                                />
+                            </InputGroup>
+                            <FieldError>{form.errors.reference}</FieldError>
+                        </Field>
+                    </FieldGroup>
+                </CardContent>
+                <CardFooter className="border-t pt-6">
+                    <Button
+                        type="submit"
+                        disabled={form.processing}
+                        data-test="parts-submit"
+                    >
+                        {form.processing && (
+                            <Spinner data-icon="inline-start" />
+                        )}
+                        {form.processing ? 'A pesquisar…' : 'Pesquisar'}
+                    </Button>
+                </CardFooter>
+            </form>
+        </Card>
     );
 }

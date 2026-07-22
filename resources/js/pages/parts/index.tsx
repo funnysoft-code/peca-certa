@@ -36,8 +36,8 @@ export default function PartsIndex({ runs, filters }: Props) {
     return (
         <>
             <Head title="Peças" />
-            <div className="mx-auto w-full max-w-3xl space-y-8 p-4 md:p-6">
-                <div className="space-y-1">
+            <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 p-4 md:p-6">
+                <div className="flex flex-col gap-1">
                     <h1 className="font-display text-xl font-semibold tracking-tight">
                         Pesquisa de peças
                     </h1>
@@ -47,9 +47,7 @@ export default function PartsIndex({ runs, filters }: Props) {
                     </p>
                 </div>
 
-                <div className="rounded-xl border border-border bg-card p-4 shadow-sm md:p-6">
-                    <PartsSearchForm />
-                </div>
+                <PartsSearchForm />
 
                 <SearchRunHistory
                     runs={runs}
