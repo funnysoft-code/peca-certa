@@ -1,5 +1,13 @@
 import { useForm } from '@inertiajs/react';
+import { ImageIcon } from 'lucide-react';
 import type { FormEvent } from 'react';
+import {
+    Attachment,
+    AttachmentContent,
+    AttachmentDescription,
+    AttachmentMedia,
+    AttachmentTitle,
+} from '@/components/ui/attachment';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -11,6 +19,7 @@ import {
 } from '@/components/ui/card';
 import {
     Field,
+    FieldDescription,
     FieldError,
     FieldGroup,
     FieldLabel,
@@ -82,6 +91,33 @@ export function IdentifyForm() {
                                 }
                             />
                             <FieldError>{form.errors.vin}</FieldError>
+                        </Field>
+
+                        <Field>
+                            <FieldLabel>Foto da peça (em breve)</FieldLabel>
+                            <FieldDescription>
+                                Upload e visão por imagem ainda não estão
+                                ligados — não há envio activo.
+                            </FieldDescription>
+                            <Attachment
+                                state="idle"
+                                className="w-full max-w-md opacity-80"
+                                aria-disabled="true"
+                                data-test="photo-attachment-shell"
+                            >
+                                <AttachmentMedia variant="icon">
+                                    <ImageIcon />
+                                </AttachmentMedia>
+                                <AttachmentContent>
+                                    <AttachmentTitle>
+                                        Anexar fotografia
+                                    </AttachmentTitle>
+                                    <AttachmentDescription>
+                                        Indisponível até o pipeline de visão
+                                        (F7T-36) estar pronto.
+                                    </AttachmentDescription>
+                                </AttachmentContent>
+                            </Attachment>
                         </Field>
                     </FieldGroup>
                 </CardContent>

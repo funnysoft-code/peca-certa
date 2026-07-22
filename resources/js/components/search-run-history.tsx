@@ -1,8 +1,15 @@
 import { Link, router } from '@inertiajs/react';
-import { HistoryIcon, SearchIcon } from 'lucide-react';
+import { ChartColumn, HistoryIcon, SearchIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import {
     Empty,
     EmptyDescription,
@@ -29,6 +36,7 @@ import {
     SEARCH_RUN_STATUS_VARIANTS,
 } from '@/lib/search-run-status';
 import { formatRelativeTime } from '@/lib/utils';
+import { index as analyticsIndex } from '@/routes/analytics';
 
 type Scope = 'everyone' | 'mine';
 
@@ -91,6 +99,29 @@ function visitFilters(indexUrl: string, filters: Filters, page?: number): void {
     });
 }
 
+function runMetaLine(run: App.Data.SearchRunData): string {
+    const bits: string[] = [];
+
+    if (run.kind === 'identify') {
+        bits.push('Identificar');
+    } else if (run.kind === 'parts') {
+        bits.push('Peças');
+    }
+
+    if (run.vin) {
+        bits.push(`VIN ${run.vin}`);
+    }
+
+    if (run.reference) {
+        bits.push(`Ref. ${run.reference}`);
+    }
+
+    bits.push(run.authorName || 'Desconhecido');
+    bits.push(formatRelativeTime(run.createdAt));
+
+    return bits.join(' · ');
+}
+
 export function SearchRunHistory({
     runs,
     filters,
@@ -119,12 +150,26 @@ export function SearchRunHistory({
     }
 
     return (
-        <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-sm font-medium text-muted-foreground">
-                    Histórico de pesquisas
-                </h2>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <Card>
+            <CardHeader className="gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex flex-col gap-1">
+                    <CardTitle className="text-base">
+                        Histórico de pesquisas
+                    </CardTitle>
+                    <CardDescription>
+                        Corridas recentes da oficina. Métricas de procurement
+                        estão em Análises.
+                    </CardDescription>
+                </div>
+                <Button variant="outline" size="sm" asChild>
+                    <Link href={analyticsIndex()}>
+                        <ChartColumn data-icon="inline-start" />
+                        Análises
+                    </Link>
+                </Button>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <ToggleGroup
                         type="single"
                         value={filters.scope}
@@ -167,107 +212,105 @@ export function SearchRunHistory({
                         </Button>
                     </form>
                 </div>
-            </div>
 
-            {isEmpty ? (
-                <Empty className="border border-dashed">
-                    <EmptyHeader>
-                        <EmptyMedia variant="icon">
-                            <HistoryIcon />
-                        </EmptyMedia>
-                        <EmptyTitle>
-                            {hasQuery
-                                ? 'Sem correspondências'
-                                : 'Sem pesquisas ainda'}
-                        </EmptyTitle>
-                        <EmptyDescription>
-                            {hasQuery ? emptyNoMatches : emptyNoRuns}
-                        </EmptyDescription>
-                    </EmptyHeader>
-                </Empty>
-            ) : (
-                <>
-                    <ItemGroup className="gap-2">
-                        {runs.data.map((run) => (
-                            <Item
-                                key={run.id}
-                                variant="outline"
-                                size="sm"
-                                asChild
-                            >
-                                <Link href={showUrl(run.id)}>
-                                    <ItemContent>
-                                        <ItemTitle className="truncate">
-                                            {primaryLabel(run)}
-                                        </ItemTitle>
-                                        <ItemDescription>
-                                            {run.authorName || 'Desconhecido'}
-                                            {' · '}
-                                            {formatRelativeTime(run.createdAt)}
-                                        </ItemDescription>
-                                    </ItemContent>
-                                    <ItemActions>
-                                        <Badge
-                                            variant={
-                                                SEARCH_RUN_STATUS_VARIANTS[
-                                                    run.status
-                                                ]
-                                            }
-                                        >
-                                            {
-                                                SEARCH_RUN_STATUS_LABELS[
-                                                    run.status
-                                                ]
-                                            }
-                                        </Badge>
-                                    </ItemActions>
-                                </Link>
-                            </Item>
-                        ))}
-                    </ItemGroup>
+                {isEmpty ? (
+                    <Empty className="border border-dashed">
+                        <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                                <HistoryIcon />
+                            </EmptyMedia>
+                            <EmptyTitle>
+                                {hasQuery
+                                    ? 'Sem correspondências'
+                                    : 'Sem pesquisas ainda'}
+                            </EmptyTitle>
+                            <EmptyDescription>
+                                {hasQuery ? emptyNoMatches : emptyNoRuns}
+                            </EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
+                ) : (
+                    <>
+                        <ItemGroup className="gap-2">
+                            {runs.data.map((run) => (
+                                <Item
+                                    key={run.id}
+                                    variant="outline"
+                                    size="sm"
+                                    asChild
+                                >
+                                    <Link href={showUrl(run.id)}>
+                                        <ItemContent>
+                                            <ItemTitle className="truncate">
+                                                {primaryLabel(run)}
+                                            </ItemTitle>
+                                            <ItemDescription>
+                                                {runMetaLine(run)}
+                                            </ItemDescription>
+                                        </ItemContent>
+                                        <ItemActions>
+                                            <Badge
+                                                variant={
+                                                    SEARCH_RUN_STATUS_VARIANTS[
+                                                        run.status
+                                                    ]
+                                                }
+                                            >
+                                                {
+                                                    SEARCH_RUN_STATUS_LABELS[
+                                                        run.status
+                                                    ]
+                                                }
+                                            </Badge>
+                                        </ItemActions>
+                                    </Link>
+                                </Item>
+                            ))}
+                        </ItemGroup>
 
-                    {runs.meta.last_page > 1 && (
-                        <div className="flex items-center justify-between gap-3 text-sm">
-                            <p className="text-muted-foreground">
-                                Página {runs.meta.current_page} de{' '}
-                                {runs.meta.last_page}
-                            </p>
-                            <div className="flex gap-2">
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={runs.links.prev === null}
-                                    onClick={() =>
-                                        visitFilters(
-                                            indexUrl,
-                                            filters,
-                                            runs.meta.current_page - 1,
-                                        )
-                                    }
-                                >
-                                    Anterior
-                                </Button>
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    disabled={runs.links.next === null}
-                                    onClick={() =>
-                                        visitFilters(
-                                            indexUrl,
-                                            filters,
-                                            runs.meta.current_page + 1,
-                                        )
-                                    }
-                                >
-                                    Seguinte
-                                </Button>
+                        {runs.meta.last_page > 1 && (
+                            <div className="flex items-center justify-between gap-3 text-sm">
+                                <p className="text-muted-foreground">
+                                    Página {runs.meta.current_page} de{' '}
+                                    {runs.meta.last_page}
+                                </p>
+                                <div className="flex gap-2">
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        disabled={runs.links.prev === null}
+                                        onClick={() =>
+                                            visitFilters(
+                                                indexUrl,
+                                                filters,
+                                                runs.meta.current_page - 1,
+                                            )
+                                        }
+                                    >
+                                        Anterior
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        disabled={runs.links.next === null}
+                                        onClick={() =>
+                                            visitFilters(
+                                                indexUrl,
+                                                filters,
+                                                runs.meta.current_page + 1,
+                                            )
+                                        }
+                                    >
+                                        Seguinte
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                    )}
-                </>
-            )}
-        </div>
+                        )}
+                    </>
+                )}
+            </CardContent>
+        </Card>
     );
 }
