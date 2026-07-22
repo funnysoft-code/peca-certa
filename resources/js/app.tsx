@@ -8,7 +8,7 @@ import { createRoot } from 'react-dom/client';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { initializeTheme } from '@/hooks/use-appearance';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'R2CZ Auto Finder';
 
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -29,9 +29,9 @@ void createInertiaApp({
         );
     },
     progress: {
-        color: '#4B5563',
+        color: '#4eb8a4',
     },
 });
 
-// This will set light / dark mode on load...
+// Dark-only theme for R2CZ Auto Finder.
 initializeTheme();

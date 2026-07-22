@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'Laravel'),
+    'name' => env('APP_NAME', 'R2CZ Auto Finder'),
 
     /*
     |--------------------------------------------------------------------------

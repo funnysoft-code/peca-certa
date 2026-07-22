@@ -5,7 +5,7 @@ import type { ComponentType } from 'react';
 import ReactDOMServer from 'react-dom/server';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'R2CZ Auto Finder';
 
 createServer((page) =>
     createInertiaApp({
