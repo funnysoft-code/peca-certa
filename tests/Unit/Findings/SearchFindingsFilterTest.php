@@ -17,12 +17,26 @@ it('ignores empty and non-scalar search values', function (): void {
     expect($query->toSql())->not->toContain('like');
 });
 
-it('applies a multi-column like clause for a scalar term', function (): void {
+it('applies case-insensitive lower-bound likes for brand article and supplier', function (): void {
     $filter = new SearchFindingsFilter;
     /** @var Builder<Finding> $query */
     $query = Finding::query();
 
-    $filter($query, 'OC90', 'search');
+    $filter($query, 'Meyle', 'search');
 
-    expect($query->toSql())->toContain('like');
+    $sql = mb_strtolower($query->toSql());
+
+    expect($sql)->toContain('lower(supplier)')
+        ->and($sql)->toContain('lower(brand)')
+        ->and($sql)->toContain('lower(article)')
+        ->and($query->getBindings())->toContain('%meyle%');
+});
+
+it('escapes sql like wildcards in the user term', function (): void {
+    $filter = new SearchFindingsFilter;
+    $query = Finding::query();
+
+    $filter($query, '100%', 'search');
+
+    expect($query->getBindings())->toContain('%100\%%');
 });

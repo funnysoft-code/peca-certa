@@ -207,3 +207,78 @@ it('searches across supplier brand and article columns', function (): void {
         ->assertOk()
         ->assertJsonCount(2, 'data');
 });
+
+it('matches brand search case-insensitively (Meyle finds MEYLE)', function (): void {
+    $user = User::factory()->create();
+    $run = SearchRun::factory()->for($user)->create();
+    $lookup = SupplierLookup::factory()->for($run, 'run')->create(['supplier' => Supplier::AutoDelta]);
+    Finding::factory()->forLookup($lookup)->create([
+        'brand' => 'MEYLE',
+        'article' => '714 322 0007',
+        'supplier' => Supplier::AutoDelta,
+        'in_stock' => true,
+        'available_quantity' => 98,
+        'price' => 3.49,
+    ]);
+    Finding::factory()->forLookup($lookup)->outOfStock()->create([
+        'brand' => 'MEYLE',
+        'article' => '11-12 330 0000/SK',
+        'supplier' => Supplier::AutoDelta,
+    ]);
+    Finding::factory()->forLookup($lookup)->create([
+        'brand' => 'BOSCH',
+        'article' => 'F026',
+        'supplier' => Supplier::AutoDelta,
+        'in_stock' => true,
+    ]);
+
+    // Mixed-case UI search must hit uppercase brand (Postgres LIKE is case-sensitive).
+    $this->actingAs($user)
+        ->getJson(findingsRoute($run, ['filter' => ['search' => 'Meyle', 'in_stock' => '1']]))
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.brand', 'MEYLE')
+        ->assertJsonPath('data.0.article', '714 322 0007');
+
+    $this->actingAs($user)
+        ->getJson(findingsRoute($run, ['filter' => ['search' => 'meyle']]))
+        ->assertOk()
+        ->assertJsonCount(2, 'data');
+});
+
+it('matches supplier by UI label as well as enum value', function (): void {
+    $user = User::factory()->create();
+    $run = SearchRun::factory()->for($user)->create();
+    $autoDelta = SupplierLookup::factory()->for($run, 'run')->create(['supplier' => Supplier::AutoDelta]);
+    $autoZitania = SupplierLookup::factory()->for($run, 'run')->create(['supplier' => Supplier::AutoZitania]);
+    Finding::factory()->forLookup($autoDelta)->create(['brand' => 'A', 'supplier' => Supplier::AutoDelta, 'in_stock' => true]);
+    Finding::factory()->forLookup($autoZitania)->create(['brand' => 'B', 'supplier' => Supplier::AutoZitania, 'in_stock' => true]);
+
+    $this->actingAs($user)
+        ->getJson(findingsRoute($run, ['filter' => ['search' => 'Auto Delta']]))
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.supplier', 'autodelta');
+
+    $this->actingAs($user)
+        ->getJson(findingsRoute($run, ['filter' => ['search' => 'Zitania']]))
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.supplier', 'autozitania');
+});
+
+it('matches article numbers that contain slashes and spaces', function (): void {
+    $user = User::factory()->create();
+    $run = SearchRun::factory()->for($user)->create();
+    $lookup = SupplierLookup::factory()->for($run, 'run')->create();
+    Finding::factory()->forLookup($lookup)->create([
+        'brand' => 'MEYLE',
+        'article' => '11-12 330 0000/SK',
+        'in_stock' => false,
+    ]);
+
+    $this->actingAs($user)
+        ->getJson(findingsRoute($run, ['filter' => ['search' => '11-12 330']]))
+        ->assertOk()
+        ->assertJsonCount(1, 'data');
+});
