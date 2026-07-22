@@ -26,7 +26,6 @@
     "exclude": [
         "resources/js/actions",
         "resources/js/routes",
-        "resources/js/wayfinder",
-        "resources/js/types/generated.d.ts"
+        "resources/js/wayfinder"
     ]
 }

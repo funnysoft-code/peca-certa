@@ -1,16 +1,9 @@
+# Retired: covered by .github/workflows/ci.yml (Rector, Pint, Lint & Format).
+# Kept as workflow_dispatch-only so old bookmarks/docs do not 404.
 name: linter
 
 on:
-  push:
-    branches:
-      - develop
-      - main
-      - master
-  pull_request:
-    branches:
-      - develop
-      - main
-      - master
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -26,6 +19,9 @@ jobs:
           persist-credentials: false
 
       - uses: ./.github/actions/setup
+
+      - name: Generate Wayfinder
+        run: php artisan wayfinder:generate --with-form
 
       - name: Rector (dry-run)
         run: vendor/bin/rector --dry-run --ansi

@@ -1,16 +1,9 @@
+# Retired: covered by .github/workflows/ci.yml (Test + Browser Test jobs).
+# Kept as workflow_dispatch-only so old bookmarks/docs do not 404.
 name: tests
 
 on:
-  push:
-    branches:
-      - develop
-      - main
-      - master
-  pull_request:
-    branches:
-      - develop
-      - main
-      - master
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,26 +18,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.5'
-          tools: composer:v2
-          coverage: xdebug
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Install Composer dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
-
-      - name: Install Bun dependencies
-        run: bun install --frozen-lockfile
+      - uses: ./.github/actions/setup
 
       - name: Copy Environment File
         run: cp .env.example .env

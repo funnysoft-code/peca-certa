@@ -226,18 +226,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
 
-      - name: Build Assets
-        run: bun run build
-
-      - name: Cache Playwright Browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
-
-      - name: Install Playwright Browsers
-        run: bunx playwright install --with-deps
-
       - name: Prepare Laravel Application
         env:
           DB_CONNECTION: pgsql
@@ -249,7 +237,35 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+          # Vite embeds VITE_* at build time; dummy Reverb key so Echo/Pusher
+          # does not throw "You must pass your app key" during browser tests.
+          {
+            echo 'REVERB_APP_ID=ci'
+            echo 'REVERB_APP_KEY=ci-reverb-key'
+            echo 'REVERB_APP_SECRET=ci-reverb-secret'
+            echo 'VITE_REVERB_APP_KEY=ci-reverb-key'
+            echo 'VITE_REVERB_HOST=localhost'
+            echo 'VITE_REVERB_PORT=8080'
+            echo 'VITE_REVERB_SCHEME=http'
+          } >> .env
           php artisan config:clear
+
+      - name: Build Assets
+        env:
+          VITE_REVERB_APP_KEY: ci-reverb-key
+          VITE_REVERB_HOST: localhost
+          VITE_REVERB_PORT: '8080'
+          VITE_REVERB_SCHEME: http
+        run: bun run build
+
+      - name: Cache Playwright Browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install Playwright Browsers
+        run: bunx playwright install --with-deps
 
       - name: Run Browser Tests (serial)
         env:
@@ -262,6 +278,10 @@ jobs:
           REDIS_HOST: 127.0.0.1
           REDIS_PORT: 6379
           MAIL_MAILER: array
+          REVERB_APP_ID: ci
+          REVERB_APP_KEY: ci-reverb-key
+          REVERB_APP_SECRET: ci-reverb-secret
+          BROADCAST_CONNECTION: log
         run: php artisan test tests/Browser/
 
       - name: Upload Browser Screenshots on Failure

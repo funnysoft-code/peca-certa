@@ -27,12 +27,14 @@ function ActiveEchoListener({
 
 export function EchoListener(props: EchoListenerProps) {
     const [hydrated, setHydrated] = useState(false);
+    const reverbKey = import.meta.env.VITE_REVERB_APP_KEY;
 
     useEffect(() => {
         setHydrated(true);
     }, []);
 
-    if (!hydrated) {
+    // No client Echo when the app was built without a Reverb key (CI, local).
+    if (!hydrated || typeof reverbKey !== 'string' || reverbKey.length === 0) {
         return null;
     }
 
