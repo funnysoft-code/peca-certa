@@ -1,5 +1,17 @@
 declare namespace App {
     namespace Data {
+        export type FindingData = {
+            readonly id: string;
+            readonly supplier: App.Enums.Supplier;
+            readonly brand: string;
+            readonly article: string;
+            readonly traderArticleNumber: string;
+            readonly price: number | null;
+            readonly currency: string;
+            readonly availableQuantity: number;
+            readonly inStock: boolean;
+            readonly warehouse: string;
+        };
         export type IdentifyClarification = {
             readonly question: string;
             readonly options: string[];
@@ -8,6 +20,11 @@ declare namespace App {
             readonly oeNumber: string;
             readonly description: string;
             readonly brand: string;
+        };
+        export type PaginatedFindingsData = {
+            readonly data: App.Data.FindingData[];
+            readonly links: unknown;
+            readonly meta: unknown;
         };
         export type PartRequestUnderstanding = {
             readonly category: string;

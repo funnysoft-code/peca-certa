@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\IdentifyController;
 use App\Http\Controllers\PartSearchController;
 use App\Http\Controllers\ResumeIdentifyController;
+use App\Http\Controllers\SearchRunFindingsController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -32,6 +33,8 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::post('identify/{run}/resume', ResumeIdentifyController::class)
         ->middleware('throttle:30,1')
         ->name('identify.resume');
+    Route::get('search-runs/{run}/findings', SearchRunFindingsController::class)
+        ->name('search-runs.findings.index');
 });
 
 require __DIR__.'/settings.php';
