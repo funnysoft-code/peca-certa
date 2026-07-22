@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\AutoZitania;
 
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
@@ -40,7 +41,7 @@ final readonly class AutoZitaniaClient
         try {
             $response = Http::timeout(config()->integer('suppliers.autozitania.script_timeout'))
                 ->acceptJson()
-                ->when($token !== '', fn ($pending) => $pending->withToken($token))
+                ->when($token !== '', fn (PendingRequest $pending): PendingRequest => $pending->withToken($token))
                 ->post($httpUrl, ['reference' => $reference])
                 ->throw();
         } catch (ConnectionException|RequestException $e) {

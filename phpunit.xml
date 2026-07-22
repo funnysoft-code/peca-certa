@@ -44,5 +44,8 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
+        <!-- Force local Bun sidecar in tests; HTTP path is covered explicitly. -->
+        <env name="AUTOZITANIA_HTTP_URL" value=""/>
+        <env name="AUTOZITANIA_HTTP_TOKEN" value=""/>
     </php>
 </phpunit>

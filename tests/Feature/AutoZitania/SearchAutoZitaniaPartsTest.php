@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\SearchAutoZitaniaParts;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 
@@ -52,7 +53,7 @@ it('maps http worker output to part variants', function (): void {
     expect($result->variants)->toHaveCount(6)
         ->and($result->variants[0]->retailPrice)->toBe(34.38);
 
-    Http::assertSent(fn (array $request): bool => $request->url() === 'https://zitania-browser.test/search'
+    Http::assertSent(fn (Request $request): bool => $request->url() === 'https://zitania-browser.test/search'
         && $request->hasHeader('Authorization', 'Bearer secret-token')
         && $request['reference'] === 'OC 90');
 });
