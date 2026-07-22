@@ -13,9 +13,11 @@
             }
         </style>
 
+        {{-- Official R2CZ Auto mark (from r2cz-auto/src/app/icon.svg) --}}
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-        <link rel="icon" href="/logo-icon.svg" type="image/svg+xml" sizes="any">
-        <link rel="apple-touch-icon" href="/logo-icon.svg">
+        <link rel="icon" href="/favicon.ico" sizes="32x32">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+        <link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192">
 
         <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
         <link
