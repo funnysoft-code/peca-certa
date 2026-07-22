@@ -25,6 +25,7 @@ final readonly class SearchRunData implements JsonSerializable
         public ?string $vin,
         public ?string $reference,
         public ?PartRequestUnderstanding $understanding,
+        public ?IdentifyClarification $pendingQuestion,
         public array $oeParts,
         public array $lookups,
         public string $createdAt,
@@ -40,6 +41,7 @@ final readonly class SearchRunData implements JsonSerializable
             vin: $run->vin,
             reference: $run->reference,
             understanding: $run->understanding === null ? null : PartRequestUnderstanding::fromArray($run->understanding),
+            pendingQuestion: $run->pending_question === null ? null : IdentifyClarification::fromArray($run->pending_question),
             oeParts: array_map(OePart::fromArray(...), $run->oe_parts ?? []),
             lookups: array_values($run->lookups->map(SupplierLookupData::fromModel(...))->all()),
             createdAt: $run->created_at?->toISOString() ?? '',
@@ -47,7 +49,7 @@ final readonly class SearchRunData implements JsonSerializable
     }
 
     /**
-     * @return array{id: string, kind: SearchRunKind, status: SearchRunStatus, requestText: string|null, vin: string|null, reference: string|null, understanding: PartRequestUnderstanding|null, oeParts: list<OePart>, lookups: list<SupplierLookupData>, createdAt: string}
+     * @return array{id: string, kind: SearchRunKind, status: SearchRunStatus, requestText: string|null, vin: string|null, reference: string|null, understanding: PartRequestUnderstanding|null, pendingQuestion: IdentifyClarification|null, oeParts: list<OePart>, lookups: list<SupplierLookupData>, createdAt: string}
      */
     public function jsonSerialize(): array
     {
@@ -59,6 +61,7 @@ final readonly class SearchRunData implements JsonSerializable
             'vin' => $this->vin,
             'reference' => $this->reference,
             'understanding' => $this->understanding,
+            'pendingQuestion' => $this->pendingQuestion,
             'oeParts' => $this->oeParts,
             'lookups' => $this->lookups,
             'createdAt' => $this->createdAt,

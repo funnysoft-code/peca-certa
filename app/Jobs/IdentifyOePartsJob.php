@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Actions\FanOutOePricing;
 use App\Actions\IdentifyOeParts;
-use App\Data\OePart;
 use App\Data\PartRequestUnderstanding;
 use App\Enums\SearchRunStatus;
-use App\Enums\Supplier;
-use App\Enums\SupplierLookupStatus;
 use App\Events\SearchRunAdvanced;
 use App\Models\SearchRun;
-use App\Models\SupplierLookup;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\Attributes\Timeout;
@@ -21,6 +18,12 @@ use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Throwable;
 
+/**
+ * Legacy identify OE step (text-only understand chain). Prefer IdentifyAgentJob for /identify.
+ *
+ * Kept for parts of the suite that still exercise the old Understand → Identify chain;
+ * IdentifyController no longer dispatches this job.
+ */
 #[Timeout(90)]
 #[Tries(2)]
 final class IdentifyOePartsJob implements ShouldQueue
@@ -42,7 +45,7 @@ final class IdentifyOePartsJob implements ShouldQueue
         return [new WithoutOverlapping('partslink24')->expireAfter(150)];
     }
 
-    public function handle(IdentifyOeParts $identify): void
+    public function handle(IdentifyOeParts $identify, FanOutOePricing $fanOut): void
     {
         $run = $this->run->fresh();
 
@@ -50,7 +53,7 @@ final class IdentifyOePartsJob implements ShouldQueue
             return;
         }
 
-        $terminalStatuses = [SearchRunStatus::Done, SearchRunStatus::Failed];
+        $terminalStatuses = [SearchRunStatus::Done, SearchRunStatus::Failed, SearchRunStatus::NeedsInput];
 
         if (in_array($run->status, $terminalStatuses, true)) {
             return;
@@ -60,46 +63,7 @@ final class IdentifyOePartsJob implements ShouldQueue
 
         $oeParts = $identify->execute((string) $run->vin, $understanding->searchTerm, $understanding->keywords);
 
-        $run->oe_parts = array_map(
-            fn (OePart $part): array => $part->jsonSerialize(),
-            $oeParts,
-        );
-        $run->save();
-
-        event(new SearchRunAdvanced($run));
-
-        if ($oeParts === []) {
-            $run->status = SearchRunStatus::Done;
-            $run->save();
-
-            event(new SearchRunAdvanced($run));
-
-            return;
-        }
-
-        /** @var list<SupplierLookup> $createdLookups */
-        $createdLookups = [];
-
-        foreach ($oeParts as $part) {
-            foreach ([Supplier::AutoDelta, Supplier::AutoZitania] as $supplier) {
-                $lookup = SupplierLookup::query()->firstOrCreate([
-                    'search_run_id' => $run->id,
-                    'supplier' => $supplier,
-                    'query' => $part->oeNumber,
-                ], [
-                    'oe_description' => $part->description,
-                    'status' => SupplierLookupStatus::Pending,
-                ]);
-
-                if ($lookup->wasRecentlyCreated) {
-                    $createdLookups[] = $lookup;
-                }
-            }
-        }
-
-        foreach ($createdLookups as $createdLookup) {
-            dispatch(new PriceSupplierJob($createdLookup));
-        }
+        $fanOut->execute($run, $oeParts);
     }
 
     public function failed(?Throwable $exception): void

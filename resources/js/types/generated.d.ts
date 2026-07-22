@@ -1,5 +1,9 @@
 declare namespace App {
     namespace Data {
+        export type IdentifyClarification = {
+            readonly question: string;
+            readonly options: string[];
+        };
         export type OePart = {
             readonly oeNumber: string;
             readonly description: string;
@@ -36,6 +40,7 @@ declare namespace App {
             readonly vin: string | null;
             readonly reference: string | null;
             readonly understanding: App.Data.PartRequestUnderstanding | null;
+            readonly pendingQuestion: App.Data.IdentifyClarification | null;
             readonly oeParts: App.Data.OePart[];
             readonly lookups: App.Data.SupplierLookupData[];
             readonly createdAt: string;
@@ -51,7 +56,12 @@ declare namespace App {
     }
     namespace Enums {
         export type SearchRunKind = 'identify' | 'parts';
-        export type SearchRunStatus = 'pending' | 'running' | 'done' | 'failed';
+        export type SearchRunStatus =
+            | 'pending'
+            | 'running'
+            | 'needs_input'
+            | 'done'
+            | 'failed';
         export type Supplier = 'autodelta' | 'autozitania';
         export type SupplierLookupStatus =
             | 'pending'

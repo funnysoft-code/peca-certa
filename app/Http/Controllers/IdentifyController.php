@@ -8,12 +8,10 @@ use App\Data\SearchRunData;
 use App\Enums\SearchRunKind;
 use App\Enums\SearchRunStatus;
 use App\Http\Requests\IdentifyRequest;
-use App\Jobs\IdentifyOePartsJob;
-use App\Jobs\UnderstandRequestJob;
+use App\Jobs\IdentifyAgentJob;
 use App\Models\SearchRun;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Bus;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,12 +43,10 @@ final class IdentifyController extends Controller
             'request_text' => $request->requestText(),
             'vin' => $request->vin(),
             'status' => SearchRunStatus::Pending,
+            'messages' => [],
         ]);
 
-        Bus::chain([
-            new UnderstandRequestJob($run),
-            new IdentifyOePartsJob($run),
-        ])->dispatch();
+        dispatch(new IdentifyAgentJob($run));
 
         return to_route('identify.show', $run);
     }

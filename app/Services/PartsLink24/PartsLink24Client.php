@@ -70,9 +70,11 @@ final readonly class PartsLink24Client
             if (! is_string($oe)) {
                 continue;
             }
+
             if ($oe === '') {
                 continue;
             }
+
             if (! is_string($name)) {
                 continue;
             }
@@ -198,12 +200,15 @@ final readonly class PartsLink24Client
             if (! is_string($id)) {
                 continue;
             }
+
             if ($id === '') {
                 continue;
             }
+
             if (! is_string($description)) {
                 continue;
             }
+
             if ($description === '') {
                 continue;
             }
@@ -271,12 +276,15 @@ final readonly class PartsLink24Client
             if (! is_string($oe)) {
                 continue;
             }
+
             if ($oe === '') {
                 continue;
             }
+
             if (! is_string($description)) {
                 continue;
             }
+
             if ($description === '') {
                 continue;
             }
@@ -345,12 +353,15 @@ final readonly class PartsLink24Client
                 if (! is_string($label)) {
                     continue;
                 }
+
                 if ($label === '') {
                     continue;
                 }
+
                 if (! is_string($value)) {
                     continue;
                 }
+
                 if ($value === '') {
                     continue;
                 }
@@ -371,7 +382,7 @@ final readonly class PartsLink24Client
 
             if (is_string($candidateOe) && $candidateOe !== '' && $oe === '') {
                 $oe = preg_replace('/\s+/', '', $candidateOe) ?? $candidateOe;
-                $partno = is_string($candidateOe) ? $candidateOe : $oe;
+                $partno = $candidateOe;
             }
 
             if (is_string($candidateName) && $candidateName !== '' && $description === '') {

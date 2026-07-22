@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\IdentifyController;
 use App\Http\Controllers\PartSearchController;
+use App\Http\Controllers\ResumeIdentifyController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -28,6 +29,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->middleware('throttle:10,1')
         ->name('identify.store');
     Route::get('identify/{run}', [IdentifyController::class, 'show'])->name('identify.show');
+    Route::post('identify/{run}/resume', ResumeIdentifyController::class)
+        ->middleware('throttle:30,1')
+        ->name('identify.resume');
 });
 
 require __DIR__.'/settings.php';

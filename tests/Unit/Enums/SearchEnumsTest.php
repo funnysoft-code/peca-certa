@@ -9,8 +9,9 @@ use App\Enums\SupplierLookupStatus;
 it('exposes the search run and lookup enum values', function (): void {
     expect(SearchRunKind::Identify->value)->toBe('identify')
         ->and(SearchRunKind::Parts->value)->toBe('parts')
-        ->and(SearchRunStatus::cases())->toHaveCount(4)
+        ->and(SearchRunStatus::cases())->toHaveCount(5)
         ->and(SearchRunStatus::Pending->value)->toBe('pending')
+        ->and(SearchRunStatus::NeedsInput->value)->toBe('needs_input')
         ->and(SupplierLookupStatus::Empty->value)->toBe('empty')
         ->and(SupplierLookupStatus::cases())->toHaveCount(5);
 });

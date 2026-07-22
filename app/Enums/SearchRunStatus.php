@@ -11,6 +11,7 @@ enum SearchRunStatus: string
 {
     case Pending = 'pending';
     case Running = 'running';
+    case NeedsInput = 'needs_input';
     case Done = 'done';
     case Failed = 'failed';
 }
