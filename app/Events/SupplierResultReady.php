@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace App\Events;
 
-use App\Data\SupplierLookupData;
 use App\Models\SupplierLookup;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldRescue;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Broadcast immediately from the supplier job worker.
+ * Lightweight signal that a supplier lookup finished.
  *
- * ShouldBroadcast would re-queue onto the default queue; if that worker is
- * busy or not running, the UI stays on "processing" until a hard refresh.
+ * Full variant payloads exceed Reverb's max message size (hundreds of
+ * Auto Delta rows). The client reloads the run from the server on this event.
  */
-final class SupplierResultReady implements ShouldBroadcastNow
+final class SupplierResultReady implements ShouldBroadcastNow, ShouldRescue
 {
     use Dispatchable;
     use InteractsWithSockets;
@@ -45,12 +45,16 @@ final class SupplierResultReady implements ShouldBroadcastNow
     }
 
     /**
-     * @return array{lookup: array<string, mixed>}
+     * @return array{lookup: array{id: string, supplier: string, status: string}}
      */
     public function broadcastWith(): array
     {
         return [
-            'lookup' => SupplierLookupData::fromModel($this->lookup)->jsonSerialize(),
+            'lookup' => [
+                'id' => $this->lookup->id,
+                'supplier' => $this->lookup->supplier->value,
+                'status' => $this->lookup->status->value,
+            ],
         ];
     }
 }

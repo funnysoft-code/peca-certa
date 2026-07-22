@@ -103,7 +103,13 @@ export function RunResults({
     const pending = lookups.filter(
         (lookup) => lookup.status === 'pending' || lookup.status === 'running',
     );
-    const failed = lookups.filter((lookup) => lookup.status === 'failed');
+    // Broadcast-only failures can leave status=failed while result is populated.
+    // Only surface the error when there is nothing useful to show for that lookup.
+    const failed = lookups.filter(
+        (lookup) =>
+            lookup.status === 'failed' &&
+            (lookup.result?.variants.length ?? 0) === 0,
+    );
 
     const rows = lookups.flatMap(toRows).sort(byBrandThenSupplier);
     const available = rows.filter((row) => row.variant.inStock);
@@ -135,9 +141,13 @@ export function RunResults({
             {failed.length > 0 && (
                 <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
                     Falha ao consultar{' '}
-                    {failed
-                        .map((lookup) => SUPPLIER_LABELS[lookup.supplier])
-                        .join(', ')}
+                    {[
+                        ...new Set(
+                            failed.map(
+                                (lookup) => SUPPLIER_LABELS[lookup.supplier],
+                            ),
+                        ),
+                    ].join(', ')}
                     .
                 </div>
             )}

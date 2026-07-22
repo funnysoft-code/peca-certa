@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace App\Events;
 
-use App\Data\SearchRunData;
 use App\Models\SearchRun;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldRescue;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Broadcast immediately from the job worker (no second queue hop).
+ * Lightweight signal that a search run advanced.
  *
- * @see SupplierResultReady for why ShouldBroadcastNow is required here.
+ * Never embeds supplier result tables — those exceed Reverb message limits.
+ * The client reloads the run from the server on this event.
  */
-final class SearchRunAdvanced implements ShouldBroadcastNow
+final class SearchRunAdvanced implements ShouldBroadcastNow, ShouldRescue
 {
     use Dispatchable;
     use InteractsWithSockets;
@@ -44,12 +45,16 @@ final class SearchRunAdvanced implements ShouldBroadcastNow
     }
 
     /**
-     * @return array{run: array<string, mixed>}
+     * @return array{run: array{id: string, status: string, kind: string}}
      */
     public function broadcastWith(): array
     {
         return [
-            'run' => SearchRunData::fromModel($this->run->load('lookups'))->jsonSerialize(),
+            'run' => [
+                'id' => $this->run->id,
+                'status' => $this->run->status->value,
+                'kind' => $this->run->kind->value,
+            ],
         ];
     }
 }

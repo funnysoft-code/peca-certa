@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Data\SearchRunData;
-use App\Data\SupplierLookupData;
 use App\Events\SearchRunAdvanced;
 use App\Events\SupplierResultReady;
 use App\Models\SearchRun;
@@ -11,14 +9,19 @@ use App\Models\SupplierLookup;
 use App\Models\User;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
+use Illuminate\Contracts\Broadcasting\ShouldRescue;
 use Illuminate\Support\Facades\Event;
 
-it('broadcasts run advances immediately without a second queue hop', function (): void {
+it('broadcasts run advances immediately without a second queue hop and rescues failures', function (): void {
     $run = SearchRun::factory()->create();
+    $lookup = SupplierLookup::factory()->for($run, 'run')->create();
 
-    expect(new SearchRunAdvanced($run))->toBeInstanceOf(ShouldBroadcastNow::class)
-        ->and(new SupplierResultReady(SupplierLookup::factory()->for($run, 'run')->create()))
-        ->toBeInstanceOf(ShouldBroadcastNow::class);
+    expect(new SearchRunAdvanced($run))
+        ->toBeInstanceOf(ShouldBroadcastNow::class)
+        ->toBeInstanceOf(ShouldRescue::class)
+        ->and(new SupplierResultReady($lookup))
+        ->toBeInstanceOf(ShouldBroadcastNow::class)
+        ->toBeInstanceOf(ShouldRescue::class);
 });
 
 it('broadcasts run advances on the private run channel', function (): void {
@@ -35,16 +38,23 @@ it('broadcasts run advances on the private run channel', function (): void {
     });
 });
 
-it('names the run advanced broadcast and serializes the run via the data DTO', function (): void {
+it('names the run advanced broadcast and sends a lightweight payload without results', function (): void {
     $run = SearchRun::factory()->create();
-    SupplierLookup::factory()->for($run, 'run')->create();
+    SupplierLookup::factory()->for($run, 'run')->create([
+        'result' => ['query' => 'OC90', 'variants' => array_fill(0, 50, ['brandName' => 'X'])],
+    ]);
 
     $event = new SearchRunAdvanced($run);
 
     expect($event->broadcastAs())->toBe('run.advanced')
-        ->and($event->broadcastWith())->toEqual([
-            'run' => SearchRunData::fromModel($run->load('lookups'))->jsonSerialize(),
-        ]);
+        ->and($event->broadcastWith())->toBe([
+            'run' => [
+                'id' => $run->id,
+                'status' => $run->status->value,
+                'kind' => $run->kind->value,
+            ],
+        ])
+        ->and(mb_strlen(json_encode($event->broadcastWith()) ?: ''))->toBeLessThan(500);
 });
 
 it('broadcasts supplier results on the owning run private channel', function (): void {
@@ -61,15 +71,24 @@ it('broadcasts supplier results on the owning run private channel', function ():
     });
 });
 
-it('names the supplier result broadcast and serializes the lookup via the data DTO', function (): void {
-    $lookup = SupplierLookup::factory()->create();
+it('names the supplier result broadcast and omits full variant tables', function (): void {
+    $lookup = SupplierLookup::factory()->create([
+        'result' => ['query' => 'OC90', 'variants' => array_fill(0, 200, ['brandName' => 'X'])],
+    ]);
 
     $event = new SupplierResultReady($lookup);
+    $payload = $event->broadcastWith();
 
     expect($event->broadcastAs())->toBe('lookup.ready')
-        ->and($event->broadcastWith())->toEqual([
-            'lookup' => SupplierLookupData::fromModel($lookup)->jsonSerialize(),
-        ]);
+        ->and($payload)->toBe([
+            'lookup' => [
+                'id' => $lookup->id,
+                'supplier' => $lookup->supplier->value,
+                'status' => $lookup->status->value,
+            ],
+        ])
+        ->and($payload)->not->toHaveKey('result')
+        ->and(mb_strlen(json_encode($payload) ?: ''))->toBeLessThan(500);
 });
 
 it('authorizes the run channel only for the owner', function (): void {
