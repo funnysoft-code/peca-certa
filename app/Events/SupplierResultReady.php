@@ -9,11 +9,17 @@ use App\Models\SupplierLookup;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-final class SupplierResultReady implements ShouldBroadcast
+/**
+ * Broadcast immediately from the supplier job worker.
+ *
+ * ShouldBroadcast would re-queue onto the default queue; if that worker is
+ * busy or not running, the UI stays on "processing" until a hard refresh.
+ */
+final class SupplierResultReady implements ShouldBroadcastNow
 {
     use Dispatchable;
     use InteractsWithSockets;

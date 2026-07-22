@@ -10,7 +10,16 @@ use App\Models\SearchRun;
 use App\Models\SupplierLookup;
 use App\Models\User;
 use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Support\Facades\Event;
+
+it('broadcasts run advances immediately without a second queue hop', function (): void {
+    $run = SearchRun::factory()->create();
+
+    expect(new SearchRunAdvanced($run))->toBeInstanceOf(ShouldBroadcastNow::class)
+        ->and(new SupplierResultReady(SupplierLookup::factory()->for($run, 'run')->create()))
+        ->toBeInstanceOf(ShouldBroadcastNow::class);
+});
 
 it('broadcasts run advances on the private run channel', function (): void {
     Event::fake();

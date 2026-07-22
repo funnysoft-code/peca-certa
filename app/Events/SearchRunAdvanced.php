@@ -9,11 +9,16 @@ use App\Models\SearchRun;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-final class SearchRunAdvanced implements ShouldBroadcast
+/**
+ * Broadcast immediately from the job worker (no second queue hop).
+ *
+ * @see SupplierResultReady for why ShouldBroadcastNow is required here.
+ */
+final class SearchRunAdvanced implements ShouldBroadcastNow
 {
     use Dispatchable;
     use InteractsWithSockets;

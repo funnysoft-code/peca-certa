@@ -1,16 +1,13 @@
 import { Head } from '@inertiajs/react';
-import { useState } from 'react';
 import { EchoListener } from '@/components/echo-listener';
 import { RunResults } from '@/components/identify/run-results';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
+import { useSearchRunStream } from '@/hooks/use-search-run-stream';
 import { create } from '@/routes/identify';
 
 type Props = { run: App.Data.SearchRunData };
-
-type RunAdvancedEvent = { run: App.Data.SearchRunData };
-type LookupReadyEvent = { lookup: App.Data.SupplierLookupData };
 
 const STATUS_LABELS: Record<App.Enums.SearchRunStatus, string> = {
     pending: 'Pendente',
@@ -18,48 +15,6 @@ const STATUS_LABELS: Record<App.Enums.SearchRunStatus, string> = {
     done: 'Concluído',
     failed: 'Falhou',
 };
-
-function isRunAdvancedEvent(event: unknown): event is RunAdvancedEvent {
-    return (
-        typeof event === 'object' &&
-        event !== null &&
-        'run' in event &&
-        event.run !== null
-    );
-}
-
-function isLookupReadyEvent(event: unknown): event is LookupReadyEvent {
-    return (
-        typeof event === 'object' &&
-        event !== null &&
-        'lookup' in event &&
-        event.lookup !== null
-    );
-}
-
-function mergeLookups(
-    current: App.Data.SupplierLookupData[],
-    incoming: App.Data.SupplierLookupData[],
-): App.Data.SupplierLookupData[] {
-    const byId = new Map(current.map((lookup) => [lookup.id, lookup]));
-
-    for (const lookup of incoming) {
-        byId.set(lookup.id, lookup);
-    }
-
-    return Array.from(byId.values());
-}
-
-function upsertLookup(
-    current: App.Data.SupplierLookupData[],
-    lookup: App.Data.SupplierLookupData,
-): App.Data.SupplierLookupData[] {
-    const exists = current.some((l) => l.id === lookup.id);
-
-    return exists
-        ? current.map((l) => (l.id === lookup.id ? lookup : l))
-        : [...current, lookup];
-}
 
 function StatusIndicator({ status }: { status: App.Enums.SearchRunStatus }) {
     if (status === 'pending' || status === 'running') {
@@ -79,28 +34,7 @@ function StatusIndicator({ status }: { status: App.Enums.SearchRunStatus }) {
 }
 
 export default function IdentifyShow({ run: initialRun }: Props) {
-    const [run, setRun] = useState(initialRun);
-
-    function handleEvent(event: unknown) {
-        if (isRunAdvancedEvent(event)) {
-            setRun((prev) => ({
-                ...prev,
-                status: event.run.status,
-                understanding: event.run.understanding,
-                oeParts: event.run.oeParts,
-                lookups: mergeLookups(prev.lookups, event.run.lookups),
-            }));
-
-            return;
-        }
-
-        if (isLookupReadyEvent(event)) {
-            setRun((prev) => ({
-                ...prev,
-                lookups: upsertLookup(prev.lookups, event.lookup),
-            }));
-        }
-    }
+    const { run, handleEvent } = useSearchRunStream(initialRun);
 
     const isAnalyzing =
         run.understanding === null &&
