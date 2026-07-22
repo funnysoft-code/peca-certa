@@ -1,11 +1,9 @@
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
+import { type ColumnDef } from '@tanstack/react-table';
+import { ArrowUpDown, Group } from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/ui/data-table';
+import { Toggle } from '@/components/ui/toggle';
 
 export type StockMode = 'quantity' | 'availability';
 
@@ -24,55 +22,206 @@ function stockLabel(row: ResultRow): string {
     return row.variant.inStock ? 'Disponível' : 'Indisponível';
 }
 
-export function ResultsTable({ rows }: { rows: ResultRow[] }) {
-    if (rows.length === 0) {
-        return (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-                Sem resultados.
-            </p>
-        );
+function stockSortValue(row: ResultRow): number {
+    if (row.stockMode === 'quantity') {
+        return row.variant.availableQuantity;
     }
 
+    return row.variant.inStock ? 1 : 0;
+}
+
+function SortableHeader({
+    label,
+    sorted,
+    onToggle,
+    align = 'left',
+}: {
+    label: string;
+    sorted: false | 'asc' | 'desc';
+    onToggle: () => void;
+    align?: 'left' | 'right';
+}) {
     return (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Fornecedor</TableHead>
-                    <TableHead>Marca</TableHead>
-                    <TableHead>Artigo</TableHead>
-                    <TableHead className="text-right">Preço</TableHead>
-                    <TableHead className="text-right">Stock</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {rows.map((row) => (
-                    <TableRow
-                        key={`${row.supplier}-${row.variant.brandName}-${row.variant.traderArticleNumber}`}
-                    >
-                        <TableCell className="text-muted-foreground">
-                            {row.supplier}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                            {row.variant.brandName}
-                        </TableCell>
-                        <TableCell>{row.variant.articleNumber}</TableCell>
-                        <TableCell className="text-right tabular-nums">
-                            {row.price?.toFixed(2) ?? '–'}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                            <span
-                                className={
-                                    row.variant.inStock
-                                        ? 'text-emerald-600'
-                                        : 'text-muted-foreground'
-                                }
-                            >
-                                {stockLabel(row)}
-                            </span>
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
+        <Button
+            variant="ghost"
+            size="sm"
+            className={
+                align === 'right'
+                    ? '-mr-2 h-8 gap-1 px-2 hover:bg-transparent'
+                    : '-ml-2 h-8 gap-1 px-2 hover:bg-transparent'
+            }
+            onClick={onToggle}
+        >
+            {label}
+            <ArrowUpDown
+                className={
+                    sorted ? 'size-3.5 opacity-100' : 'size-3.5 opacity-40'
+                }
+            />
+        </Button>
+    );
+}
+
+const columns: ColumnDef<ResultRow>[] = [
+    {
+        id: 'supplier',
+        accessorFn: (row) => row.supplier,
+        enableGrouping: true,
+        header: ({ column }) => (
+            <SortableHeader
+                label="Fornecedor"
+                sorted={column.getIsSorted()}
+                onToggle={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            />
+        ),
+        cell: ({ getValue }) => (
+            <span className="text-muted-foreground">{String(getValue())}</span>
+        ),
+    },
+    {
+        id: 'brand',
+        accessorFn: (row) => row.variant.brandName,
+        enableGrouping: false,
+        header: ({ column }) => (
+            <SortableHeader
+                label="Marca"
+                sorted={column.getIsSorted()}
+                onToggle={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            />
+        ),
+        cell: ({ row }) => (
+            <span className="font-medium">
+                {row.original.variant.brandName}
+            </span>
+        ),
+    },
+    {
+        id: 'article',
+        accessorFn: (row) => row.variant.articleNumber,
+        enableGrouping: false,
+        header: ({ column }) => (
+            <SortableHeader
+                label="Artigo"
+                sorted={column.getIsSorted()}
+                onToggle={() =>
+                    column.toggleSorting(column.getIsSorted() === 'asc')
+                }
+            />
+        ),
+        cell: ({ row }) => row.original.variant.articleNumber,
+    },
+    {
+        id: 'price',
+        accessorFn: (row) => row.price,
+        enableGrouping: false,
+        sortingFn: (a, b) => {
+            const priceA = a.original.price;
+            const priceB = b.original.price;
+
+            if (priceA === null && priceB === null) {
+                return 0;
+            }
+
+            if (priceA === null) {
+                return 1;
+            }
+
+            if (priceB === null) {
+                return -1;
+            }
+
+            return priceA - priceB;
+        },
+        header: ({ column }) => (
+            <div className="text-right">
+                <SortableHeader
+                    label="Preço"
+                    sorted={column.getIsSorted()}
+                    onToggle={() =>
+                        column.toggleSorting(column.getIsSorted() === 'asc')
+                    }
+                    align="right"
+                />
+            </div>
+        ),
+        cell: ({ row }) => (
+            <span className="tabular-nums">
+                {row.original.price?.toFixed(2) ?? '–'}
+            </span>
+        ),
+        meta: {
+            headerClassName: 'text-right',
+            cellClassName: 'text-right',
+        },
+    },
+    {
+        id: 'stock',
+        accessorFn: (row) => stockSortValue(row),
+        enableGrouping: false,
+        header: ({ column }) => (
+            <div className="text-right">
+                <SortableHeader
+                    label="Stock"
+                    sorted={column.getIsSorted()}
+                    onToggle={() =>
+                        column.toggleSorting(column.getIsSorted() === 'asc')
+                    }
+                    align="right"
+                />
+            </div>
+        ),
+        cell: ({ row }) => (
+            <span
+                className={
+                    row.original.variant.inStock
+                        ? 'text-emerald-600 tabular-nums'
+                        : 'text-muted-foreground tabular-nums'
+                }
+            >
+                {stockLabel(row.original)}
+            </span>
+        ),
+        meta: {
+            headerClassName: 'text-right',
+            cellClassName: 'text-right',
+        },
+    },
+];
+
+function rowId(row: ResultRow, index: number): string {
+    return `${row.supplier}-${row.variant.brandName}-${row.variant.traderArticleNumber}-${index}`;
+}
+
+export function ResultsTable({ rows }: { rows: ResultRow[] }) {
+    const [groupBySupplier, setGroupBySupplier] = useState(true);
+
+    return (
+        <div className="space-y-2">
+            <div className="flex justify-end">
+                <Toggle
+                    variant="outline"
+                    size="sm"
+                    pressed={groupBySupplier}
+                    onPressedChange={setGroupBySupplier}
+                    aria-label="Agrupar por fornecedor"
+                    className="px-2.5"
+                >
+                    <Group className="size-3.5" />
+                    Agrupar por Fornecedor
+                </Toggle>
+            </div>
+
+            <DataTable
+                columns={columns}
+                data={rows}
+                emptyMessage="Sem resultados."
+                getRowId={rowId}
+                grouping={groupBySupplier ? ['supplier'] : []}
+            />
+        </div>
     );
 }

@@ -9,6 +9,14 @@ declare module 'react' {
     }
 }
 
+declare module '@tanstack/react-table' {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    interface ColumnMeta<TData, TValue> {
+        headerClassName?: string;
+        cellClassName?: string;
+    }
+}
+
 // Type the props shared from `HandleInertiaRequests::share()`, so every page
 // gets autocomplete on `usePage().props`. Extend this with your own shared
 // props as you add them.
