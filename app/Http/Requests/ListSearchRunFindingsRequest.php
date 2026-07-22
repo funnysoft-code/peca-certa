@@ -7,7 +7,6 @@ namespace App\Http\Requests;
 use App\Concerns\Filterable;
 use App\Concerns\HandlesPagination;
 use App\Concerns\Sortable;
-use App\Models\SearchRun;
 use App\Queries\ListSearchRunFindingsQuery;
 
 final class ListSearchRunFindingsRequest extends Request
@@ -18,10 +17,9 @@ final class ListSearchRunFindingsRequest extends Request
 
     public function authorize(): bool
     {
-        $run = $this->route('run');
-
-        return $run instanceof SearchRun
-            && $run->user_id === $this->user()->id;
+        // Shared workshop history: route is behind auth; any authenticated user
+        // may load findings for any run (same as identify/parts show + channel).
+        return true;
     }
 
     /**
