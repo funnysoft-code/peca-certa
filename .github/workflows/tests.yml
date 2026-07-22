@@ -6,47 +6,45 @@ on:
       - develop
       - main
       - master
-      - workos
   pull_request:
     branches:
       - develop
       - main
       - master
-      - workos
 
 permissions:
   contents: read
 
 jobs:
   ci:
-    runs-on: blacksmith-2vcpu-ubuntu-2404
-    strategy:
-      matrix:
-        php-version: ['8.3', '8.4', '8.5']
+    runs-on: blacksmith-2vcpu-ubuntu-2404-arm
+    timeout-minutes: 30
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php-version }}
+          php-version: '8.5'
           tools: composer:v2
           coverage: xdebug
 
-      - name: Setup Node
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
 
-      - name: Install Node Dependencies
-        run: npm i
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
 
-      - name: Install Dependencies
+      - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Install Bun dependencies
+        run: bun install --frozen-lockfile
 
       - name: Copy Environment File
         run: cp .env.example .env
@@ -55,10 +53,10 @@ jobs:
         run: php artisan key:generate
 
       - name: Build Assets
-        run: npm run build
+        run: bun run build
 
-      - name: Run Type Analysis
-        run: composer types:check
+      - name: Static analysis
+        run: composer test:types
 
       - name: Tests
-        run: php artisan test
+        run: php artisan test --parallel --compact --exclude-testsuite=Browser

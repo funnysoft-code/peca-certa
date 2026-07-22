@@ -6,6 +6,9 @@ env:
 on:
   workflow_dispatch:
   workflow_call:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
