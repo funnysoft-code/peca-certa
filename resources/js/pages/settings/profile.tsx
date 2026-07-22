@@ -1,12 +1,25 @@
-import { Form, Head, usePage } from '@inertiajs/react';
-import { Link } from '@inertiajs/react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
 import DeleteUser from '@/components/delete-user';
 import Heading from '@/components/heading';
-import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardFooter,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import {
+    Field,
+    FieldDescription,
+    FieldError,
+    FieldGroup,
+    FieldLabel,
+} from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { edit } from '@/routes/profile';
 import { send } from '@/routes/verification';
 import type { Auth } from '@/types';
@@ -30,96 +43,133 @@ export default function Profile({
 
             <h1 className="sr-only">Perfil</h1>
 
-            <div className="space-y-6">
+            <div className="flex flex-col gap-6">
                 <Heading
                     variant="small"
                     title="Perfil"
                     description="Atualize o nome e o email"
                 />
 
-                <Form
-                    {...ProfileController.update.form()}
-                    options={{
-                        preserveScroll: true,
-                    }}
-                    className="space-y-6"
-                >
-                    {({ processing, errors }) => (
-                        <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Nome</Label>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Dados da conta</CardTitle>
+                        <CardDescription>
+                            Nome e email usados para identificação e contacto.
+                        </CardDescription>
+                    </CardHeader>
 
-                                <Input
-                                    id="name"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.name}
-                                    name="name"
-                                    required
-                                    autoComplete="name"
-                                    placeholder="Nome completo"
-                                />
+                    <Form
+                        {...ProfileController.update.form()}
+                        options={{
+                            preserveScroll: true,
+                        }}
+                        className="flex flex-col"
+                    >
+                        {({ processing, errors }) => (
+                            <>
+                                <CardContent>
+                                    <FieldGroup>
+                                        <Field
+                                            data-invalid={
+                                                errors.name ? true : undefined
+                                            }
+                                        >
+                                            <FieldLabel htmlFor="name">
+                                                Nome
+                                            </FieldLabel>
+                                            <Input
+                                                id="name"
+                                                className="w-full"
+                                                defaultValue={auth.user.name}
+                                                name="name"
+                                                required
+                                                autoComplete="name"
+                                                placeholder="Nome completo"
+                                                aria-invalid={
+                                                    errors.name
+                                                        ? true
+                                                        : undefined
+                                                }
+                                            />
+                                            <FieldError>
+                                                {errors.name}
+                                            </FieldError>
+                                        </Field>
 
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.name}
-                                />
-                            </div>
+                                        <Field
+                                            data-invalid={
+                                                errors.email ? true : undefined
+                                            }
+                                        >
+                                            <FieldLabel htmlFor="email">
+                                                Email
+                                            </FieldLabel>
+                                            <Input
+                                                id="email"
+                                                type="email"
+                                                className="w-full"
+                                                defaultValue={auth.user.email}
+                                                name="email"
+                                                required
+                                                autoComplete="username"
+                                                placeholder="Email"
+                                                aria-invalid={
+                                                    errors.email
+                                                        ? true
+                                                        : undefined
+                                                }
+                                            />
+                                            <FieldError>
+                                                {errors.email}
+                                            </FieldError>
+                                        </Field>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email</Label>
+                                        {mustVerifyEmail &&
+                                            auth.user.email_verified_at ===
+                                                null && (
+                                                <Field>
+                                                    <FieldDescription>
+                                                        O email ainda não está
+                                                        verificado.{' '}
+                                                        <Link
+                                                            href={send()}
+                                                            as="button"
+                                                            className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                                                        >
+                                                            Reenviar email de
+                                                            verificação.
+                                                        </Link>
+                                                    </FieldDescription>
 
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    className="mt-1 block w-full"
-                                    defaultValue={auth.user.email}
-                                    name="email"
-                                    required
-                                    autoComplete="username"
-                                    placeholder="Email"
-                                />
+                                                    {status ===
+                                                        'verification-link-sent' && (
+                                                        <FieldDescription className="font-medium text-primary">
+                                                            Foi enviada uma nova
+                                                            ligação de
+                                                            verificação para o
+                                                            seu email.
+                                                        </FieldDescription>
+                                                    )}
+                                                </Field>
+                                            )}
+                                    </FieldGroup>
+                                </CardContent>
 
-                                <InputError
-                                    className="mt-2"
-                                    message={errors.email}
-                                />
-                            </div>
-
-                            {mustVerifyEmail &&
-                                auth.user.email_verified_at === null && (
-                                    <div>
-                                        <p className="-mt-4 text-sm text-muted-foreground">
-                                            O email ainda não está verificado.{' '}
-                                            <Link
-                                                href={send()}
-                                                as="button"
-                                                className="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                                            >
-                                                Reenviar email de verificação.
-                                            </Link>
-                                        </p>
-
-                                        {status ===
-                                            'verification-link-sent' && (
-                                            <div className="mt-2 text-sm font-medium text-primary">
-                                                Foi enviada uma nova ligação de
-                                                verificação para o seu email.
-                                            </div>
+                                <CardFooter className="border-t pt-6">
+                                    <Button
+                                        disabled={processing}
+                                        data-test="update-profile-button"
+                                    >
+                                        {processing && (
+                                            <Spinner data-icon="inline-start" />
                                         )}
-                                    </div>
-                                )}
-
-                            <div className="flex items-center gap-4">
-                                <Button
-                                    disabled={processing}
-                                    data-test="update-profile-button"
-                                >
-                                    Guardar
-                                </Button>
-                            </div>
-                        </>
-                    )}
-                </Form>
+                                        Guardar
+                                    </Button>
+                                </CardFooter>
+                            </>
+                        )}
+                    </Form>
+                </Card>
             </div>
 
             <DeleteUser />
