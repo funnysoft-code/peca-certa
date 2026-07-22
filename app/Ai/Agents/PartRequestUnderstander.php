@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Ai\Agents;
 
+use App\Ai\Concerns\UsesXaiProviderOptions;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Agent;
+use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Promptable;
 
-final class PartRequestUnderstander implements Agent, HasStructuredOutput
+final class PartRequestUnderstander implements Agent, HasProviderOptions, HasStructuredOutput
 {
     use Promptable;
+    use UsesXaiProviderOptions;
 
     public function instructions(): string
     {

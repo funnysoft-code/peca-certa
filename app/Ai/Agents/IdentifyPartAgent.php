@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Agents;
 
+use App\Ai\Concerns\UsesXaiProviderOptions;
 use App\Ai\Tools\PartsLink24\DecodeVin;
 use App\Ai\Tools\PartsLink24\GetPartInfo;
 use App\Ai\Tools\PartsLink24\ListBomParts;
@@ -16,6 +17,7 @@ use Laravel\Ai\Attributes\MaxSteps;
 use Laravel\Ai\Attributes\Timeout;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
+use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
@@ -24,9 +26,10 @@ use Laravel\Ai\Promptable;
 
 #[MaxSteps(8)]
 #[Timeout(90)]
-final readonly class IdentifyPartAgent implements Agent, Conversational, HasStructuredOutput, HasTools
+final readonly class IdentifyPartAgent implements Agent, Conversational, HasProviderOptions, HasStructuredOutput, HasTools
 {
     use Promptable;
+    use UsesXaiProviderOptions;
 
     /**
      * @param  list<Message>  $history

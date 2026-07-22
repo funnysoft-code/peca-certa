@@ -82,6 +82,9 @@ return [
             'driver' => 'xai',
             'name' => 'xai',
             'key' => env('XAI_API_KEY'),
+            // Priority Processing: higher scheduling priority (premium token rate).
+            // See https://docs.x.ai/developers/advanced-api-usage/priority-processing
+            'service_tier' => env('XAI_SERVICE_TIER', 'priority'),
             'models' => [
                 'text' => [
                     'default' => env('XAI_DEFAULT_MODEL', 'grok-4.3'),
