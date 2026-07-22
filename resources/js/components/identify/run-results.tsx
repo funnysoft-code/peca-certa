@@ -1,56 +1,14 @@
-import { ChevronDown, ExternalLink } from 'lucide-react';
-import {
-    ResultsTable,
-    type ResultRow,
-    type StockMode,
-} from '@/components/parts/results-table';
+import { ExternalLink } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { ResultsTable } from '@/components/parts/results-table';
 import { Button } from '@/components/ui/button';
-import {
-    Collapsible,
-    CollapsibleContent,
-    CollapsibleTrigger,
-} from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useSearchRunFindings } from '@/hooks/use-search-run-findings';
 
 const SUPPLIER_LABELS: Record<App.Enums.Supplier, string> = {
     autodelta: 'Auto Delta',
     autozitania: 'Auto Zitânia',
 };
-
-const SUPPLIER_STOCK_MODES: Record<App.Enums.Supplier, StockMode> = {
-    autodelta: 'quantity',
-    autozitania: 'availability',
-};
-
-// Auto Delta is where R2CZ buys, so its price column shows the purchase price;
-// Auto Zitânia only exposes the retail (PVP) price.
-const SUPPLIER_PRICE: Record<
-    App.Enums.Supplier,
-    (variant: App.Data.PartVariant) => number | null
-> = {
-    autodelta: (variant) => variant.purchasePrice,
-    autozitania: (variant) => variant.retailPrice,
-};
-
-function toRows(lookup: App.Data.SupplierLookupData): ResultRow[] {
-    if (lookup.result === null) {
-        return [];
-    }
-
-    return lookup.result.variants.map((variant) => ({
-        variant,
-        supplier: SUPPLIER_LABELS[lookup.supplier],
-        stockMode: SUPPLIER_STOCK_MODES[lookup.supplier],
-        price: SUPPLIER_PRICE[lookup.supplier](variant),
-    }));
-}
-
-function byBrandThenSupplier(a: ResultRow, b: ResultRow): number {
-    return (
-        a.variant.brandName.localeCompare(b.variant.brandName) ||
-        a.supplier.localeCompare(b.supplier)
-    );
-}
 
 type ProviderLink = {
     supplier: App.Enums.Supplier;
@@ -91,11 +49,39 @@ function toProviderLinks(
     return Array.from(byUrl.values());
 }
 
-export function RunResults({
-    lookups,
-}: {
-    lookups: App.Data.SupplierLookupData[];
-}) {
+export function RunResults({ run }: { run: App.Data.SearchRunData }) {
+    const {
+        findings,
+        query,
+        loading,
+        error,
+        setSearch,
+        setInStockOnly,
+        setSort,
+        setPage,
+        setPerPage,
+        refetch,
+    } = useSearchRunFindings(run.id);
+
+    // When Echo/poll reloads the run prop (lookup.ready), refetch the current
+    // findings query so new rows appear without resetting filters/sort/page.
+    const lookupsFingerprint = useMemo(
+        () =>
+            run.lookups
+                .map((lookup) => `${lookup.id}:${lookup.status}`)
+                .join('|'),
+        [run.lookups],
+    );
+
+    useEffect(() => {
+        refetch();
+        // Only re-run when lookup statuses change (broadcast/poll). Query changes
+        // already fetch inside useSearchRunFindings.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [lookupsFingerprint]);
+
+    const lookups = run.lookups;
+
     if (lookups.length === 0) {
         return null;
     }
@@ -111,11 +97,8 @@ export function RunResults({
             (lookup.result?.variants.length ?? 0) === 0,
     );
 
-    const rows = lookups.flatMap(toRows).sort(byBrandThenSupplier);
-    const available = rows.filter((row) => row.variant.inStock);
-    const unavailable = rows.filter((row) => !row.variant.inStock);
-    const hasResults = rows.length > 0;
-
+    const total = findings?.meta.total ?? 0;
+    const showInitialSkeleton = pending.length > 0 && total === 0 && !loading;
     const providerLinks = toProviderLinks(lookups);
 
     return (
@@ -129,7 +112,7 @@ export function RunResults({
                             .join(', ')}
                         …
                     </p>
-                    {!hasResults && (
+                    {showInitialSkeleton && (
                         <div className="space-y-2">
                             <Skeleton className="h-10 w-full" />
                             <Skeleton className="h-10 w-full" />
@@ -175,28 +158,22 @@ export function RunResults({
                 </div>
             )}
 
-            {hasResults ? (
-                <div className="space-y-4">
-                    <ResultsTable rows={available} />
-
-                    {unavailable.length > 0 && (
-                        <Collapsible>
-                            <CollapsibleTrigger className="group flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-                                <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
-                                Indisponíveis ({unavailable.length})
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="pt-2">
-                                <ResultsTable rows={unavailable} />
-                            </CollapsibleContent>
-                        </Collapsible>
-                    )}
-                </div>
-            ) : (
-                pending.length === 0 && (
-                    <p className="py-8 text-center text-sm text-muted-foreground">
-                        Sem resultados.
-                    </p>
-                )
+            {!showInitialSkeleton && (
+                <ResultsTable
+                    findings={findings}
+                    loading={loading}
+                    error={error}
+                    search={query.search}
+                    inStockOnly={query.inStockOnly}
+                    sort={query.sort}
+                    page={query.page}
+                    perPage={query.perPage}
+                    onSearchChange={setSearch}
+                    onInStockOnlyChange={setInStockOnly}
+                    onSortChange={setSort}
+                    onPageChange={setPage}
+                    onPerPageChange={setPerPage}
+                />
             )}
         </div>
     );

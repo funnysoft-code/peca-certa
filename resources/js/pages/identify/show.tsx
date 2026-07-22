@@ -217,7 +217,7 @@ export default function IdentifyShow({ run: initialRun }: Props) {
                         <h2 className="text-sm font-medium text-muted-foreground">
                             Resultados
                         </h2>
-                        <RunResults lookups={run.lookups} />
+                        <RunResults run={run} />
                     </div>
                 )}
             </div>

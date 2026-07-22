@@ -15,7 +15,8 @@ function isRunLive(run: App.Data.SearchRunData): boolean {
  * Live SearchRun state: Echo wakes a server reload; poll is the safety net.
  *
  * Broadcasts only carry ids/status (Reverb rejects large Auto Delta payloads).
- * Full variant tables always come from the Inertia `run` prop.
+ * Full run meta comes from the Inertia `run` prop. Findings are loaded via the
+ * JSON list endpoint and refetch when lookup fingerprints on `run` change.
  */
 export function useSearchRunStream(initialRun: App.Data.SearchRunData): {
     run: App.Data.SearchRunData;

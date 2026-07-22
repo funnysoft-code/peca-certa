@@ -70,7 +70,7 @@ export default function PartsShow({ run: initialRun }: Props) {
                     </Alert>
                 )}
 
-                <RunResults lookups={run.lookups} />
+                <RunResults run={run} />
             </div>
         </>
     );
