@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Event;
 use Laravel\Ai\Attributes\MaxSteps;
 use Laravel\Ai\Attributes\Timeout as AiTimeout;
+use Laravel\Ai\Tools\ToolNameResolver;
 
 it('auto-prices selected OEs without clarification and never prices mid-exploration', function (): void {
     Bus::fake([PriceSupplierJob::class]);
@@ -154,6 +155,35 @@ it('marks failed when the job exhausts retries', function (): void {
 
     expect($run->refresh()->status)->toBe(SearchRunStatus::Failed);
     Event::assertDispatched(SearchRunAdvanced::class);
+});
+
+it('exposes frozen snake_case tool names via ToolNameResolver (not class basenames)', function (): void {
+    $agent = new IdentifyPartAgent([]);
+    $resolved = [];
+
+    foreach ($agent->tools() as $tool) {
+        $resolved[] = ToolNameResolver::resolve($tool);
+    }
+
+    expect($resolved)->toEqualCanonicalizing([
+        'resolve_brand',
+        'decode_vin',
+        'search_parts_by_vin',
+        'list_main_groups',
+        'list_sub_groups',
+        'list_bom_parts',
+        'get_part_info',
+    ]);
+
+    $instructions = $agent->instructions();
+
+    foreach ($resolved as $name) {
+        expect($instructions)->toContain($name);
+    }
+
+    // Class basenames must not be what the LLM sees.
+    expect($resolved)->not->toContain('SearchPartsByVin')
+        ->and($resolved)->not->toContain('DecodeVin');
 });
 
 it('enforces per-turn max tool steps and timeout via agent config and attributes', function (): void {

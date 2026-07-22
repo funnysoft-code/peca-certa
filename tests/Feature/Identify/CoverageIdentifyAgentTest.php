@@ -65,7 +65,8 @@ it('covers tool descriptions, schemas, and get_part_info paths', function (): vo
 
     foreach ($tools as $class) {
         $tool = resolve($class);
-        expect($tool->description())->toBeString()->not->toBeEmpty()
+        expect($tool->name())->toBeString()->toContain('_')
+            ->and($tool->description())->toBeString()->not->toBeEmpty()
             ->and($tool->schema($schema))->toBeArray()->not->toBeEmpty();
     }
 

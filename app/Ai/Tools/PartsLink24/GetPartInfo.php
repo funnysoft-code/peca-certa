@@ -20,6 +20,11 @@ final class GetPartInfo implements Tool
         private PartsLink24Client $client,
     ) {}
 
+    public function name(): string
+    {
+        return 'get_part_info';
+    }
+
     public function description(): string
     {
         return 'Load part detail for a BOM position. partinfoPartno and pos come from list_bom_parts (not the full OE).';

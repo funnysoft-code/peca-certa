@@ -20,6 +20,11 @@ final class SearchPartsByVin implements Tool
         private PartsLink24Client $client,
     ) {}
 
+    public function name(): string
+    {
+        return 'search_parts_by_vin';
+    }
+
     public function description(): string
     {
         return 'Search OE parts for a VIN with an English free-text query (e.g. "oil filter"). Results can be noisy; confirm with BOM when unsure.';

@@ -20,6 +20,11 @@ final class DecodeVin implements Tool
         private PartsLink24Client $client,
     ) {}
 
+    public function name(): string
+    {
+        return 'decode_vin';
+    }
+
     public function description(): string
     {
         return 'Decode a VIN via PartsLink24 (model, production date, color, equipment summary).';

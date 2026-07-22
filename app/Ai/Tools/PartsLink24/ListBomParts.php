@@ -20,6 +20,11 @@ final class ListBomParts implements Tool
         private PartsLink24Client $client,
     ) {}
 
+    public function name(): string
+    {
+        return 'list_bom_parts';
+    }
+
     public function description(): string
     {
         return 'List OE parts on a BOM/illustration page (mainGroupId + btnr). Use oe numbers as final selected references for pricing.';

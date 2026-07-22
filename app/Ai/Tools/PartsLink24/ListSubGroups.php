@@ -20,6 +20,11 @@ final class ListSubGroups implements Tool
         private PartsLink24Client $client,
     ) {}
 
+    public function name(): string
+    {
+        return 'list_sub_groups';
+    }
+
     public function description(): string
     {
         return 'List sub-groups and BOM illustration pages under a main group id (hg). Prefer kind=bom rows for list_bom_parts.';

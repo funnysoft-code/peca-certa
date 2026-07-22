@@ -15,6 +15,11 @@ final class ResolveBrand implements Tool
 {
     use ResolvesPartsLink24Brand;
 
+    public function name(): string
+    {
+        return 'resolve_brand';
+    }
+
     public function description(): string
     {
         return 'Resolve the PartsLink24 brand catalog for a VIN (WMI → service/group). Call first if unsure which catalog applies.';

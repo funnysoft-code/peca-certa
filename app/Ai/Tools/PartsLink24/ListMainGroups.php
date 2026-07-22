@@ -20,6 +20,11 @@ final class ListMainGroups implements Tool
         private PartsLink24Client $client,
     ) {}
 
+    public function name(): string
+    {
+        return 'list_main_groups';
+    }
+
     public function description(): string
     {
         return 'List top-level PartsLink24 catalog groups for a VIN (Engine, Brakes, Body, …).';

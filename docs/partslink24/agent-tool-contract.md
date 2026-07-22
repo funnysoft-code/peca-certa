@@ -2,6 +2,8 @@
 
 All tools call `App\Services\PartsLink24\PartsLink24Client` after resolving the brand with `VinBrandResolver`. Tools return JSON strings to the LLM. No supplier pricing tools.
 
+**Runtime names:** each tool implements `name()` with the exact snake_case id below. `Laravel\Ai\Tools\ToolNameResolver` uses `name()` when present (otherwise class basename). Keep contract ids, `name()`, and agent instructions in lockstep (see `IdentifyAgentJobTest`).
+
 ## Shared failure modes
 
 | Failure | Behavior |

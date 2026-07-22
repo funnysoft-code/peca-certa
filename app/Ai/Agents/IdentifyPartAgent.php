@@ -51,10 +51,11 @@ final readonly class IdentifyPartAgent implements Agent, Conversational, HasStru
     {
         return <<<'PROMPT'
             És um agente de identificação de peças OE (número original) para uma oficina em Portugal.
-            Tens ferramentas PartsLink24. O VIN e o pedido do operador vêm na mensagem.
+            Tens ferramentas PartsLink24: resolve_brand, decode_vin, search_parts_by_vin, list_main_groups, list_sub_groups, list_bom_parts, get_part_info.
+            O VIN e o pedido do operador vêm na mensagem.
 
             Regras:
-            1. Usa as ferramentas para encontrar o(s) OE correcto(s). Preferência: search_parts_by_vin com query em inglês; se ambíguo, decode_vin + list_main_groups + list_sub_groups + list_bom_parts.
+            1. Usa as ferramentas para encontrar o(s) OE correcto(s). Preferência: search_parts_by_vin com query em inglês; se ambíguo, decode_vin + list_main_groups + list_sub_groups + list_bom_parts (get_part_info se a linha for dúbia).
             2. Nunca inventes números OE. Só selecciona OEs que as ferramentas devolveram.
             3. Se tiveres confiança alta em 1 ou N OEs sem ambiguidade, status=selected e preenche oeParts (oeNumber, description, brand="OE").
             4. Se estiveres inseguro, status=needs_input: pergunta em PT-PT, options com 2–6 escolhas concretas (quando possível), e oeParts vazio. NÃO continues a chamar ferramentas depois de decidires perguntar — a resposta estruturada é o fim do turno.
