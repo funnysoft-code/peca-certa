@@ -29,10 +29,14 @@ final readonly class SearchRunData implements JsonSerializable
         public array $oeParts,
         public array $lookups,
         public string $createdAt,
+        public string $authorName,
     ) {}
 
     public static function fromModel(SearchRun $run): self
     {
+        $author = $run->user;
+        $authorName = $author === null ? '' : $author->name;
+
         return new self(
             id: $run->id,
             kind: $run->kind,
@@ -45,11 +49,12 @@ final readonly class SearchRunData implements JsonSerializable
             oeParts: array_map(OePart::fromArray(...), $run->oe_parts ?? []),
             lookups: array_values($run->lookups->map(SupplierLookupData::fromModel(...))->all()),
             createdAt: $run->created_at?->toISOString() ?? '',
+            authorName: $authorName,
         );
     }
 
     /**
-     * @return array{id: string, kind: SearchRunKind, status: SearchRunStatus, requestText: string|null, vin: string|null, reference: string|null, understanding: PartRequestUnderstanding|null, pendingQuestion: IdentifyClarification|null, oeParts: list<OePart>, lookups: list<SupplierLookupData>, createdAt: string}
+     * @return array{id: string, kind: SearchRunKind, status: SearchRunStatus, requestText: string|null, vin: string|null, reference: string|null, understanding: PartRequestUnderstanding|null, pendingQuestion: IdentifyClarification|null, oeParts: list<OePart>, lookups: list<SupplierLookupData>, createdAt: string, authorName: string}
      */
     public function jsonSerialize(): array
     {
@@ -65,6 +70,7 @@ final readonly class SearchRunData implements JsonSerializable
             'oeParts' => $this->oeParts,
             'lookups' => $this->lookups,
             'createdAt' => $this->createdAt,
+            'authorName' => $this->authorName,
         ];
     }
 }

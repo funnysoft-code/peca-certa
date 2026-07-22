@@ -91,11 +91,11 @@ it('names the supplier result broadcast and omits full variant tables', function
         ->and(mb_strlen(json_encode($payload) ?: ''))->toBeLessThan(500);
 });
 
-it('authorizes the run channel only for the owner', function (): void {
+it('authorizes the run channel for any authenticated user when the run exists', function (): void {
     // The `null` broadcaster used in tests (see phpunit.xml) short-circuits
     // channel authorization entirely, so switch to a real Pusher-protocol
     // broadcaster (Reverb) and re-register routes/channels.php against it
-    // to exercise the actual owner-check closure.
+    // to exercise the actual existence-check closure.
     config(['broadcasting.default' => 'reverb']);
     require base_path('routes/channels.php');
 
@@ -108,5 +108,22 @@ it('authorizes the run channel only for the owner', function (): void {
 
     $this->actingAs(User::factory()->create())
         ->post('/broadcasting/auth', ['channel_name' => 'private-search-run.'.$run->id, 'socket_id' => '1234.5678'])
+        ->assertOk();
+
+    auth()->logout();
+
+    $this->post('/broadcasting/auth', ['channel_name' => 'private-search-run.'.$run->id, 'socket_id' => '1234.5678'])
+        ->assertForbidden();
+});
+
+it('denies the run channel when the run does not exist', function (): void {
+    config(['broadcasting.default' => 'reverb']);
+    require base_path('routes/channels.php');
+
+    $this->actingAs(User::factory()->create())
+        ->post('/broadcasting/auth', [
+            'channel_name' => 'private-search-run.'.fake()->uuid(),
+            'socket_id' => '1234.5678',
+        ])
         ->assertForbidden();
 });

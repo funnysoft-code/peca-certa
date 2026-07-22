@@ -15,7 +15,7 @@ it('builds SearchRunData from a run with lookups', function (): void {
     ]);
     SupplierLookup::factory()->for($run, 'run')->create();
 
-    $data = SearchRunData::fromModel($run->load('lookups'));
+    $data = SearchRunData::fromModel($run->load(['lookups', 'user']));
 
     expect($data->status)->toBe(SearchRunStatus::Running)
         ->and($data->understanding?->searchTerm)->toBe('oil filter')
@@ -24,7 +24,8 @@ it('builds SearchRunData from a run with lookups', function (): void {
         ->and($data->lookups)->toHaveCount(1)
         ->and($data->createdAt)->toBe($run->created_at?->toISOString())
         ->and($data->createdAt)->not->toBeEmpty()
-        ->and($data->jsonSerialize())->toHaveKeys(['id', 'kind', 'status', 'understanding', 'oeParts', 'lookups', 'createdAt']);
+        ->and($data->authorName)->toBe($run->user?->name)
+        ->and($data->jsonSerialize())->toHaveKeys(['id', 'kind', 'status', 'understanding', 'oeParts', 'lookups', 'createdAt', 'authorName']);
 });
 
 it('builds SearchRunData from a run with no understanding, oe_parts or lookups', function (): void {
@@ -33,7 +34,7 @@ it('builds SearchRunData from a run with no understanding, oe_parts or lookups',
         'oe_parts' => null,
     ]);
 
-    $data = SearchRunData::fromModel($run->load('lookups'));
+    $data = SearchRunData::fromModel($run->load(['lookups', 'user']));
 
     expect($data->understanding)->toBeNull()
         ->and($data->oeParts)->toBe([])
@@ -44,7 +45,17 @@ it('falls back to an empty string when the run has no created_at', function (): 
     $run = SearchRun::factory()->create();
     $run->created_at = null;
 
-    $data = SearchRunData::fromModel($run->load('lookups'));
+    $data = SearchRunData::fromModel($run->load(['lookups', 'user']));
 
     expect($data->createdAt)->toBe('');
+});
+
+it('includes the author display name from the related user', function (): void {
+    $run = SearchRun::factory()->create();
+    $run->user?->update(['name' => 'Workshop Tech']);
+
+    $data = SearchRunData::fromModel($run->fresh()->load(['lookups', 'user']));
+
+    expect($data->authorName)->toBe('Workshop Tech')
+        ->and($data->jsonSerialize()['authorName'])->toBe('Workshop Tech');
 });

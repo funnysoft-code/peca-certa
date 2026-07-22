@@ -9,6 +9,7 @@ use App\Enums\SupplierLookupStatus;
 use App\Jobs\PriceSupplierJob;
 use App\Models\SearchRun;
 use App\Models\User;
+use App\Queries\ListSearchRunsQuery;
 use App\Services\AutoDelta\AutoDeltaToken;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -22,29 +23,117 @@ it('renders the parts index page for authenticated users', function (): void {
         ->assertOk()
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('parts/index')
-            ->has('recentRuns'),
+            ->has('runs')
+            ->has('filters')
+            ->where('filters.scope', 'everyone')
+            ->where('filters.q', ''),
         );
 });
 
-it("lists the user's last 5 parts runs newest first", function (): void {
+it('redirects guests away from parts pages', function (): void {
+    $this->get('/parts')->assertRedirect(route('login'));
+
+    $run = SearchRun::factory()->parts()->create();
+
+    $this->get(route('parts.show', $run))->assertRedirect(route('login'));
+});
+
+it('lists parts runs for all users by default, newest first, 10 per page', function (): void {
+    $viewer = User::factory()->create(['email_verified_at' => now(), 'name' => 'Viewer User']);
+    $author = User::factory()->create(['email_verified_at' => now(), 'name' => 'Author Alice']);
+    $baseTime = now();
+
+    SearchRun::factory()->for($author)->parts()->count(11)->sequence(
+        ...collect(range(1, 11))->map(fn (int $i): array => [
+            'reference' => 'ref-'.$i,
+            'created_at' => $baseTime->copy()->subMinutes(12 - $i),
+        ])->all(),
+    )->create();
+
+    SearchRun::factory()->for($viewer)->parts()->create([
+        'reference' => 'viewer-ref',
+        'created_at' => $baseTime->copy()->subMinutes(20),
+    ]);
+
+    $this->actingAs($viewer)
+        ->get('/parts')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('parts/index')
+            ->has('runs.data', ListSearchRunsQuery::PER_PAGE)
+            ->where('runs.meta.per_page', ListSearchRunsQuery::PER_PAGE)
+            ->where('runs.meta.total', 12)
+            ->where('runs.data.0.reference', 'ref-11')
+            ->where('runs.data.0.authorName', 'Author Alice')
+            ->where('filters.scope', 'everyone'),
+        );
+});
+
+it('limits the parts list to mine when scope=mine', function (): void {
+    $userA = User::factory()->create(['email_verified_at' => now(), 'name' => 'User A']);
+    $userB = User::factory()->create(['email_verified_at' => now(), 'name' => 'User B']);
+
+    SearchRun::factory()->for($userA)->parts()->create(['reference' => 'from-A']);
+    SearchRun::factory()->for($userB)->parts()->create(['reference' => 'from-B']);
+
+    $this->actingAs($userB)
+        ->get('/parts?scope=mine')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('parts/index')
+            ->has('runs.data', 1)
+            ->where('runs.data.0.reference', 'from-B')
+            ->where('runs.data.0.authorName', 'User B')
+            ->where('filters.scope', 'mine'),
+        );
+});
+
+it('searches parts runs by reference and author name', function (): void {
+    $viewer = User::factory()->create(['email_verified_at' => now()]);
+    $alice = User::factory()->create(['email_verified_at' => now(), 'name' => 'Alice Workshop']);
+    $bob = User::factory()->create(['email_verified_at' => now(), 'name' => 'Bob Counter']);
+
+    SearchRun::factory()->for($alice)->parts()->create(['reference' => 'OC90']);
+    SearchRun::factory()->for($bob)->parts()->create(['reference' => 'W712/95']);
+
+    $this->actingAs($viewer)
+        ->get('/parts?q=Alice')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->has('runs.data', 1)
+            ->where('runs.data.0.authorName', 'Alice Workshop')
+            ->where('filters.q', 'Alice'),
+        );
+
+    $this->actingAs($viewer)
+        ->get('/parts?q=W712')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->has('runs.data', 1)
+            ->where('runs.data.0.reference', 'W712/95'),
+        );
+});
+
+it('paginates parts runs with page query', function (): void {
     $user = User::factory()->create(['email_verified_at' => now()]);
     $baseTime = now();
 
-    SearchRun::factory()->for($user)->parts()->count(6)->sequence(
-        ['reference' => 'ref-1', 'created_at' => $baseTime->copy()->subMinutes(6)],
-        ['reference' => 'ref-2', 'created_at' => $baseTime->copy()->subMinutes(5)],
-        ['reference' => 'ref-3', 'created_at' => $baseTime->copy()->subMinutes(4)],
-        ['reference' => 'ref-4', 'created_at' => $baseTime->copy()->subMinutes(3)],
-        ['reference' => 'ref-5', 'created_at' => $baseTime->copy()->subMinutes(2)],
-        ['reference' => 'ref-6', 'created_at' => $baseTime->copy()->subMinute()],
+    SearchRun::factory()->for($user)->parts()->count(11)->sequence(
+        ...collect(range(1, 11))->map(fn (int $i): array => [
+            'reference' => 'page-ref-'.$i,
+            'created_at' => $baseTime->copy()->subMinutes(12 - $i),
+        ])->all(),
     )->create();
 
     $this->actingAs($user)
-        ->get('/parts')
+        ->get('/parts?page=2')
+        ->assertOk()
         ->assertInertia(fn (Assert $page): Assert => $page
-            ->component('parts/index')
-            ->has('recentRuns', 5)
-            ->where('recentRuns.0.reference', 'ref-6'),
+            ->has('runs.data', 1)
+            ->where('runs.meta.current_page', 2)
+            ->where('runs.meta.per_page', 10)
+            ->where('runs.meta.last_page', 2)
+            ->where('runs.data.0.reference', 'page-ref-1'),
         );
 });
 
@@ -116,8 +205,8 @@ it('validates the reference is present', function (): void {
         ->assertSessionHasErrors('reference');
 });
 
-it('shows the run page for the owner', function (): void {
-    $user = User::factory()->create(['email_verified_at' => now()]);
+it('shows the run page for the owner with author name', function (): void {
+    $user = User::factory()->create(['email_verified_at' => now(), 'name' => 'Owner Name']);
     $run = SearchRun::factory()->for($user)->parts()->create();
 
     $this->actingAs($user)
@@ -125,18 +214,25 @@ it('shows the run page for the owner', function (): void {
         ->assertOk()
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('parts/show')
-            ->where('run.id', $run->id),
+            ->where('run.id', $run->id)
+            ->where('run.authorName', 'Owner Name'),
         );
 });
 
-it("forbids showing another user's run", function (): void {
-    $owner = User::factory()->create(['email_verified_at' => now()]);
-    $run = SearchRun::factory()->for($owner)->parts()->create();
+it('allows another authenticated user to open a parts run', function (): void {
+    $owner = User::factory()->create(['email_verified_at' => now(), 'name' => 'Owner Alice']);
+    $run = SearchRun::factory()->for($owner)->parts()->create(['reference' => 'SHARED-REF']);
     $other = User::factory()->create(['email_verified_at' => now()]);
 
     $this->actingAs($other)
         ->get(route('parts.show', $run))
-        ->assertForbidden();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('parts/show')
+            ->where('run.id', $run->id)
+            ->where('run.authorName', 'Owner Alice')
+            ->where('run.reference', 'SHARED-REF'),
+        );
 });
 
 it('does not show identify runs on the parts show route', function (): void {

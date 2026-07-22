@@ -52,6 +52,8 @@ export default function PartsShow({ run: initialRun }: Props) {
                             {run.reference ?? 'Pesquisa de peça'}
                         </h1>
                         <p className="text-sm text-muted-foreground">
+                            {run.authorName || 'Desconhecido'}
+                            {' · '}
                             Preços e disponibilidade nos fornecedores
                         </p>
                     </div>

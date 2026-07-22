@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Actions\PersistLookupFindings;
 use App\Data\OePart;
 use App\Data\PartRequestUnderstanding;
 use App\Data\PartSearchResult;
@@ -44,7 +45,7 @@ it('renders the persisted results of a completed run', function (): void {
         warehouse: 'Lisboa',
     );
 
-    SupplierLookup::factory()->for($run, 'run')->create([
+    $autoDeltaLookup = SupplierLookup::factory()->for($run, 'run')->create([
         'supplier' => Supplier::AutoDelta,
         'query' => $oePart->oeNumber,
         'oe_description' => $oePart->description,
@@ -66,6 +67,8 @@ it('renders the persisted results of a completed run', function (): void {
             variants: [],
         )->jsonSerialize(),
     ]);
+
+    resolve(PersistLookupFindings::class)->execute($autoDeltaLookup->refresh());
 
     $this->actingAs($user);
 
@@ -89,7 +92,7 @@ it('submits the identify form and lands on the run page', function (): void {
 
     $page->fill('#request', 'filtro de óleo para Golf')
         ->fill('#vin', 'WVWZZZ1JZXW000001')
-        ->click('form button[type="submit"]');
+        ->click('form:has(#request) button[type="submit"]');
 
     $page->waitForEvent('networkidle');
 

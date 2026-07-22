@@ -8,4 +8,4 @@ use Illuminate\Support\Facades\Broadcast;
 
 Broadcast::channel('App.Models.User.{id}', fn (User $user, string $id): bool => $user->id === $id);
 
-Broadcast::channel('search-run.{id}', fn (User $user, string $id): bool => SearchRun::query()->whereKey($id)->value('user_id') === $user->id);
+Broadcast::channel('search-run.{id}', fn (User $user, string $id): bool => SearchRun::query()->whereKey($id)->exists());

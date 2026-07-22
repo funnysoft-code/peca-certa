@@ -143,11 +143,10 @@ export default function IdentifyShow({ run: initialRun }: Props) {
                         <h1 className="text-lg font-semibold">
                             {run.requestText ?? 'Identificação de peça'}
                         </h1>
-                        {run.vin && (
-                            <p className="text-sm text-muted-foreground">
-                                VIN: {run.vin}
-                            </p>
-                        )}
+                        <p className="text-sm text-muted-foreground">
+                            {run.authorName || 'Desconhecido'}
+                            {run.vin ? ` · VIN: ${run.vin}` : ''}
+                        </p>
                     </div>
                     <StatusIndicator status={run.status} />
                 </div>

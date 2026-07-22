@@ -26,6 +26,11 @@ declare namespace App {
             readonly links: unknown;
             readonly meta: unknown;
         };
+        export type PaginatedSearchRunsData = {
+            readonly data: App.Data.SearchRunData[];
+            readonly links: unknown;
+            readonly meta: unknown;
+        };
         export type PartRequestUnderstanding = {
             readonly category: string;
             readonly searchTerm: string;
@@ -61,6 +66,7 @@ declare namespace App {
             readonly oeParts: App.Data.OePart[];
             readonly lookups: App.Data.SupplierLookupData[];
             readonly createdAt: string;
+            readonly authorName: string;
         };
         export type SupplierLookupData = {
             readonly id: string;

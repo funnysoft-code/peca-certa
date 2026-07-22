@@ -9,6 +9,7 @@ use App\Jobs\IdentifyOePartsJob;
 use App\Jobs\UnderstandRequestJob;
 use App\Models\SearchRun;
 use App\Models\User;
+use App\Queries\ListSearchRunsQuery;
 use Illuminate\Support\Facades\Bus;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -18,32 +19,131 @@ it('renders the identify page for authed users', function (): void {
         ->assertOk()
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('identify/index')
-            ->has('recentRuns'),
+            ->has('runs')
+            ->has('filters')
+            ->where('filters.scope', 'everyone')
+            ->where('filters.q', ''),
         );
 });
 
-it("lists the user's last 5 identify runs newest first", function (): void {
+it('redirects guests away from identify pages', function (): void {
+    $this->get('/identify')->assertRedirect(route('login'));
+
+    $run = SearchRun::factory()->create();
+
+    $this->get(route('identify.show', $run))->assertRedirect(route('login'));
+});
+
+it('lists identify runs for all users by default, newest first, 10 per page', function (): void {
+    $viewer = User::factory()->create(['email_verified_at' => now(), 'name' => 'Viewer User']);
+    $author = User::factory()->create(['email_verified_at' => now(), 'name' => 'Author Alice']);
+    $baseTime = now();
+
+    SearchRun::factory()->for($author)->count(11)->sequence(
+        ...collect(range(1, 11))->map(fn (int $i): array => [
+            'request_text' => 'run '.$i,
+            'created_at' => $baseTime->copy()->subMinutes(12 - $i),
+        ])->all(),
+    )->create();
+
+    SearchRun::factory()->for($viewer)->create([
+        'request_text' => 'viewer run',
+        'created_at' => $baseTime->copy()->subMinutes(20),
+    ]);
+
+    $this->actingAs($viewer)
+        ->get('/identify')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('identify/index')
+            ->has('runs.data', ListSearchRunsQuery::PER_PAGE)
+            ->where('runs.meta.per_page', ListSearchRunsQuery::PER_PAGE)
+            ->where('runs.meta.total', 12)
+            ->where('runs.data.0.requestText', 'run 11')
+            ->where('runs.data.0.authorName', 'Author Alice')
+            ->where('filters.scope', 'everyone'),
+        );
+});
+
+it('limits the list to mine when scope=mine', function (): void {
+    $userA = User::factory()->create(['email_verified_at' => now(), 'name' => 'User A']);
+    $userB = User::factory()->create(['email_verified_at' => now(), 'name' => 'User B']);
+
+    SearchRun::factory()->for($userA)->create(['request_text' => 'from A']);
+    SearchRun::factory()->for($userB)->create(['request_text' => 'from B']);
+
+    $this->actingAs($userB)
+        ->get('/identify?scope=mine')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('identify/index')
+            ->has('runs.data', 1)
+            ->where('runs.data.0.requestText', 'from B')
+            ->where('runs.data.0.authorName', 'User B')
+            ->where('filters.scope', 'mine'),
+        );
+});
+
+it('searches identify runs by request text, vin, and author name', function (): void {
+    $viewer = User::factory()->create(['email_verified_at' => now()]);
+    $alice = User::factory()->create(['email_verified_at' => now(), 'name' => 'Alice Workshop']);
+    $bob = User::factory()->create(['email_verified_at' => now(), 'name' => 'Bob Counter']);
+
+    SearchRun::factory()->for($alice)->create([
+        'request_text' => 'filtro de oleo motor',
+        'vin' => 'WVWZZZ1JZXW000001',
+    ]);
+    SearchRun::factory()->for($bob)->create([
+        'request_text' => 'pastilhas travao',
+        'vin' => 'WBAZZZ1JZXW999999',
+    ]);
+
+    $this->actingAs($viewer)
+        ->get('/identify?q=Alice')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->has('runs.data', 1)
+            ->where('runs.data.0.authorName', 'Alice Workshop')
+            ->where('filters.q', 'Alice'),
+        );
+
+    $this->actingAs($viewer)
+        ->get('/identify?q=WVWZZZ1JZXW000001')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->has('runs.data', 1)
+            ->where('runs.data.0.vin', 'WVWZZZ1JZXW000001'),
+        );
+
+    $this->actingAs($viewer)
+        ->get('/identify?q=pastilhas')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->has('runs.data', 1)
+            ->where('runs.data.0.requestText', 'pastilhas travao'),
+        );
+});
+
+it('paginates identify runs with page query', function (): void {
     $user = User::factory()->create(['email_verified_at' => now()]);
     $baseTime = now();
 
-    // Explicit, strictly increasing created_at values: Pest.php freezes time
-    // for every test, so factory-default timestamps would tie and make the
-    // "newest first" ordering assertion flaky.
-    SearchRun::factory()->for($user)->count(6)->sequence(
-        ['request_text' => 'run 1', 'created_at' => $baseTime->copy()->subMinutes(6)],
-        ['request_text' => 'run 2', 'created_at' => $baseTime->copy()->subMinutes(5)],
-        ['request_text' => 'run 3', 'created_at' => $baseTime->copy()->subMinutes(4)],
-        ['request_text' => 'run 4', 'created_at' => $baseTime->copy()->subMinutes(3)],
-        ['request_text' => 'run 5', 'created_at' => $baseTime->copy()->subMinutes(2)],
-        ['request_text' => 'run 6', 'created_at' => $baseTime->copy()->subMinute()],
+    SearchRun::factory()->for($user)->count(11)->sequence(
+        ...collect(range(1, 11))->map(fn (int $i): array => [
+            'request_text' => 'page-run '.$i,
+            'created_at' => $baseTime->copy()->subMinutes(12 - $i),
+        ])->all(),
     )->create();
 
     $this->actingAs($user)
-        ->get('/identify')
+        ->get('/identify?page=2')
+        ->assertOk()
         ->assertInertia(fn (Assert $page): Assert => $page
-            ->component('identify/index')
-            ->has('recentRuns', 5)
-            ->where('recentRuns.0.requestText', 'run 6'),
+            ->has('runs.data', 1)
+            ->where('runs.meta.current_page', 2)
+            ->where('runs.meta.per_page', 10)
+            ->where('runs.meta.last_page', 2)
+            ->where('runs.data.0.requestText', 'page-run 1'),
         );
 });
 
@@ -75,8 +175,8 @@ it('creates a search run, dispatches IdentifyAgentJob, and redirects to the run 
     Bus::assertNotDispatched(IdentifyOePartsJob::class);
 });
 
-it('shows the run page for the owner', function (): void {
-    $user = User::factory()->create(['email_verified_at' => now()]);
+it('shows the run page for the owner with author name', function (): void {
+    $user = User::factory()->create(['email_verified_at' => now(), 'name' => 'Owner Name']);
     $run = SearchRun::factory()->for($user)->create();
 
     $this->actingAs($user)
@@ -84,16 +184,23 @@ it('shows the run page for the owner', function (): void {
         ->assertOk()
         ->assertInertia(fn (Assert $page): Assert => $page
             ->component('identify/show')
-            ->where('run.id', $run->id),
+            ->where('run.id', $run->id)
+            ->where('run.authorName', 'Owner Name'),
         );
 });
 
-it("forbids showing another user's run", function (): void {
-    $owner = User::factory()->create(['email_verified_at' => now()]);
-    $run = SearchRun::factory()->for($owner)->create();
+it('allows another authenticated user to open an identify run', function (): void {
+    $owner = User::factory()->create(['email_verified_at' => now(), 'name' => 'Owner Alice']);
+    $run = SearchRun::factory()->for($owner)->create(['request_text' => 'shared identify']);
     $other = User::factory()->create(['email_verified_at' => now()]);
 
     $this->actingAs($other)
         ->get(route('identify.show', $run))
-        ->assertForbidden();
+        ->assertOk()
+        ->assertInertia(fn (Assert $page): Assert => $page
+            ->component('identify/show')
+            ->where('run.id', $run->id)
+            ->where('run.authorName', 'Owner Alice')
+            ->where('run.requestText', 'shared identify'),
+        );
 });

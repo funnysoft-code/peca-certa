@@ -1,31 +1,38 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head } from '@inertiajs/react';
 import { IdentifyForm } from '@/components/identify/identify-form';
-import { Badge } from '@/components/ui/badge';
-import { formatRelativeTime } from '@/lib/utils';
+import { SearchRunHistory } from '@/components/search-run-history';
 import { create, show } from '@/routes/identify';
 
-type Props = { recentRuns: App.Data.SearchRunData[] };
-
-const STATUS_LABELS: Record<App.Enums.SearchRunStatus, string> = {
-    pending: 'Pendente',
-    running: 'Em curso',
-    needs_input: 'Aguarda resposta',
-    done: 'Concluído',
-    failed: 'Falhou',
+type PaginatorLinks = {
+    first: string | null;
+    last: string | null;
+    prev: string | null;
+    next: string | null;
 };
 
-const STATUS_VARIANTS: Record<
-    App.Enums.SearchRunStatus,
-    'default' | 'secondary' | 'destructive' | 'outline'
-> = {
-    pending: 'outline',
-    running: 'secondary',
-    needs_input: 'outline',
-    done: 'default',
-    failed: 'destructive',
+type PaginatorMeta = {
+    current_page: number;
+    from: number | null;
+    last_page: number;
+    path: string | null;
+    per_page: number;
+    to: number | null;
+    total: number;
 };
 
-export default function IdentifyIndex({ recentRuns }: Props) {
+type Props = {
+    runs: {
+        data: App.Data.SearchRunData[];
+        links: PaginatorLinks;
+        meta: PaginatorMeta;
+    };
+    filters: {
+        scope: 'everyone' | 'mine';
+        q: string;
+    };
+};
+
+export default function IdentifyIndex({ runs, filters }: Props) {
     return (
         <>
             <Head title="Identificar" />
@@ -45,45 +52,15 @@ export default function IdentifyIndex({ recentRuns }: Props) {
                     <IdentifyForm />
                 </div>
 
-                {recentRuns.length > 0 ? (
-                    <div className="space-y-3">
-                        <h2 className="text-sm font-medium text-muted-foreground">
-                            Pesquisas recentes
-                        </h2>
-                        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-                            {recentRuns.map((run) => (
-                                <li key={run.id}>
-                                    <Link
-                                        href={show(run.id)}
-                                        className="flex items-center justify-between gap-4 px-4 py-3 text-sm transition-colors hover:bg-muted/50"
-                                    >
-                                        <span className="truncate">
-                                            {run.requestText ?? 'Sem descrição'}
-                                        </span>
-                                        <span className="flex shrink-0 items-center gap-3 text-muted-foreground">
-                                            <Badge
-                                                variant={
-                                                    STATUS_VARIANTS[run.status]
-                                                }
-                                            >
-                                                {STATUS_LABELS[run.status]}
-                                            </Badge>
-                                            <span>
-                                                {formatRelativeTime(
-                                                    run.createdAt,
-                                                )}
-                                            </span>
-                                        </span>
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                ) : (
-                    <div className="rounded-xl border border-dashed border-border bg-card/50 px-4 py-8 text-center text-sm text-muted-foreground">
-                        Ainda não há pesquisas. Submeta um pedido para começar.
-                    </div>
-                )}
+                <SearchRunHistory
+                    runs={runs}
+                    filters={filters}
+                    indexUrl={create.url()}
+                    showUrl={(id) => show.url(id)}
+                    primaryLabel={(run) => run.requestText ?? 'Sem descrição'}
+                    emptyNoRuns="Ainda não há pesquisas. Submeta um pedido para começar."
+                    emptyNoMatches="Nenhum resultado para esta pesquisa."
+                />
             </div>
         </>
     );

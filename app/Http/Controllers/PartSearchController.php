@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Actions\ListSearchRuns;
 use App\Actions\StartPartsSearch;
 use App\Data\SearchRunData;
 use App\Enums\SearchRunKind;
 use App\Http\Requests\SearchPartsRequest;
 use App\Models\SearchRun;
+use App\Queries\ListSearchRunsQuery;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,21 +18,16 @@ use Inertia\Response;
 
 final class PartSearchController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ListSearchRuns $listSearchRuns, ListSearchRunsQuery $listQuery): Response
     {
         $user = $this->user($request);
 
-        $recentRuns = SearchRun::query()
-            ->where('user_id', $user->id)
-            ->where('kind', SearchRunKind::Parts)
-            ->with('lookups')
-            ->latest()
-            ->limit(5)
-            ->get()
-            ->map(SearchRunData::fromModel(...));
-
         return Inertia::render('parts/index', [
-            'recentRuns' => $recentRuns,
+            'runs' => $listSearchRuns->execute($request, SearchRunKind::Parts, $user),
+            'filters' => [
+                'scope' => $listQuery->scope($request),
+                'q' => $listQuery->searchTerm($request),
+            ],
         ]);
     }
 
@@ -48,11 +45,11 @@ final class PartSearchController extends Controller
 
     public function show(Request $request, SearchRun $run): Response
     {
-        abort_unless($run->user_id === $this->user($request)->id, 403);
+        $this->user($request);
         abort_unless($run->kind === SearchRunKind::Parts, 404);
 
         return Inertia::render('parts/show', [
-            'run' => SearchRunData::fromModel($run->load('lookups')),
+            'run' => SearchRunData::fromModel($run->load(['lookups', 'user'])),
         ]);
     }
 }
