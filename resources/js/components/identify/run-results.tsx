@@ -51,9 +51,16 @@ function toProviderLinks(
     return Array.from(byUrl.values());
 }
 
+function isLookupPending(lookup: App.Data.SupplierLookupData): boolean {
+    return lookup.status === 'pending' || lookup.status === 'running';
+}
+
 export function RunResults({ run }: { run: App.Data.SearchRunData }) {
     const { submit } = useHttp();
     const expandRequested = useRef(false);
+    // Skip the mount pass: useSearchRunFindings already fetches on mount.
+    // Only refetch when lookup statuses change after that (Echo/poll).
+    const skipFingerprintRefetch = useRef(true);
     const {
         findings,
         query,
@@ -69,18 +76,30 @@ export function RunResults({ run }: { run: App.Data.SearchRunData }) {
 
     // When Echo/poll reloads the run prop (lookup.ready), refetch the current
     // findings query so new rows appear without resetting filters/sort/page.
+    // Include result presence so a settled lookup always bumps the fingerprint
+    // even if status labels were already terminal on first paint.
     const lookupsFingerprint = useMemo(
         () =>
             run.lookups
-                .map((lookup) => `${lookup.id}:${lookup.status}`)
+                .map((lookup) => {
+                    const variantCount = lookup.result?.variants.length ?? 0;
+
+                    return `${lookup.id}:${lookup.status}:${variantCount}`;
+                })
                 .join('|'),
         [run.lookups],
     );
 
     useEffect(() => {
+        if (skipFingerprintRefetch.current) {
+            skipFingerprintRefetch.current = false;
+
+            return;
+        }
+
         refetch();
-        // Only re-run when lookup statuses change (broadcast/poll). Query changes
-        // already fetch inside useSearchRunFindings.
+        // Only re-run when lookup statuses/results change (broadcast/poll).
+        // Query changes already fetch inside useSearchRunFindings.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [lookupsFingerprint]);
 
@@ -116,9 +135,8 @@ export function RunResults({ run }: { run: App.Data.SearchRunData }) {
         return null;
     }
 
-    const pending = lookups.filter(
-        (lookup) => lookup.status === 'pending' || lookup.status === 'running',
-    );
+    const pending = lookups.filter(isLookupPending);
+    const hasSettledLookup = lookups.some((lookup) => !isLookupPending(lookup));
     // Broadcast-only failures can leave status=failed while result is populated.
     // Only surface the error when there is nothing useful to show for that lookup.
     const failed = lookups.filter(
@@ -128,19 +146,22 @@ export function RunResults({ run }: { run: App.Data.SearchRunData }) {
     );
 
     const total = findings?.meta.total ?? 0;
-    const showInitialSkeleton = pending.length > 0 && total === 0 && !loading;
+    // Skeleton only while every supplier is still in flight and we have nothing
+    // to show. As soon as one lookup settles (or findings land), show the table
+    // so progressive results appear without waiting on the slow supplier.
+    const showInitialSkeleton =
+        !hasSettledLookup && total === 0 && !loading && findings === null;
     const providerLinks = toProviderLinks(lookups);
+    const pendingSupplierLabels = [
+        ...new Set(pending.map((lookup) => SUPPLIER_LABELS[lookup.supplier])),
+    ];
 
     return (
         <div className="flex flex-col gap-4">
             {pending.length > 0 && (
                 <div className="flex flex-col gap-2">
                     <p className="text-sm text-muted-foreground">
-                        A pesquisar em{' '}
-                        {pending
-                            .map((lookup) => SUPPLIER_LABELS[lookup.supplier])
-                            .join(', ')}
-                        …
+                        A pesquisar em {pendingSupplierLabels.join(', ')}…
                     </p>
                     {showInitialSkeleton && (
                         <div className="flex flex-col gap-2">

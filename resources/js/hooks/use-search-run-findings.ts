@@ -103,9 +103,16 @@ export function useSearchRunFindings(runId: string): {
     const searchDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const fetchFindings = useCallback(
-        async (state: FindingsQueryState): Promise<void> => {
+        async (
+            state: FindingsQueryState,
+            options: { quiet?: boolean } = {},
+        ): Promise<void> => {
             const id = ++requestId.current;
-            setLoading(true);
+            // Quiet refetch (lookup stream) keeps existing rows painted instead of
+            // blanking the table while newer supplier results arrive.
+            if (!options.quiet) {
+                setLoading(true);
+            }
             setError(null);
 
             try {
@@ -194,7 +201,8 @@ export function useSearchRunFindings(runId: string): {
     }, []);
 
     const refetch = useCallback((): void => {
-        void fetchFindings(query);
+        // Background refresh from Echo/poll: keep current rows visible.
+        void fetchFindings(query, { quiet: true });
     }, [fetchFindings, query]);
 
     useEffect(() => {
