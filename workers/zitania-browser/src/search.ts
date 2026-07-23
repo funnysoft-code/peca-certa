@@ -523,14 +523,19 @@ export async function runSearch(
         password: string;
         entryUrl: string;
         warehouse: string;
+        /** When false (default), drop OOS rows so Laravel never hydrates them. */
+        includeUnavailable?: boolean;
     },
 ): Promise<ZitaniaSearchResult> {
     await login(page, options.entryUrl, options.username, options.password);
     await search(page, options.reference);
     const variants = await extract(page, options.warehouse);
+    const includeUnavailable = options.includeUnavailable === true;
 
     return {
         query: options.reference,
-        variants,
+        variants: includeUnavailable
+            ? variants
+            : variants.filter((variant) => variant.inStock),
     };
 }

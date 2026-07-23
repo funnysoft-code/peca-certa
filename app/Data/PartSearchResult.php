@@ -37,6 +37,21 @@ final readonly class PartSearchResult implements JsonSerializable
     }
 
     /**
+     * Drop out-of-stock / unpriced rows. Default pricing path only keeps these.
+     */
+    public function onlyInStock(): self
+    {
+        return new self(
+            $this->query,
+            array_values(array_filter(
+                $this->variants,
+                fn (PartVariant $variant): bool => $variant->inStock,
+            )),
+            $this->searchUrl,
+        );
+    }
+
+    /**
      * @return array{query: string, variants: list<PartVariant>, searchUrl: string|null}
      */
     public function jsonSerialize(): array

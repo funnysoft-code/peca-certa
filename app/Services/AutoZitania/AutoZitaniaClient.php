@@ -22,19 +22,19 @@ final readonly class AutoZitaniaClient
      *
      * @return list<array<mixed, mixed>>
      */
-    public function searchByNumber(string $reference): array
+    public function searchByNumber(string $reference, bool $includeUnavailable = false): array
     {
         $httpUrl = config()->string('suppliers.autozitania.http_url');
 
         return $httpUrl !== ''
-            ? $this->searchViaHttp($reference, $httpUrl)
-            : $this->searchViaProcess($reference);
+            ? $this->searchViaHttp($reference, $httpUrl, $includeUnavailable)
+            : $this->searchViaProcess($reference, $includeUnavailable);
     }
 
     /**
      * @return list<array<mixed, mixed>>
      */
-    private function searchViaHttp(string $reference, string $httpUrl): array
+    private function searchViaHttp(string $reference, string $httpUrl, bool $includeUnavailable): array
     {
         $token = config()->string('suppliers.autozitania.http_token');
 
@@ -42,7 +42,10 @@ final readonly class AutoZitaniaClient
             $response = Http::timeout(config()->integer('suppliers.autozitania.script_timeout'))
                 ->acceptJson()
                 ->when($token !== '', fn (PendingRequest $pending): PendingRequest => $pending->withToken($token))
-                ->post($httpUrl, ['reference' => $reference])
+                ->post($httpUrl, [
+                    'reference' => $reference,
+                    'includeUnavailable' => $includeUnavailable,
+                ])
                 ->throw();
         } catch (ConnectionException|RequestException $e) {
             throw new RuntimeException('Auto Zitania search failed: '.$e->getMessage(), $e->getCode(), previous: $e);
@@ -54,8 +57,18 @@ final readonly class AutoZitaniaClient
     /**
      * @return list<array<mixed, mixed>>
      */
-    private function searchViaProcess(string $reference): array
+    private function searchViaProcess(string $reference, bool $includeUnavailable): array
     {
+        $command = [
+            config()->string('suppliers.autozitania.bun_binary'),
+            'bin/zitania-search.ts',
+            $reference,
+        ];
+
+        if ($includeUnavailable) {
+            $command[] = '--include-unavailable';
+        }
+
         $result = Process::timeout(config()->integer('suppliers.autozitania.script_timeout'))
             ->path(base_path())
             ->env([
@@ -63,7 +76,7 @@ final readonly class AutoZitaniaClient
                 'AUTOZITANIA_PASSWORD' => config()->string('suppliers.autozitania.password'),
                 'AUTOZITANIA_ENTRY_URL' => config()->string('suppliers.autozitania.entry_url'),
             ])
-            ->run([config()->string('suppliers.autozitania.bun_binary'), 'bin/zitania-search.ts', $reference]);
+            ->run($command);
 
         throw_if($result->failed(), RuntimeException::class, 'Auto Zitania search failed: '.$result->errorOutput());
 

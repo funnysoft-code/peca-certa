@@ -76,6 +76,7 @@ declare namespace App {
             readonly agentSteps: App.Data.AgentStep[];
             readonly createdAt: string;
             readonly authorName: string;
+            readonly unavailableIncluded: boolean;
         };
         export type SupplierLookupData = {
             readonly id: string;

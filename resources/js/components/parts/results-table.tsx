@@ -377,10 +377,16 @@ export function ResultsTable({
                         onPressedChange={(pressed) =>
                             onInStockOnlyChange(!pressed)
                         }
-                        aria-label="Mostrar indisponíveis"
+                        aria-label={
+                            inStockOnly
+                                ? 'Mostrar indisponíveis'
+                                : 'Esconder indisponíveis'
+                        }
                         className="px-2.5"
                     >
-                        Mostrar indisponíveis
+                        {inStockOnly
+                            ? 'Mostrar indisponíveis'
+                            : 'Esconder indisponíveis'}
                     </Toggle>
 
                     <Toggle

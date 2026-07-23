@@ -1,9 +1,11 @@
+import { useHttp } from '@inertiajs/react';
 import { ExternalLink } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { ResultsTable } from '@/components/parts/results-table';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSearchRunFindings } from '@/hooks/use-search-run-findings';
+import { unavailable as expandUnavailable } from '@/routes/search-runs/findings';
 
 const SUPPLIER_LABELS: Record<App.Enums.Supplier, string> = {
     autodelta: 'Auto Delta',
@@ -50,6 +52,8 @@ function toProviderLinks(
 }
 
 export function RunResults({ run }: { run: App.Data.SearchRunData }) {
+    const { submit } = useHttp();
+    const expandRequested = useRef(false);
     const {
         findings,
         query,
@@ -79,6 +83,32 @@ export function RunResults({ run }: { run: App.Data.SearchRunData }) {
         // already fetch inside useSearchRunFindings.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [lookupsFingerprint]);
+
+    useEffect(() => {
+        if (run.unavailableIncluded) {
+            expandRequested.current = true;
+        }
+    }, [run.unavailableIncluded]);
+
+    const handleInStockOnlyChange = useCallback(
+        (inStockOnly: boolean): void => {
+            setInStockOnly(inStockOnly);
+
+            // Showing OOS: if this run never fetched them, kick a re-price
+            // with includeUnavailable=true. Hide path is filter-only.
+            if (
+                !inStockOnly &&
+                !run.unavailableIncluded &&
+                !expandRequested.current
+            ) {
+                expandRequested.current = true;
+                void submit(expandUnavailable(run.id)).catch(() => {
+                    expandRequested.current = false;
+                });
+            }
+        },
+        [run.id, run.unavailableIncluded, setInStockOnly, submit],
+    );
 
     const lookups = run.lookups;
 
@@ -170,7 +200,7 @@ export function RunResults({ run }: { run: App.Data.SearchRunData }) {
                     page={query.page}
                     perPage={query.perPage}
                     onSearchChange={setSearch}
-                    onInStockOnlyChange={setInStockOnly}
+                    onInStockOnlyChange={handleInStockOnlyChange}
                     onSortChange={setSort}
                     onPageChange={setPage}
                     onPerPageChange={setPerPage}

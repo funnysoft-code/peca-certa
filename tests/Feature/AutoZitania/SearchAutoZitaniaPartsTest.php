@@ -15,27 +15,46 @@ beforeEach(function (): void {
     config()->set('suppliers.autozitania.http_token', '');
 });
 
-it('maps sidecar output to part variants', function (): void {
+it('maps sidecar output to in-stock part variants by default', function (): void {
     $fixture = (string) file_get_contents(base_path('tests/Fixtures/AutoZitania/search-output.json'));
     Process::fake(['*' => Process::result(output: $fixture)]);
 
     $result = resolve(SearchAutoZitaniaParts::class)->execute('OC 90');
 
     expect($result->query)->toBe('OC 90')
-        ->and($result->variants)->toHaveCount(6)
-        ->and($result->variants[0]->brandName)->toBe('FEBI BILSTEIN')
-        ->and($result->variants[0]->traderArticleNumber)->toBe('DF36171')
-        ->and($result->variants[0]->articleNumber)->toBe('36171')
-        ->and($result->variants[0]->retailPrice)->toBe(34.38)
+        ->and($result->variants)->toHaveCount(3)
+        ->and($result->variants[0]->brandName)->toBe('AD Parts')
+        ->and($result->variants[0]->traderArticleNumber)->toBe('3642-AC1023')
+        ->and($result->variants[0]->articleNumber)->toBe('AC1023')
+        ->and($result->variants[0]->retailPrice)->toBe(2.42)
         ->and($result->variants[0]->purchasePrice)->toBeNull()
-        ->and($result->variants[0]->inStock)->toBeFalse()
-        ->and($result->variants[5]->inStock)->toBeTrue()
+        ->and($result->variants[0]->inStock)->toBeTrue()
+        ->and(collect($result->variants)->every(fn ($v) => $v->inStock))->toBeTrue()
         ->and($result->searchUrl)->toBe('https://portal.test/entry?11=102');
 
     Process::assertRan(function ($process): bool {
         $command = is_array($process->command) ? implode(' ', $process->command) : (string) $process->command;
 
-        return str_contains($command, 'bin/zitania-search.ts') && str_contains($command, 'OC 90');
+        return str_contains($command, 'bin/zitania-search.ts')
+            && str_contains($command, 'OC 90')
+            && ! str_contains($command, '--include-unavailable');
+    });
+});
+
+it('includes unavailable variants when explicitly requested', function (): void {
+    $fixture = (string) file_get_contents(base_path('tests/Fixtures/AutoZitania/search-output.json'));
+    Process::fake(['*' => Process::result(output: $fixture)]);
+
+    $result = resolve(SearchAutoZitaniaParts::class)->execute('OC 90', includeUnavailable: true);
+
+    expect($result->variants)->toHaveCount(6)
+        ->and($result->variants[0]->inStock)->toBeFalse()
+        ->and($result->variants[5]->inStock)->toBeTrue();
+
+    Process::assertRan(function ($process): bool {
+        $command = is_array($process->command) ? implode(' ', $process->command) : (string) $process->command;
+
+        return str_contains($command, '--include-unavailable');
     });
 });
 
@@ -50,12 +69,13 @@ it('maps http worker output to part variants', function (): void {
 
     $result = resolve(SearchAutoZitaniaParts::class)->execute('OC 90');
 
-    expect($result->variants)->toHaveCount(6)
-        ->and($result->variants[0]->retailPrice)->toBe(34.38);
+    expect($result->variants)->toHaveCount(3)
+        ->and($result->variants[0]->inStock)->toBeTrue();
 
     Http::assertSent(fn (Request $request): bool => $request->url() === 'https://zitania-browser.test/search'
         && $request->hasHeader('Authorization', 'Bearer secret-token')
-        && $request['reference'] === 'OC 90');
+        && $request['reference'] === 'OC 90'
+        && $request['includeUnavailable'] === false);
 });
 
 it('coerces malformed variant values defensively', function (): void {
@@ -67,7 +87,7 @@ it('coerces malformed variant values defensively', function (): void {
         ],
     ]))]);
 
-    $result = resolve(SearchAutoZitaniaParts::class)->execute('X');
+    $result = resolve(SearchAutoZitaniaParts::class)->execute('X', includeUnavailable: true);
 
     expect($result->variants)->toHaveCount(1)
         ->and($result->variants[0]->brandName)->toBe('')

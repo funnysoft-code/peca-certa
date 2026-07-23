@@ -277,12 +277,15 @@ async function extract(
 }
 
 const reference = process.argv[2];
+const includeUnavailable = process.argv.includes('--include-unavailable');
 const username = process.env.AUTOZITANIA_USERNAME;
 const password = process.env.AUTOZITANIA_PASSWORD;
 const entryUrl = process.env.AUTOZITANIA_ENTRY_URL ?? DEFAULT_ENTRY_URL;
 
-if (!reference) {
-    fail('Usage: bun bin/zitania-search.ts "<part reference>"');
+if (!reference || reference.startsWith('--')) {
+    fail(
+        'Usage: bun bin/zitania-search.ts "<part reference>" [--include-unavailable]',
+    );
 }
 if (!username || !password) {
     fail('Missing AUTOZITANIA_USERNAME / AUTOZITANIA_PASSWORD env vars.');
@@ -295,10 +298,12 @@ try {
     await login(page, entryUrl, username, password);
     await search(page, reference);
     const rows = await extract(page, WAREHOUSE);
-    const variants = rows.map(({ retailPriceText, ...row }) => ({
-        ...row,
-        retailPrice: parsePrice(retailPriceText),
-    }));
+    const variants = rows
+        .map(({ retailPriceText, ...row }) => ({
+            ...row,
+            retailPrice: parsePrice(retailPriceText),
+        }))
+        .filter((variant) => includeUnavailable || variant.inStock);
 
     console.log(JSON.stringify({ query: reference, variants }, null, 2));
 } finally {

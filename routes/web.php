@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\CancelIdentifyController;
+use App\Http\Controllers\ExpandUnavailableFindingsController;
 use App\Http\Controllers\IdentifyController;
 use App\Http\Controllers\PartSearchController;
 use App\Http\Controllers\ProcurementAnalyticsController;
@@ -40,6 +41,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
         ->name('identify.cancel');
     Route::get('search-runs/{run}/findings', SearchRunFindingsController::class)
         ->name('search-runs.findings.index');
+    Route::post('search-runs/{run}/findings/unavailable', ExpandUnavailableFindingsController::class)
+        ->middleware('throttle:20,1')
+        ->name('search-runs.findings.unavailable');
     Route::get('analytics', ProcurementAnalyticsController::class)
         ->name('analytics.index');
 });

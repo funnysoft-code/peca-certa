@@ -33,6 +33,7 @@ final class PriceSupplierJob implements ShouldQueue
 
     public function __construct(
         public readonly SupplierLookup $lookup,
+        public readonly bool $includeUnavailable = false,
     ) {
         $this->onQueue($lookup->supplier === Supplier::AutoZitania ? 'zitania' : 'autodelta');
         $this->timeout = $lookup->supplier === Supplier::AutoZitania ? 90 : 30;
@@ -56,8 +57,8 @@ final class PriceSupplierJob implements ShouldQueue
         PersistLookupFindings $persistLookupFindings,
     ): void {
         $result = $this->lookup->supplier === Supplier::AutoZitania
-            ? $autoZitania->execute($this->lookup->query)
-            : $autoDelta->execute($this->lookup->query);
+            ? $autoZitania->execute($this->lookup->query, $this->includeUnavailable)
+            : $autoDelta->execute($this->lookup->query, $this->includeUnavailable);
 
         $this->lookup->update([
             'result' => $result->jsonSerialize(),
@@ -65,6 +66,12 @@ final class PriceSupplierJob implements ShouldQueue
         ]);
 
         $persistLookupFindings->execute($this->lookup->refresh());
+
+        if ($this->includeUnavailable) {
+            SearchRun::query()
+                ->whereKey($this->lookup->search_run_id)
+                ->update(['unavailable_included' => true]);
+        }
 
         event(new SupplierResultReady($this->lookup));
 

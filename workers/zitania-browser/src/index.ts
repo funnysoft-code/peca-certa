@@ -58,9 +58,12 @@ type SearchResponse = ZitaniaSearchResult & {
 };
 
 async function handleSearch(request: Request, env: Env): Promise<Response> {
-    let body: { reference?: unknown };
+    let body: { reference?: unknown; includeUnavailable?: unknown };
     try {
-        body = (await request.json()) as { reference?: unknown };
+        body = (await request.json()) as {
+            reference?: unknown;
+            includeUnavailable?: unknown;
+        };
     } catch {
         return badRequest('Invalid JSON body.');
     }
@@ -70,6 +73,8 @@ async function handleSearch(request: Request, env: Env): Promise<Response> {
     if (reference === '') {
         return badRequest('Field "reference" is required.');
     }
+
+    const includeUnavailable = body.includeUnavailable === true;
 
     if (!env.AUTOZITANIA_USERNAME || !env.AUTOZITANIA_PASSWORD) {
         return json(
@@ -95,6 +100,7 @@ async function handleSearch(request: Request, env: Env): Promise<Response> {
             password: env.AUTOZITANIA_PASSWORD,
             entryUrl: env.AUTOZITANIA_ENTRY_URL || DEFAULT_ENTRY_URL,
             warehouse: env.AUTOZITANIA_WAREHOUSE || 'LEIRIA',
+            includeUnavailable,
         });
 
         try {

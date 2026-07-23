@@ -17,8 +17,13 @@ final readonly class SearchAutoZitaniaParts
     /**
      * Zitania's DVSE catalog exposes retail (P.V.P.) prices and binary
      * availability only — no purchase price, no quantities.
+     *
+     * @param  bool  $includeUnavailable  When false (default), only in-stock
+     *                                    variants are returned. The sidecar /
+     *                                    worker is asked to drop OOS rows so
+     *                                    we never hydrate them into findings.
      */
-    public function execute(string $reference): PartSearchResult
+    public function execute(string $reference, bool $includeUnavailable = false): PartSearchResult
     {
         $variants = array_map(
             /** @param array<mixed, mixed> $row */
@@ -33,7 +38,7 @@ final readonly class SearchAutoZitaniaParts
                 inStock: ($row['inStock'] ?? false) === true,
                 warehouse: '',
             ),
-            $this->client->searchByNumber($reference),
+            $this->client->searchByNumber($reference, $includeUnavailable),
         );
 
         // The DVSE catalog has no shareable per-query URL. The tenant entry URL
@@ -42,11 +47,13 @@ final readonly class SearchAutoZitaniaParts
         // trade-off over the bare portal root (branded > session-resume here).
         $entryUrl = config()->string('suppliers.autozitania.entry_url');
 
-        return new PartSearchResult(
+        $result = new PartSearchResult(
             $reference,
             $variants,
             $entryUrl === '' ? null : $entryUrl,
         );
+
+        return $includeUnavailable ? $result : $result->onlyInStock();
     }
 
     private function toString(mixed $value): string

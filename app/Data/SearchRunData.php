@@ -32,6 +32,7 @@ final readonly class SearchRunData implements JsonSerializable
         public array $agentSteps,
         public string $createdAt,
         public string $authorName,
+        public bool $unavailableIncluded = false,
     ) {}
 
     public static function fromModel(SearchRun $run): self
@@ -58,11 +59,12 @@ final readonly class SearchRunData implements JsonSerializable
             agentSteps: $agentSteps,
             createdAt: $run->created_at?->toISOString() ?? '',
             authorName: $authorName,
+            unavailableIncluded: (bool) $run->unavailable_included,
         );
     }
 
     /**
-     * @return array{id: string, kind: SearchRunKind, status: SearchRunStatus, requestText: string|null, vin: string|null, reference: string|null, understanding: PartRequestUnderstanding|null, pendingQuestion: IdentifyClarification|null, oeParts: list<OePart>, lookups: list<SupplierLookupData>, agentSteps: list<AgentStep>, createdAt: string, authorName: string}
+     * @return array{id: string, kind: SearchRunKind, status: SearchRunStatus, requestText: string|null, vin: string|null, reference: string|null, understanding: PartRequestUnderstanding|null, pendingQuestion: IdentifyClarification|null, oeParts: list<OePart>, lookups: list<SupplierLookupData>, agentSteps: list<AgentStep>, createdAt: string, authorName: string, unavailableIncluded: bool}
      */
     public function jsonSerialize(): array
     {
@@ -80,6 +82,7 @@ final readonly class SearchRunData implements JsonSerializable
             'agentSteps' => $this->agentSteps,
             'createdAt' => $this->createdAt,
             'authorName' => $this->authorName,
+            'unavailableIncluded' => $this->unavailableIncluded,
         ];
     }
 }

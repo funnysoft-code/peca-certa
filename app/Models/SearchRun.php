@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property array<string, mixed>|null $pending_question
  * @property list<array<string, mixed>>|null $oe_parts
  * @property SearchRunStatus $status
+ * @property bool $unavailable_included
  */
 final class SearchRun extends Model
 {
@@ -65,6 +66,7 @@ final class SearchRun extends Model
             'agent_steps' => 'array',
             'pending_question' => 'array',
             'oe_parts' => 'array',
+            'unavailable_included' => 'boolean',
         ];
     }
 }
