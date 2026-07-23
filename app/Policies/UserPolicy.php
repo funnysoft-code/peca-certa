@@ -33,4 +33,9 @@ final class UserPolicy
     {
         return $user->can(Permissions::UsersManage) && $model->isPendingInvite();
     }
+
+    public function delete(User $user, User $model): bool
+    {
+        return $user->can(Permissions::UsersManage) && ! $user->is($model);
+    }
 }

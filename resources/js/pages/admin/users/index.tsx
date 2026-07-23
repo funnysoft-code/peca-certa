@@ -1,5 +1,5 @@
 import { Form, Head, router, usePage } from '@inertiajs/react';
-import { Mail, Search, UserPlus, Users } from 'lucide-react';
+import { Mail, Search, Trash2, UserPlus, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AdminSubnav } from '@/components/admin/admin-subnav';
 import InputError from '@/components/input-error';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
+    DialogClose,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -44,6 +45,7 @@ import { initials, roleLabel } from '@/lib/admin-labels';
 import { cn } from '@/lib/utils';
 import { dashboard as adminDashboard } from '@/routes/admin';
 import {
+    destroy as destroyUser,
     index as usersIndex,
     resendInvite,
     store as usersStore,
@@ -79,6 +81,7 @@ type Props = {
     can: {
         invite: boolean;
         manageRoles: boolean;
+        delete: boolean;
     };
 };
 
@@ -429,39 +432,16 @@ export default function AdminUsersIndex({ users, roles, can }: Props) {
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="pr-4 text-right">
-                                                        {can.invite &&
-                                                            user.status ===
-                                                                'pending' && (
-                                                                <Form
-                                                                    {...resendInvite.form(
-                                                                        user.id,
-                                                                    )}
-                                                                    options={{
-                                                                        preserveScroll: true,
-                                                                    }}
-                                                                >
-                                                                    {({
-                                                                        processing,
-                                                                    }) => (
-                                                                        <Button
-                                                                            type="submit"
-                                                                            variant="ghost"
-                                                                            size="sm"
-                                                                            disabled={
-                                                                                processing
-                                                                            }
-                                                                            className="gap-1.5 text-muted-foreground hover:text-foreground"
-                                                                        >
-                                                                            {processing ? (
-                                                                                <Spinner />
-                                                                            ) : (
-                                                                                <Mail className="size-3.5" />
-                                                                            )}
-                                                                            Reenviar
-                                                                        </Button>
-                                                                    )}
-                                                                </Form>
-                                                            )}
+                                                        <UserRowActions
+                                                            user={user}
+                                                            isSelf={isSelf}
+                                                            canInvite={
+                                                                can.invite
+                                                            }
+                                                            canDelete={
+                                                                can.delete
+                                                            }
+                                                        />
                                                     </TableCell>
                                                 </TableRow>
                                             );
@@ -513,7 +493,7 @@ export default function AdminUsersIndex({ users, roles, can }: Props) {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center justify-between gap-3">
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
                                                 {can.manageRoles ? (
                                                     <Select
                                                         value={role}
@@ -556,39 +536,13 @@ export default function AdminUsersIndex({ users, roles, can }: Props) {
                                                         {roleLabel(role)}
                                                     </span>
                                                 )}
-                                                {can.invite &&
-                                                    user.status ===
-                                                        'pending' && (
-                                                        <Form
-                                                            {...resendInvite.form(
-                                                                user.id,
-                                                            )}
-                                                            options={{
-                                                                preserveScroll: true,
-                                                            }}
-                                                        >
-                                                            {({
-                                                                processing,
-                                                            }) => (
-                                                                <Button
-                                                                    type="submit"
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    disabled={
-                                                                        processing
-                                                                    }
-                                                                    className="gap-1.5"
-                                                                >
-                                                                    {processing ? (
-                                                                        <Spinner />
-                                                                    ) : (
-                                                                        <Mail className="size-3.5" />
-                                                                    )}
-                                                                    Reenviar
-                                                                </Button>
-                                                            )}
-                                                        </Form>
-                                                    )}
+                                                <UserRowActions
+                                                    user={user}
+                                                    isSelf={isSelf}
+                                                    canInvite={can.invite}
+                                                    canDelete={can.delete}
+                                                    compact={false}
+                                                />
                                             </div>
                                         </div>
                                     );
@@ -621,6 +575,114 @@ function StatusBadge({ status }: { status: 'pending' | 'active' }) {
         >
             Ativo
         </Badge>
+    );
+}
+
+function UserRowActions({
+    user,
+    isSelf,
+    canInvite,
+    canDelete,
+    compact = true,
+}: {
+    user: AdminUser;
+    isSelf: boolean;
+    canInvite: boolean;
+    canDelete: boolean;
+    compact?: boolean;
+}) {
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const showResend = canInvite && user.status === 'pending';
+    const showDelete = canDelete && !isSelf;
+
+    if (!showResend && !showDelete) {
+        return null;
+    }
+
+    return (
+        <div
+            className={cn(
+                'flex items-center gap-1.5',
+                compact ? 'justify-end' : 'justify-end',
+            )}
+        >
+            {showResend && (
+                <Form
+                    {...resendInvite.form(user.id)}
+                    options={{ preserveScroll: true }}
+                >
+                    {({ processing }) => (
+                        <Button
+                            type="submit"
+                            variant={compact ? 'ghost' : 'outline'}
+                            size="sm"
+                            disabled={processing}
+                            className="gap-1.5 text-muted-foreground hover:text-foreground"
+                        >
+                            {processing ? (
+                                <Spinner />
+                            ) : (
+                                <Mail className="size-3.5" />
+                            )}
+                            Reenviar
+                        </Button>
+                    )}
+                </Form>
+            )}
+
+            {showDelete && (
+                <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                    <DialogTrigger asChild>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        >
+                            <Trash2 className="size-3.5" />
+                            Remover
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Remover utilizador?</DialogTitle>
+                            <DialogDescription>
+                                <span className="font-medium text-foreground">
+                                    {user.name}
+                                </span>{' '}
+                                ({user.email}) será removido da equipa e deixa
+                                de poder aceder. Pode voltar a convidar o mesmo
+                                email mais tarde.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="gap-2 sm:gap-0">
+                            <DialogClose asChild>
+                                <Button type="button" variant="outline">
+                                    Cancelar
+                                </Button>
+                            </DialogClose>
+                            <Form
+                                {...destroyUser.form(user.id)}
+                                options={{ preserveScroll: true }}
+                                onSuccess={() => setConfirmOpen(false)}
+                            >
+                                {({ processing }) => (
+                                    <Button
+                                        type="submit"
+                                        variant="destructive"
+                                        disabled={processing}
+                                        className="gap-1.5"
+                                    >
+                                        {processing && <Spinner />}
+                                        Remover
+                                    </Button>
+                                )}
+                            </Form>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
+        </div>
     );
 }
 

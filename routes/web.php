@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\DeleteUserController;
 use App\Http\Controllers\Admin\ResendUserInviteController;
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\UpdateUserRoleController;
@@ -93,6 +94,9 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             Route::put('users/{user}/role', UpdateUserRoleController::class)
                 ->middleware('permission:'.Permissions::UsersManage)
                 ->name('users.update-role');
+            Route::delete('users/{user}', DeleteUserController::class)
+                ->middleware('permission:'.Permissions::UsersManage)
+                ->name('users.destroy');
 
             Route::get('roles', [AdminRoleController::class, 'index'])
                 ->middleware('permission:'.Permissions::RolesView)

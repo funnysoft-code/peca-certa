@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Http\Requests\Request;
+use App\Models\User;
 use Illuminate\Validation\Rule;
 
 final class InviteUserRequest extends Request
@@ -26,7 +27,8 @@ final class InviteUserRequest extends Request
                 'string',
                 'email',
                 'max:255',
-                Rule::unique('users', 'email'),
+                // Soft-deleted users free the email (partial unique index).
+                Rule::unique(User::class, 'email')->whereNull('deleted_at'),
             ],
         ];
     }

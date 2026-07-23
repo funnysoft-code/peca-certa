@@ -53,6 +53,7 @@ final class UserController extends Controller
             'can' => [
                 'invite' => $actor->can(Permissions::UsersManage),
                 'manageRoles' => $actor->can(Permissions::UsersManage),
+                'delete' => $actor->can(Permissions::UsersManage),
             ],
         ]);
     }
