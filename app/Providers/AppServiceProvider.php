@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Listeners\CaptureXaiInferenceCost;
 use App\Listeners\RecordIdentifyAgentToolProgress;
 use App\Services\PartsLink24\Contracts\PartsLink24Catalog;
 use App\Services\PartsLink24\PartsLink24HttpClient;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\Events\ResponseReceived;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -44,6 +46,7 @@ final class AppServiceProvider extends ServiceProvider
     {
         Event::listen(InvokingTool::class, [RecordIdentifyAgentToolProgress::class, 'handleInvoking']);
         Event::listen(ToolInvoked::class, [RecordIdentifyAgentToolProgress::class, 'handleInvoked']);
+        Event::listen(ResponseReceived::class, CaptureXaiInferenceCost::class);
     }
 
     /**

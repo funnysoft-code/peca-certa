@@ -1,0 +1,194 @@
+{
+    "meta": {
+        "updated_at": "2026-07-23T10:05:56+00:00",
+        "usd_eur_rate": 0.92,
+        "sources": {
+            "laravel_cloud": {
+                "status": "ok"
+            },
+            "cloudflare": {
+                "status": "ok"
+            },
+            "xai": {
+                "status": "ok",
+                "reason": "Management Billing API + local inference ledger"
+            }
+        },
+        "config": {
+            "pl24_eur": 23,
+            "laravel_cloud_app": "r2cz-auto-finder",
+            "shared_allocation": 0.25,
+            "cloudflare_workers": [
+                "zitania-browser"
+            ]
+        }
+    },
+    "months": {
+        "2026-07": {
+            "from": "2026-07-01",
+            "to": "2026-07-23",
+            "partial": true,
+            "updated_at": "2026-07-23T10:05:56+00:00",
+            "pl24": {
+                "eur": 23,
+                "source": "fixed"
+            },
+            "xai": {
+                "usd": 0.104872,
+                "eur": 0.096482,
+                "status": "ok",
+                "source": "management_api",
+                "from": "2026-07-01",
+                "to": "2026-07-23",
+                "by_model": [
+                    {
+                        "model": "API grok-4.3 Priority",
+                        "usd": 0.056698
+                    },
+                    {
+                        "model": "API grok-4.3",
+                        "usd": 0.048174
+                    }
+                ],
+                "api_key_id": "4ac1b39e-ef8b-49f9-ab0b-150331e1e652",
+                "api_key_name": "peca-certa",
+                "ledger_usd": 0.000311,
+                "ledger_requests": 3,
+                "ledger_ticks": 3105500,
+                "note": "Management Billing usage filtered to API key \"peca-certa\" only (not whole team). Ledger is app-captured post-capture only."
+            },
+            "cloudflare": {
+                "usd": 1.25,
+                "eur": 1.15,
+                "from": "2026-07-01",
+                "to": "2026-07-23",
+                "workers": [
+                    {
+                        "script": "zitania-browser",
+                        "requests": 67,
+                        "errors": 0,
+                        "subrequests": 96,
+                        "duration_gb_s": 129.26221175,
+                        "wall_time_us": 1426464522,
+                        "wall_time_hours": 0.39624
+                    }
+                ],
+                "totals": {
+                    "requests": 67,
+                    "errors": 0,
+                    "subrequests": 96,
+                    "duration_gb_s": 129.26221175,
+                    "wall_time_hours": 0.39624
+                },
+                "estimate_usd": {
+                    "workers_usage": 0,
+                    "browser_rendering": 0,
+                    "paid_plan_share": 1.25,
+                    "total": 1.25
+                },
+                "note": "Browser hours estimated from worker wallTime (approx for Playwright binding)."
+            },
+            "laravel_cloud": {
+                "usd": 1.08,
+                "eur": 0.9936,
+                "periods": [
+                    {
+                        "period_index": 0,
+                        "from": "Jul 23",
+                        "to": "Aug 22",
+                        "currency": "USD",
+                        "org_spend_cents": 101,
+                        "dedicated_app_cents": 14,
+                        "shared_resources_cents": 42,
+                        "shared_allocation": 0.25,
+                        "attributed_cents": 25,
+                        "attributed_usd": 0.25,
+                        "shared_breakdown": [
+                            {
+                                "type": "databases",
+                                "name": "funnysoft_db",
+                                "total_cents": 27
+                            },
+                            {
+                                "type": "caches",
+                                "name": "funnysoft_cache",
+                                "total_cents": 8
+                            },
+                            {
+                                "type": "websockets",
+                                "name": "funnysoft_ws",
+                                "total_cents": 7
+                            }
+                        ],
+                        "last_updated_at": "2026-07-23T09:35:00.000000Z"
+                    },
+                    {
+                        "period_index": 1,
+                        "from": "Jul 20",
+                        "to": "Jul 22",
+                        "currency": "USD",
+                        "org_spend_cents": 592,
+                        "dedicated_app_cents": 20,
+                        "shared_resources_cents": 249,
+                        "shared_allocation": 0.25,
+                        "attributed_cents": 82,
+                        "attributed_usd": 0.82,
+                        "shared_breakdown": [
+                            {
+                                "type": "databases",
+                                "name": "funnysoft_db",
+                                "total_cents": 156
+                            },
+                            {
+                                "type": "caches",
+                                "name": "funnysoft_cache",
+                                "total_cents": 49
+                            },
+                            {
+                                "type": "websockets",
+                                "name": "funnysoft_ws",
+                                "total_cents": 44
+                            }
+                        ],
+                        "last_updated_at": "2026-07-23T09:35:00.000000Z"
+                    },
+                    {
+                        "period_index": 2,
+                        "from": "Jul 20",
+                        "to": "Jul 20",
+                        "currency": "USD",
+                        "org_spend_cents": 2,
+                        "dedicated_app_cents": 0,
+                        "shared_resources_cents": 2,
+                        "shared_allocation": 0.25,
+                        "attributed_cents": 1,
+                        "attributed_usd": 0.01,
+                        "shared_breakdown": [
+                            {
+                                "type": "databases",
+                                "name": "funnysoft_db",
+                                "total_cents": 1
+                            },
+                            {
+                                "type": "caches",
+                                "name": "funnysoft_cache",
+                                "total_cents": 0
+                            },
+                            {
+                                "type": "websockets",
+                                "name": "funnysoft_ws",
+                                "total_cents": 1
+                            }
+                        ],
+                        "last_updated_at": "2026-07-23T09:35:00.000000Z"
+                    }
+                ]
+            },
+            "total": {
+                "eur": 25.2401,
+                "usd_eur_rate": 0.92,
+                "complete": true
+            }
+        }
+    }
+}
