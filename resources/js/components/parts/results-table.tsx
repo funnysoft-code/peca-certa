@@ -316,7 +316,7 @@ export function ResultsTable({
                     <div className="flex justify-end">
                         <Badge
                             variant={
-                                row.original.inStock ? 'secondary' : 'outline'
+                                row.original.inStock ? 'default' : 'outline'
                             }
                             className="tabular-nums"
                         >
