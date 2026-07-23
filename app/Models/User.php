@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\Permissions;
 use Carbon\CarbonInterface;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -15,6 +16,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Spatie\Permission\Traits\HasRoles;
 
 /**
  * @property-read string $id
@@ -40,6 +42,7 @@ final class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     /** @use HasFactory<UserFactory> */
     use HasFactory;
 
+    use HasRoles;
     use HasUuids;
     use Notifiable;
     use PasskeyAuthenticatable;
@@ -47,7 +50,15 @@ final class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
 
     public function isAdmin(): bool
     {
-        return false;
+        return $this->hasRole(Permissions::RoleAdmin);
+    }
+
+    /**
+     * Pending invite: never completed set-password (email still unverified).
+     */
+    public function isPendingInvite(): bool
+    {
+        return $this->email_verified_at === null;
     }
 
     /**

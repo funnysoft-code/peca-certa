@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Models\User;
+use App\Support\Permissions;
+use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Role;
 
 /**
  * @extends Factory<User>
@@ -41,6 +44,18 @@ final class UserFactory extends Factory
         ];
     }
 
+    public function configure(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            if ($user->roles()->exists()) {
+                return;
+            }
+
+            $this->ensureRolesSeeded();
+            $user->assignRole(Permissions::RoleUser);
+        });
+    }
+
     /**
      * Indicate that the model's email address should be unverified.
      */
@@ -49,6 +64,28 @@ final class UserFactory extends Factory
         return $this->state(fn (array $attributes): array => [
             'email_verified_at' => null,
         ]);
+    }
+
+    /**
+     * Invited user who has not set a password yet.
+     */
+    public function pendingInvite(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'email_verified_at' => null,
+            'password' => self::$password ??= Hash::make(Str::password(32)),
+        ]);
+    }
+
+    /**
+     * Assign the admin role after create.
+     */
+    public function admin(): static
+    {
+        return $this->afterCreating(function (User $user): void {
+            $this->ensureRolesSeeded();
+            $user->syncRoles([Permissions::RoleAdmin]);
+        });
     }
 
     /**
@@ -76,5 +113,15 @@ final class UserFactory extends Factory
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
         ]);
+    }
+
+    private function ensureRolesSeeded(): void
+    {
+        // RefreshDatabase wipes tables between tests; re-seed when roles are gone.
+        if (Role::query()->exists()) {
+            return;
+        }
+
+        (new RolesAndPermissionsSeeder)->run();
     }
 }

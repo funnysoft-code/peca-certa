@@ -15,7 +15,9 @@ parameters:
 
     # Uncomment when the --ts-transformer module is active:
     # The closure-heavy config/typescript-transformer.php chokes PHPStan at level max.
-    # excludePaths:
+    excludePaths:
+        # Spatie package migration is config-driven (mixed table/column names).
+        - database/migrations/2026_07_23_115244_create_permission_tables.php
     #     - config/typescript-transformer.php
 
     level: max
