@@ -17,7 +17,6 @@ import {
     FieldGroup,
     FieldLabel,
 } from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
 import {
     Item,
     ItemContent,
@@ -27,6 +26,7 @@ import {
 } from '@/components/ui/item';
 import { Progress } from '@/components/ui/progress';
 import { Spinner } from '@/components/ui/spinner';
+import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useSearchRunStream } from '@/hooks/use-search-run-stream';
 import {
@@ -117,13 +117,13 @@ function ClarificationForm({ run }: { run: App.Data.SearchRunData }) {
                             form.setData('option', value ?? '')
                         }
                         variant="outline"
-                        className="flex flex-wrap justify-start gap-2"
+                        className="flex w-full flex-wrap justify-start gap-2 shadow-none"
                     >
                         {run.pendingQuestion.options.map((option) => (
                             <ToggleGroupItem
                                 key={option}
                                 value={option}
-                                className="px-3"
+                                className="h-auto min-h-9 max-w-full shrink rounded-md border px-3 py-2 text-left whitespace-normal shadow-xs first:rounded-md last:rounded-md data-[variant=outline]:border-l"
                             >
                                 {option}
                             </ToggleGroupItem>
@@ -155,7 +155,7 @@ function ClarificationForm({ run }: { run: App.Data.SearchRunData }) {
                                 <FieldLabel htmlFor="identify-answer">
                                     Resposta (texto livre)
                                 </FieldLabel>
-                                <Input
+                                <Textarea
                                     id="identify-answer"
                                     value={form.data.answer}
                                     onChange={(event) =>
@@ -166,6 +166,7 @@ function ClarificationForm({ run }: { run: App.Data.SearchRunData }) {
                                     }
                                     placeholder="Descreva com mais pormenor se as opções não chegarem…"
                                     maxLength={1000}
+                                    rows={3}
                                     aria-invalid={
                                         form.errors.answer ? true : undefined
                                     }
