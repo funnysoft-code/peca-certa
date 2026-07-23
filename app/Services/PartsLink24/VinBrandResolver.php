@@ -8,6 +8,10 @@ use Illuminate\Support\Str;
 
 final readonly class VinBrandResolver
 {
+    public function __construct(
+        private DynamicPartsLink24CatalogStore $dynamicCatalogs,
+    ) {}
+
     public function resolve(string $vin, ?string $brandKeyOverride = null): ?PartsLink24Brand
     {
         if ($brandKeyOverride !== null && $brandKeyOverride !== '') {
@@ -19,10 +23,7 @@ final readonly class VinBrandResolver
         }
 
         $wmi = Str::upper(Str::substr($vin, 0, 3));
-
-        /** @var array<string, string> $wmiMap */
-        $wmiMap = config('suppliers.partslink24.brands.wmi');
-        $key = $wmiMap[$wmi] ?? null;
+        $key = $this->wmiMap()[$wmi] ?? null;
 
         if ($key === null) {
             return null;
@@ -33,9 +34,7 @@ final readonly class VinBrandResolver
 
     public function fromCatalogKey(string $key): ?PartsLink24Brand
     {
-        /** @var array<string, array{service: string, group: string}> $catalogs */
-        $catalogs = config('suppliers.partslink24.brands.catalogs');
-        $catalog = $catalogs[$key] ?? null;
+        $catalog = $this->catalogs()[$key] ?? null;
 
         if ($catalog === null) {
             return null;
@@ -49,10 +48,7 @@ final readonly class VinBrandResolver
      */
     public function availableBrandKeys(): array
     {
-        /** @var array<string, array{service: string, group: string}> $catalogs */
-        $catalogs = config('suppliers.partslink24.brands.catalogs');
-
-        return array_keys($catalogs);
+        return array_keys($this->catalogs());
     }
 
     /**
@@ -78,5 +74,33 @@ final readonly class VinBrandResolver
         }
 
         return [];
+    }
+
+    /**
+     * Dynamic store wins over static config for the same key (ops can ship brands without deploy).
+     *
+     * @return array<string, array{service: string, group: string}>
+     */
+    private function catalogs(): array
+    {
+        /** @var array<string, array{service: string, group: string}> $static */
+        $static = config('suppliers.partslink24.brands.catalogs', []);
+        $dynamic = $this->dynamicCatalogs->read()['catalogs'];
+
+        return array_merge($static, $dynamic);
+    }
+
+    /**
+     * Dynamic WMI overrides win over static map.
+     *
+     * @return array<string, string>
+     */
+    private function wmiMap(): array
+    {
+        /** @var array<string, string> $static */
+        $static = config('suppliers.partslink24.brands.wmi', []);
+        $dynamic = $this->dynamicCatalogs->read()['wmi'];
+
+        return array_merge($static, $dynamic);
     }
 }

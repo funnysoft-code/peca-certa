@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property array<string, mixed>|null $understanding
  * @property list<array<string, mixed>>|null $messages
  * @property list<array<string, mixed>>|null $agent_steps
+ * @property list<array<string, mixed>>|null $tool_traces
  * @property array<string, mixed>|null $pending_question
  * @property list<array<string, mixed>>|null $oe_parts
  * @property SearchRunStatus $status
@@ -65,6 +66,7 @@ final class SearchRun extends Model
             'understanding' => 'array',
             'messages' => 'array',
             'agent_steps' => 'array',
+            'tool_traces' => 'array',
             'pending_question' => 'array',
             'oe_parts' => 'array',
             'unavailable_included' => 'boolean',

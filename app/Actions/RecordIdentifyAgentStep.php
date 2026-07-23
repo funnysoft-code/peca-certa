@@ -7,11 +7,18 @@ namespace App\Actions;
 use App\Data\AgentStep;
 use App\Events\SearchRunAgentStep;
 use App\Models\SearchRun;
+use App\Support\RedactToolTrace;
 use Illuminate\Support\Facades\DB;
 
 final readonly class RecordIdentifyAgentStep
 {
     private const int MaxSteps = 40;
+
+    private const int MaxTraces = 80;
+
+    public function __construct(
+        private RedactToolTrace $redactToolTrace,
+    ) {}
 
     /**
      * @param  'running'|'done'  $status
@@ -22,8 +29,9 @@ final readonly class RecordIdentifyAgentStep
         string $tool,
         string $status,
         ?string $detail = null,
+        mixed $result = null,
     ): void {
-        DB::transaction(function () use ($runId, $stepId, $tool, $status, $detail): void {
+        DB::transaction(function () use ($runId, $stepId, $tool, $status, $detail, $result): void {
             $run = SearchRun::query()->whereKey($runId)->lockForUpdate()->first();
 
             if (! $run instanceof SearchRun) {
@@ -60,8 +68,20 @@ final readonly class RecordIdentifyAgentStep
                 $steps[] = $payload;
             }
 
-            $trimmed = array_slice($steps, -self::MaxSteps);
-            $run->agent_steps = $trimmed;
+            $run->agent_steps = array_slice($steps, -self::MaxSteps);
+
+            if ($status === 'done' && $result !== null) {
+                $traces = $this->normalizeSteps($run->tool_traces);
+                $traces[] = [
+                    'id' => $stepId,
+                    'tool' => $tool,
+                    'detail' => $detail,
+                    'result' => $this->redactToolTrace->execute($result),
+                    'at' => $at,
+                ];
+                $run->tool_traces = array_slice($traces, -self::MaxTraces);
+            }
+
             $run->save();
 
             $step = AgentStep::fromArray($payload);

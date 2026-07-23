@@ -12,7 +12,8 @@ use Laravel\Ai\Events\ToolInvoked;
 use Laravel\Ai\Tools\ToolNameResolver;
 
 /**
- * Surfaces IdentifyPartAgent tool calls as live SearchRun progress.
+ * Surfaces IdentifyPartAgent tool calls as live SearchRun progress and persists
+ * redacted tool transcripts on tool_traces for failed/needs_input ops debugging.
  *
  * Correlation: RunIdentifyAgentTurn sets Context key identify.search_run_id.
  * Structured agents cannot stream() in laravel/ai; tool events fill that gap.
@@ -30,13 +31,13 @@ final readonly class RecordIdentifyAgentToolProgress
 
     public function handleInvoked(ToolInvoked $event): void
     {
-        $this->record($event, 'done');
+        $this->record($event, 'done', $event->result);
     }
 
     /**
      * @param  'running'|'done'  $status
      */
-    private function record(InvokingTool|ToolInvoked $event, string $status): void
+    private function record(InvokingTool|ToolInvoked $event, string $status, mixed $result = null): void
     {
         if (! $event->agent instanceof IdentifyPartAgent) {
             return;
@@ -57,6 +58,7 @@ final readonly class RecordIdentifyAgentToolProgress
             tool: $tool,
             status: $status,
             detail: $detail,
+            result: $result,
         );
     }
 }
