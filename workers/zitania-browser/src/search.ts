@@ -263,28 +263,66 @@ export async function search(page: Page, reference: string): Promise<void> {
         return;
     }
 
-    // Prices and ERP widgets populate after the article list. Wait for a EUR
-    // price or erpstatus mark instead of a fixed 5s sleep.
-    await page
-        .waitForFunction(
-            () => {
-                const prices = Array.from(
-                    document.querySelectorAll('td.tc_price'),
+    // Prices and ERP widgets hydrate brand-by-brand after the article list.
+    // Waiting for the *first* EUR/erpstatus mark is too early (only the first
+    // brand group has data; later brands stay empty → UI "in stock only" hides
+    // every Zitânia row). Poll until the readiness score plateaus.
+    await waitForPriceAndErpSettle(page);
+}
+
+/**
+ * Score how many article rows have a price or ERP marker, then wait until that
+ * score stops increasing for a few consecutive polls (or the deadline hits).
+ */
+async function waitForPriceAndErpSettle(page: Page): Promise<void> {
+    const deadline = Date.now() + 12_000;
+    let lastScore = -1;
+    let stableRounds = 0;
+
+    while (Date.now() < deadline) {
+        const score = await page
+            .evaluate(() => {
+                const rows = Array.from(
+                    document.querySelectorAll(
+                        'tr.main_artikel_panel_tr_artikel',
+                    ),
                 );
-                if (
-                    prices.some((cell) =>
-                        /EUR|\d+[.,]\d{2}/i.test(
-                            (cell as HTMLElement).innerText ?? '',
-                        ),
-                    )
-                ) {
-                    return true;
+                if (rows.length === 0) {
+                    return 0;
                 }
-                return document.querySelector('img[erpstatus]') !== null;
-            },
-            { timeout: 10_000 },
-        )
-        .catch(() => null);
+
+                let ready = 0;
+                for (const row of rows) {
+                    const priceText =
+                        (
+                            row.querySelector(
+                                'td.tc_price',
+                            ) as HTMLElement | null
+                        )?.innerText ?? '';
+                    const hasPrice = /EUR|\d+[.,]\d{2}/i.test(priceText);
+                    const hasErp = row.querySelector('img[erpstatus]') !== null;
+                    if (hasPrice || hasErp) {
+                        ready += 1;
+                    }
+                }
+
+                return ready;
+            })
+            .catch(() => 0);
+
+        if (score > 0 && score === lastScore) {
+            stableRounds += 1;
+            // ~3 × 400ms of unchanged readiness ≈ list finished hydrating.
+            if (stableRounds >= 3) {
+                return;
+            }
+        } else {
+            stableRounds = 0;
+            lastScore = score;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 400));
+    }
 }
 
 export async function extract(
@@ -414,9 +452,15 @@ export async function extract(
                                         .toUpperCase()
                                         .includes(warehouseMatch.toUpperCase()),
                                 );
+                                // Only record a definitive answer when the
+                                // warehouse branch is present. Missing branch
+                                // must not override the DOM fallback with false.
+                                if (branch === undefined) {
+                                    continue;
+                                }
                                 branchAvailByKArt.set(
                                     item.KArtNr ?? '',
-                                    Number(branch?.AvailState) === 1,
+                                    Number(branch.AvailState) === 1,
                                 );
                             }
                             resolve();
