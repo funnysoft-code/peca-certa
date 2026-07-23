@@ -36,6 +36,11 @@ export default function Profile({
     status?: string;
 }) {
     const { auth } = usePage<PageProps>().props;
+    const user = auth.user;
+
+    if (!user) {
+        return null;
+    }
 
     return (
         <>
@@ -80,7 +85,7 @@ export default function Profile({
                                             <Input
                                                 id="name"
                                                 className="w-full"
-                                                defaultValue={auth.user.name}
+                                                defaultValue={user.name}
                                                 name="name"
                                                 required
                                                 autoComplete="name"
@@ -108,7 +113,7 @@ export default function Profile({
                                                 id="email"
                                                 type="email"
                                                 className="w-full"
-                                                defaultValue={auth.user.email}
+                                                defaultValue={user.email}
                                                 name="email"
                                                 required
                                                 autoComplete="username"
@@ -125,8 +130,7 @@ export default function Profile({
                                         </Field>
 
                                         {mustVerifyEmail &&
-                                            auth.user.email_verified_at ===
-                                                null && (
+                                            user.email_verified_at === null && (
                                                 <Field>
                                                     <FieldDescription>
                                                         O email ainda não está
