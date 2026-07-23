@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 final readonly class PartsLink24Client
 {
@@ -235,16 +236,60 @@ final readonly class PartsLink24Client
     /**
      * Parts on a BOM / illustration page for a VIN.
      *
+     * PL24 greys option/package rows with an `unavailable` key. Those still
+     * appear on the page but are **not** factory-fit for this VIN. Non-greyed
+     * rows (no `unavailable` key) are factory-fit and must be preferred.
+     *
      * @return list<array{
      *     oe: string,
      *     partno: string,
      *     description: string,
      *     pos: string,
      *     qty: string,
-     *     partinfoPartno: string|null
+     *     partinfoPartno: string|null,
+     *     factoryFit: bool,
+     *     unavailable: bool,
+     *     remark: string|null,
+     *     applicability: string|null,
+     *     maingroup: string,
+     *     btnr: string
      * }>
      */
     public function listBomParts(
+        PartsLink24Brand $brand,
+        string $vin,
+        string $mainGroupId,
+        string $btnr,
+    ): array {
+        return $this->listBomPage($brand, $vin, $mainGroupId, $btnr)['parts'];
+    }
+
+    /**
+     * Full BOM page: parts + illustration descriptors.
+     *
+     * `data.images` lists illustration assets (typically `{id: "_DFLT_", name: btnr}`).
+     * Bytes may be embedded (`data`/`content`/`base64`) or require a follow-up download.
+     *
+     * @return array{
+     *     parts: list<array{
+     *         oe: string,
+     *         partno: string,
+     *         description: string,
+     *         pos: string,
+     *         qty: string,
+     *         partinfoPartno: string|null,
+     *         factoryFit: bool,
+     *         unavailable: bool,
+     *         remark: string|null,
+     *         applicability: string|null,
+     *         maingroup: string,
+     *         btnr: string
+     *     }>,
+     *     images: list<array<string, mixed>>,
+     *     illustrationAvailable: bool
+     * }
+     */
+    public function listBomPage(
         PartsLink24Brand $brand,
         string $vin,
         string $mainGroupId,
@@ -258,27 +303,29 @@ final readonly class PartsLink24Client
             'btnr' => $btnr,
         ]);
 
+        $json = $response->json();
+
         /** @var list<array<string, mixed>> $records */
-        $records = data_get($response->json(), 'data.records', []);
+        $records = data_get($json, 'data.records', []);
+        $imagesRaw = data_get($json, 'data.images', []);
+        /** @var list<array<string, mixed>> $images */
+        $images = is_array($imagesRaw) ? array_values(array_filter($imagesRaw, is_array(...))) : [];
 
         $parts = [];
+        $applicability = null;
 
         foreach ($records as $record) {
-            if (data_get($record, 'characteristic') === 'sectionrow') {
-                continue;
-            }
-
-            $oe = data_get($record, 'partno');
             $description = data_get($record, 'description', data_get($record, 'values.description'));
-            $partno = data_get($record, 'values.partno');
-            $pos = data_get($record, 'values.pos', data_get($record, 'pos'));
-            $qty = data_get($record, 'values.qty');
-            $linkPath = data_get($record, 'link.path');
-            if (! is_string($oe)) {
-                continue;
-            }
+            $oe = data_get($record, 'partno');
+            $isSection = data_get($record, 'characteristic') === 'sectionrow'
+                || ! is_string($oe)
+                || $oe === '';
 
-            if ($oe === '') {
+            if ($isSection) {
+                if (is_string($description) && $description !== '') {
+                    $applicability = $this->cleanPl24Text($description);
+                }
+
                 continue;
             }
 
@@ -290,17 +337,76 @@ final readonly class PartsLink24Client
                 continue;
             }
 
+            $partno = data_get($record, 'values.partno');
+            $pos = data_get($record, 'values.pos', data_get($record, 'pos'));
+            $qty = data_get($record, 'values.qty');
+            $linkPath = data_get($record, 'link.path');
+            $remark = data_get($record, 'values.remark');
+            $unavailable = array_key_exists('unavailable', $record);
+
             $parts[] = [
                 'oe' => $oe,
                 'partno' => is_string($partno) ? $partno : $oe,
-                'description' => str_replace('\\-', '-', $description),
+                'description' => $this->cleanPl24Text($description),
                 'pos' => is_string($pos) ? $pos : (is_numeric($pos) ? (string) $pos : ''),
                 'qty' => is_string($qty) ? $qty : (is_numeric($qty) ? (string) $qty : ''),
                 'partinfoPartno' => $this->partinfoPartnoFromPath(is_string($linkPath) ? $linkPath : null),
+                'factoryFit' => ! $unavailable,
+                'unavailable' => $unavailable,
+                'remark' => is_string($remark) && $remark !== '' ? $this->cleanPl24Text($remark) : null,
+                'applicability' => $applicability,
+                'maingroup' => $mainGroupId,
+                'btnr' => $btnr,
             ];
         }
 
-        return $parts;
+        return [
+            'parts' => $parts,
+            'images' => $images,
+            'illustrationAvailable' => $images !== [],
+        ];
+    }
+
+    /**
+     * Download BOM illustration bytes for a page.
+     *
+     * @return string|null Binary image contents, or null when PL24 has no illustration for this page.
+     *
+     * @throws RuntimeException When PL24 advertises an illustration but bytes cannot be obtained after retries.
+     */
+    public function getBomIllustrationBytes(
+        PartsLink24Brand $brand,
+        string $vin,
+        string $mainGroupId,
+        string $btnr,
+    ): ?string {
+        $page = $this->listBomPage($brand, $vin, $mainGroupId, $btnr);
+
+        if (! $page['illustrationAvailable'] || $page['images'] === []) {
+            return null;
+        }
+
+        $attempts = max(1, config()->integer('suppliers.partslink24.illustration_retries'));
+        $lastError = 'unknown';
+
+        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+            try {
+                $bytes = $this->resolveIllustrationBytes($brand, $vin, $mainGroupId, $btnr, $page['images']);
+
+                if (is_string($bytes) && $bytes !== '') {
+                    return $bytes;
+                }
+
+                $lastError = 'empty_body';
+            } catch (Throwable $e) {
+                $lastError = $e->getMessage();
+            }
+        }
+
+        throw new RuntimeException(
+            'PartsLink24 BOM illustration present but download failed after '
+            .$attempts.' attempt(s) for btnr='.$btnr.' ('.$lastError.').',
+        );
     }
 
     /**
@@ -401,6 +507,160 @@ final readonly class PartsLink24Client
             'description' => $description,
             'fields' => $fields,
         ];
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $images
+     */
+    private function resolveIllustrationBytes(
+        PartsLink24Brand $brand,
+        string $vin,
+        string $mainGroupId,
+        string $btnr,
+        array $images,
+    ): ?string {
+        foreach ($images as $image) {
+            $embedded = $this->embeddedImageBytes($image);
+
+            if (is_string($embedded) && $embedded !== '') {
+                return $embedded;
+            }
+
+            foreach (['url', 'src', 'href', 'path'] as $key) {
+                $ref = $image[$key] ?? null;
+                if (! is_string($ref)) {
+                    continue;
+                }
+
+                if ($ref === '') {
+                    continue;
+                }
+
+                $downloaded = $this->downloadIllustrationRef($brand, $ref);
+
+                if (is_string($downloaded) && $downloaded !== '') {
+                    return $downloaded;
+                }
+            }
+
+            $imgId = $image['id'] ?? null;
+            if (! is_string($imgId)) {
+                continue;
+            }
+
+            if ($imgId === '') {
+                continue;
+            }
+
+            $path = sprintf('/%s/extern/images/vin', $brand->group);
+            $response = $this->authenticatedGet($brand, $path, [
+                'lang' => config()->string('suppliers.partslink24.lang'),
+                'serviceName' => $brand->service,
+                'vin' => $vin,
+                'hg' => $mainGroupId,
+                'btnr' => $btnr,
+                'imgId' => $imgId,
+            ]);
+
+            $body = $response->body();
+            $contentType = (string) $response->header('Content-Type');
+
+            if ($body !== '' && (str_contains($contentType, 'image/') || $this->looksLikeImageBinary($body))) {
+                return $body;
+            }
+
+            $json = $response->json();
+
+            if (is_array($json)) {
+                /** @var array<string, mixed> $payload */
+                $payload = $json;
+                $embedded = $this->embeddedImageBytes($payload);
+
+                if (is_string($embedded) && $embedded !== '') {
+                    return $embedded;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function embeddedImageBytes(array $payload): ?string
+    {
+        foreach (['data', 'content', 'base64', 'image', 'bytes'] as $key) {
+            $value = $payload[$key] ?? null;
+            if (! is_string($value)) {
+                continue;
+            }
+
+            if ($value === '') {
+                continue;
+            }
+
+            if (str_starts_with($value, 'data:image') && str_contains($value, ',')) {
+                $value = mb_substr($value, (int) mb_strpos($value, ',') + 1);
+            }
+
+            $decoded = base64_decode($value, true);
+
+            if (is_string($decoded) && $decoded !== '' && $this->looksLikeImageBinary($decoded)) {
+                return $decoded;
+            }
+
+            if ($this->looksLikeImageBinary($value)) {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    private function downloadIllustrationRef(PartsLink24Brand $brand, string $ref): ?string
+    {
+        $base = config()->string('suppliers.partslink24.base_url');
+        $url = str_starts_with($ref, 'http') ? $ref : $base.$ref;
+        $token = $this->token($brand);
+
+        $response = Http::timeout(config()->integer('suppliers.partslink24.timeout'))
+            ->withToken($token->accessToken)
+            ->get($url);
+
+        if ($response->status() === 401) {
+            Cache::forget('partslink24.token.'.$brand->service);
+            $token = $this->token($brand);
+            $response = Http::timeout(config()->integer('suppliers.partslink24.timeout'))
+                ->withToken($token->accessToken)
+                ->get($url);
+        }
+
+        if ($response->failed()) {
+            return null;
+        }
+
+        $body = $response->body();
+
+        return $body !== '' && $this->looksLikeImageBinary($body) ? $body : null;
+    }
+
+    private function looksLikeImageBinary(string $bytes): bool
+    {
+        if (str_starts_with($bytes, "\x89PNG") || str_starts_with($bytes, "\xFF\xD8\xFF")) {
+            return true;
+        }
+
+        if (str_starts_with($bytes, 'GIF8') || str_starts_with($bytes, 'RIFF')) {
+            return true;
+        }
+
+        return str_starts_with(mb_ltrim($bytes), '<svg') || str_starts_with(mb_ltrim($bytes), '<?xml');
+    }
+
+    private function cleanPl24Text(string $value): string
+    {
+        return Str::squish(str_replace(['\\-', "\r\n", "\r", "\n"], ['-', ' ', ' ', ' '], $value));
     }
 
     /**

@@ -29,7 +29,7 @@ final class ListBomParts implements Tool
 
     public function description(): string
     {
-        return 'List OE parts on a BOM/illustration page (mainGroupId + btnr). Use oe numbers as final selected references for pricing. Returns ok:false http_error on 4xx/5xx.';
+        return 'List OE parts on a BOM/illustration page (mainGroupId + btnr). Each part includes factoryFit (true = factory / non-greyed), unavailable (true = greyed option pack), remark, applicability, maingroup, btnr, pos. Prefer factoryFit=true. Never auto-select unavailable/factoryFit=false when a factoryFit=true row exists for the same pos. Returns ok:false http_error on 4xx/5xx.';
     }
 
     public function handle(Request $request): string

@@ -305,21 +305,52 @@ export default function IdentifyShow({ run: initialRun }: Props) {
                         <h2 className="text-sm font-medium text-muted-foreground">
                             Peças OE identificadas
                         </h2>
-                        <ItemGroup className="grid gap-2 sm:grid-cols-2">
+                        <ItemGroup className="grid gap-3 sm:grid-cols-2">
                             {run.oeParts.map((part) => (
                                 <Item
                                     key={part.oeNumber}
                                     variant="outline"
                                     size="sm"
+                                    className="items-start"
                                 >
-                                    <ItemContent>
-                                        <ItemTitle className="font-mono">
-                                            {part.oeNumber}
-                                        </ItemTitle>
+                                    <ItemContent className="gap-2">
+                                        {part.diagramUrl ? (
+                                            <div className="overflow-hidden rounded-md border bg-muted/30">
+                                                <img
+                                                    src={part.diagramUrl}
+                                                    alt={`Esquema PL24 pos ${part.pos ?? '—'} · ${part.oeNumber}`}
+                                                    className="max-h-48 w-full object-contain"
+                                                    loading="lazy"
+                                                />
+                                            </div>
+                                        ) : null}
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <ItemTitle className="font-mono">
+                                                {part.oeNumber}
+                                            </ItemTitle>
+                                            {part.factoryFit === true ? (
+                                                <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium tracking-wide text-emerald-700 uppercase dark:text-emerald-400">
+                                                    Fábrica
+                                                </span>
+                                            ) : null}
+                                            {part.factoryFit === false ? (
+                                                <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium tracking-wide text-amber-700 uppercase dark:text-amber-400">
+                                                    Opção
+                                                </span>
+                                            ) : null}
+                                            {part.pos ? (
+                                                <span className="font-mono text-[11px] text-muted-foreground">
+                                                    pos {part.pos}
+                                                </span>
+                                            ) : null}
+                                        </div>
                                         <ItemDescription>
                                             {part.description}
                                             {part.brand
                                                 ? ` · ${part.brand}`
+                                                : ''}
+                                            {part.applicability
+                                                ? ` · ${part.applicability}`
                                                 : ''}
                                         </ItemDescription>
                                     </ItemContent>

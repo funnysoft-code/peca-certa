@@ -220,8 +220,280 @@ it('lists BOM parts with OE numbers and partinfo short partno', function (): voi
     $parts = resolve(PartsLink24Client::class)->listBomParts(pl24Brand(), 'WMWSU91010T717700', '11', '11_4574');
 
     expect($parts)->not->toBeEmpty()
-        ->and($parts[0])->toHaveKeys(['oe', 'partno', 'description', 'pos', 'qty', 'partinfoPartno'])
-        ->and($parts[0]['oe'])->toMatch('/^\d+$/');
+        ->and($parts[0])->toHaveKeys(['oe', 'partno', 'description', 'pos', 'qty', 'partinfoPartno', 'factoryFit', 'unavailable', 'remark', 'applicability', 'maingroup', 'btnr'])
+        ->and($parts[0]['oe'])->toMatch('/^\d+$/')
+        ->and($parts[0]['factoryFit'])->toBeTrue()
+        ->and($parts[0]['unavailable'])->toBeFalse();
+});
+
+it('marks package-only BOM rows as non-factory (greyed) and keeps the factory OE', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+    ]);
+
+    Http::fake([
+        '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
+        '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
+        '*/p5bmw/extern/bom/vin*' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/bom-vin-gearshift-unavailable.json')), true)),
+    ]);
+
+    $page = resolve(PartsLink24Client::class)->listBomPage(pl24Brand(), 'WMWSU91010T717700', '25', '25_0444');
+    $parts = $page['parts'];
+
+    expect($parts)->toHaveCount(2)
+        ->and($parts[0]['oe'])->toBe('25117605282')
+        ->and($parts[0]['factoryFit'])->toBeTrue()
+        ->and($parts[0]['unavailable'])->toBeFalse()
+        ->and($parts[0]['remark'])->toBe('SILBER')
+        ->and($parts[0]['applicability'])->toContain('Automatic transmission')
+        ->and($parts[1]['oe'])->toBe('25117638583')
+        ->and($parts[1]['factoryFit'])->toBeFalse()
+        ->and($parts[1]['unavailable'])->toBeTrue()
+        ->and($parts[1]['remark'])->toBe('GP2')
+        ->and($parts[1]['applicability'])->toContain('John Cooper Works GP')
+        ->and($page['illustrationAvailable'])->toBeTrue()
+        ->and($page['images'])->not->toBeEmpty();
+
+    $bytes = resolve(PartsLink24Client::class)->getBomIllustrationBytes(pl24Brand(), 'WMWSU91010T717700', '25', '25_0444');
+    expect($bytes)->toBeString()->not->toBeEmpty()
+        ->and(str_starts_with((string) $bytes, "\x89PNG"))->toBeTrue();
+});
+
+it('downloads illustration from a url field on the image descriptor', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+        'suppliers.partslink24.base_url' => 'https://www.partslink24.com',
+    ]);
+
+    $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', true);
+
+    Http::fake([
+        '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
+        '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
+        '*/p5bmw/extern/bom/vin*' => Http::response([
+            'data' => [
+                'records' => [],
+                'images' => [
+                    ['id' => '_DFLT_', 'url' => 'https://www.partslink24.com/pl24-res/diagram.png'],
+                ],
+            ],
+        ]),
+        'https://www.partslink24.com/pl24-res/diagram.png' => Http::response($png, 200, ['Content-Type' => 'image/png']),
+    ]);
+
+    $bytes = resolve(PartsLink24Client::class)->getBomIllustrationBytes(pl24Brand(), 'WMWSU91010T717700', '25', '25_0444');
+
+    expect($bytes)->toBe($png);
+});
+
+it('downloads illustration bytes from images/vin when content-type is image', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+    ]);
+
+    $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', true);
+
+    Http::fake([
+        '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
+        '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
+        '*/p5bmw/extern/bom/vin*' => Http::response([
+            'data' => [
+                'records' => [],
+                'images' => [['id' => '_DFLT_', 'name' => '25_0444']],
+            ],
+        ]),
+        '*/p5bmw/extern/images/vin*' => Http::response($png, 200, ['Content-Type' => 'image/png']),
+    ]);
+
+    expect(resolve(PartsLink24Client::class)->getBomIllustrationBytes(pl24Brand(), 'WMWSU91010T717700', '25', '25_0444'))
+        ->toBe($png);
+});
+
+it('accepts raw svg illustration text that is not base64', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+    ]);
+
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>';
+
+    Http::fake([
+        '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
+        '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
+        '*/p5bmw/extern/bom/vin*' => Http::response([
+            'data' => [
+                'records' => [],
+                'images' => [
+                    ['id' => '_DFLT_', 'data' => '', 'content' => $svg],
+                ],
+            ],
+        ]),
+    ]);
+
+    expect(resolve(PartsLink24Client::class)->getBomIllustrationBytes(pl24Brand(), 'WMWSU91010T717700', '25', '25_0444'))
+        ->toBe($svg);
+});
+
+it('decodes data:image base64 illustration payloads', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+    ]);
+
+    $b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+    Http::fake([
+        '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
+        '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
+        '*/p5bmw/extern/bom/vin*' => Http::response([
+            'data' => [
+                'records' => [],
+                'images' => [
+                    ['id' => '_DFLT_', 'data' => 'data:image/png;base64,'.$b64],
+                ],
+            ],
+        ]),
+    ]);
+
+    $bytes = resolve(PartsLink24Client::class)->getBomIllustrationBytes(pl24Brand(), 'WMWSU91010T717700', '25', '25_0444');
+
+    expect($bytes)->toBe(base64_decode($b64, true));
+});
+
+it('retries and hard-fails when illustration resolve returns empty body', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+        'suppliers.partslink24.illustration_retries' => 2,
+    ]);
+
+    Http::fake([
+        '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
+        '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
+        '*/p5bmw/extern/bom/vin*' => Http::response([
+            'data' => [
+                'records' => [],
+                'images' => [
+                    ['id' => '_DFLT_', 'name' => '25_0444', 'url' => '', 'src' => null],
+                    ['id' => ''],
+                    ['name' => 'no-id'],
+                ],
+            ],
+        ]),
+        '*/p5bmw/extern/images/vin*' => Http::response('', 200, ['Content-Type' => 'application/json']),
+    ]);
+
+    expect(fn () => resolve(PartsLink24Client::class)->getBomIllustrationBytes(pl24Brand(), 'WMWSU91010T717700', '25', '25_0444'))
+        ->toThrow(RuntimeException::class, 'empty_body');
+});
+
+it('accepts illustration json envelope with base64 from images/vin', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+    ]);
+
+    $b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+    Http::fake([
+        '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
+        '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
+        '*/p5bmw/extern/bom/vin*' => Http::response([
+            'data' => [
+                'records' => [],
+                'images' => [['id' => '_DFLT_', 'name' => '25_0444']],
+            ],
+        ]),
+        '*/p5bmw/extern/images/vin*' => Http::response(['base64' => $b64], 200, ['Content-Type' => 'application/json']),
+    ]);
+
+    expect(resolve(PartsLink24Client::class)->getBomIllustrationBytes(pl24Brand(), 'WMWSU91010T717700', '25', '25_0444'))
+        ->toBe(base64_decode($b64, true));
+});
+
+it('retries illustration download after a 401 on the absolute image url', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+        'suppliers.partslink24.base_url' => 'https://www.partslink24.com',
+    ]);
+
+    $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', true);
+
+    Http::fake([
+        '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
+        '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
+        '*/p5bmw/extern/bom/vin*' => Http::response([
+            'data' => [
+                'records' => [],
+                'images' => [
+                    ['id' => '_DFLT_', 'url' => 'https://www.partslink24.com/pl24-res/diagram.png'],
+                ],
+            ],
+        ]),
+        'https://www.partslink24.com/pl24-res/diagram.png' => Http::sequence()
+            ->push('unauthorized', 401)
+            ->push($png, 200, ['Content-Type' => 'image/png']),
+    ]);
+
+    expect(resolve(PartsLink24Client::class)->getBomIllustrationBytes(pl24Brand(), 'WMWSU91010T717700', '25', '25_0444'))
+        ->toBe($png);
+});
+
+it('returns null when absolute illustration url fails permanently', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+        'suppliers.partslink24.base_url' => 'https://www.partslink24.com',
+        'suppliers.partslink24.illustration_retries' => 1,
+    ]);
+
+    Http::fake([
+        '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
+        '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
+        '*/p5bmw/extern/bom/vin*' => Http::response([
+            'data' => [
+                'records' => [],
+                'images' => [
+                    ['id' => '_DFLT_', 'url' => 'https://www.partslink24.com/pl24-res/missing.png'],
+                ],
+            ],
+        ]),
+        'https://www.partslink24.com/pl24-res/missing.png' => Http::response('nope', 404),
+        '*/p5bmw/extern/images/vin*' => Http::response('', 200),
+    ]);
+
+    expect(fn () => resolve(PartsLink24Client::class)->getBomIllustrationBytes(pl24Brand(), 'WMWSU91010T717700', '25', '25_0444'))
+        ->toThrow(RuntimeException::class);
+});
+
+it('returns null illustration when PL24 has no BOM images', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+    ]);
+
+    Http::fake([
+        '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
+        '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
+        '*/p5bmw/extern/bom/vin*' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/bom-vin-no-images.json')), true)),
+    ]);
+
+    expect(resolve(PartsLink24Client::class)->getBomIllustrationBytes(pl24Brand(), 'WMWSU91010T717700', '11', '11_4574'))
+        ->toBeNull();
 });
 
 it('loads part info for a BOM position', function (): void {

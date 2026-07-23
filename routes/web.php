@@ -17,6 +17,7 @@ use App\Http\Controllers\PartSearchController;
 use App\Http\Controllers\ProcurementAnalyticsController;
 use App\Http\Controllers\ResumeIdentifyController;
 use App\Http\Controllers\SearchRunFindingsController;
+use App\Http\Controllers\ShowOePartDiagramController;
 use App\Support\Permissions;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -59,6 +60,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
     Route::get('identify/{run}', [IdentifyController::class, 'show'])
         ->middleware('permission:'.Permissions::IdentifyView)
         ->name('identify.show');
+    Route::get('identify/{run}/diagrams/{filename}', ShowOePartDiagramController::class)
+        ->middleware('permission:'.Permissions::IdentifyView)
+        ->where('filename', '[A-Za-z0-9._-]+')
+        ->name('identify.diagram');
     Route::post('identify/{run}/resume', ResumeIdentifyController::class)
         ->middleware(['permission:'.Permissions::IdentifyCreate, 'throttle:30,1'])
         ->name('identify.resume');

@@ -29,7 +29,7 @@ final class SearchPartsByVin implements Tool
 
     public function description(): string
     {
-        return 'Search OE parts for a VIN with an English free-text query (e.g. "oil filter"). Results can be noisy; confirm with BOM when unsure. Returns ok:false http_error on 4xx/5xx.';
+        return 'Search OE parts for a VIN with an English free-text query (e.g. "oil filter"). Results are noisy and may include package-only parts not fitted to this VIN; always confirm candidates via list_bom_parts (use maingroup + btnr) before selecting. Returns ok:false http_error on 4xx/5xx.';
     }
 
     public function handle(Request $request): string

@@ -15,6 +15,11 @@ use App\Models\SupplierLookup;
 
 final readonly class FanOutOePricing
 {
+    public function __construct(
+        private EnrichOePartsFromBom $enrichOePartsFromBom,
+        private PersistOePartDiagrams $persistOePartDiagrams,
+    ) {}
+
     /**
      * Persist final OE parts and dispatch supplier pricing only for those OEs.
      *
@@ -27,6 +32,9 @@ final readonly class FanOutOePricing
         if ($run->status->isTerminal()) {
             return;
         }
+
+        $oeParts = $this->enrichOePartsFromBom->execute($run, $oeParts);
+        $oeParts = $this->persistOePartDiagrams->execute($run, $oeParts);
 
         $run->oe_parts = array_map(
             fn (OePart $part): array => $part->jsonSerialize(),

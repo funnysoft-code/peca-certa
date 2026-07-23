@@ -62,6 +62,26 @@ return [
             'report' => false,
         ],
 
+        // PL24 BOM diagrams (F7T-113). Private disk — browser access is via
+        // `identify.diagram` (auth-gated) or S3 temporaryUrl when driver=s3.
+        // Do NOT point `url` at /storage: that serves storage/app/public only.
+        // Production: PARTSLINK24_DIAGRAMS_DISK=s3 (Laravel Cloud object storage).
+        // Local/tests: PL24_DIAGRAMS_DRIVER=local (default root below).
+        'pl24_diagrams' => [
+            'driver' => env('PL24_DIAGRAMS_DRIVER', 'local'),
+            'root' => env('PL24_DIAGRAMS_ROOT', storage_path('app/pl24-diagrams')),
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => false,
+            // S3-compatible fields when driver=s3 (Laravel Cloud managed storage).
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('AWS_BUCKET'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+        ],
+
     ],
 
     /*

@@ -7,6 +7,7 @@ namespace App\Data;
 use App\Enums\SearchRunKind;
 use App\Enums\SearchRunStatus;
 use App\Models\SearchRun;
+use App\Support\OePartDiagramUrl;
 use JsonSerializable;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -54,7 +55,10 @@ final readonly class SearchRunData implements JsonSerializable
             reference: $run->reference,
             understanding: $run->understanding === null ? null : PartRequestUnderstanding::fromArray($run->understanding),
             pendingQuestion: $run->pending_question === null ? null : IdentifyClarification::fromArray($run->pending_question),
-            oeParts: array_map(OePart::fromArray(...), $run->oe_parts ?? []),
+            oeParts: array_map(
+                fn (array $row): OePart => self::oePartWithFreshDiagramUrl($run, OePart::fromArray($row)),
+                $run->oe_parts ?? [],
+            ),
             lookups: array_values($run->lookups->map(SupplierLookupData::fromModel(...))->all()),
             agentSteps: $agentSteps,
             createdAt: $run->created_at?->toISOString() ?? '',
@@ -84,5 +88,17 @@ final readonly class SearchRunData implements JsonSerializable
             'authorName' => $this->authorName,
             'unavailableIncluded' => $this->unavailableIncluded,
         ];
+    }
+
+    private static function oePartWithFreshDiagramUrl(SearchRun $run, OePart $part): OePart
+    {
+        if (! is_string($part->diagramPath) || $part->diagramPath === '') {
+            return $part;
+        }
+
+        return $part->withDiagram(
+            $part->diagramPath,
+            OePartDiagramUrl::for($run, $part->diagramPath),
+        );
     }
 }

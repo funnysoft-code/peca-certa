@@ -29,6 +29,13 @@ export type OePart = {
 readonly oeNumber: string,
 readonly description: string,
 readonly brand: string,
+readonly factoryFit: boolean | null,
+readonly pos: string | null,
+readonly mainGroupId: string | null,
+readonly btnr: string | null,
+readonly diagramPath: string | null,
+readonly diagramUrl: string | null,
+readonly applicability: string | null,
 };
 export type PaginatedFindingsData = {
 readonly data: App.Data.FindingData[],

@@ -1,0 +1,79 @@
+{
+  "demo": false,
+  "data": {
+    "records": [
+      {
+        "id": "hdr0",
+        "description": "For vehicles with\r\nAutomatic transmission",
+        "presel": true,
+        "values": {
+          "remark": "\r\n S205A = No",
+          "description": "For vehicles with\r\nAutomatic transmission"
+        }
+      },
+      {
+        "id": "blank1",
+        "values": {}
+      },
+      {
+        "id": "1",
+        "partno": "25117605282",
+        "description": "Leath. gearlever knob w\\/gaiter\\/6\\-speed",
+        "link": {
+          "wid": "partinfo",
+          "path": "/p5bmw/extern/partinfo/vin?btnr=25_0444&hg=25&lang=en&partno=7605282&pos=1&serviceName=mini_parts&vin=WMWSU91010T717700"
+        },
+        "pos": "01",
+        "hotspotImageIds": ["_DFLT_"],
+        "hotspotId": "1",
+        "values": {
+          "remark": "SILBER",
+          "qty": "1",
+          "pos": "01",
+          "partno": "25 11 7 605 282",
+          "description": "Leath. gearlever knob w\\/gaiter\\/6\\-speed"
+        }
+      },
+      {
+        "id": "blank2",
+        "values": {}
+      },
+      {
+        "id": "hdr1",
+        "description": "For vehicles with\r\nJohn Cooper Works GP",
+        "unavailable": true,
+        "values": {
+          "remark": "\r\n P7KHA = Yes",
+          "description": "For vehicles with\r\nJohn Cooper Works GP"
+        }
+      },
+      {
+        "id": "2",
+        "partno": "25117638583",
+        "description": "Gearshift knob, leather\\/6\\-speed",
+        "link": {
+          "wid": "partinfo",
+          "path": "/p5bmw/extern/partinfo/vin?btnr=25_0444&hg=25&lang=en&partno=7638583&pos=1&serviceName=mini_parts&vin=WMWSU91010T717700"
+        },
+        "unavailable": true,
+        "pos": "01",
+        "hotspotImageIds": ["_DFLT_"],
+        "hotspotId": "1",
+        "values": {
+          "remark": "GP2",
+          "qty": "1",
+          "pos": "01",
+          "partno": "25 11 7 638 583",
+          "description": "Gearshift knob, leather\\/6\\-speed"
+        }
+      }
+    ],
+    "images": [
+      {
+        "id": "_DFLT_",
+        "name": "25_0444",
+        "data": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+      }
+    ]
+  }
+}

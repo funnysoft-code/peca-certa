@@ -48,6 +48,10 @@ return [
         'squeeze_out' => filter_var(env('PARTSLINK24_SQUEEZE_OUT', true), FILTER_VALIDATE_BOOLEAN),
         // Max distinct OE candidates fed into the Phase 1 pricing fan-out per identify.
         'max_candidates' => (int) env('PARTSLINK24_MAX_CANDIDATES', 5),
+        // BOM illustration download attempts when data.images is non-empty.
+        'illustration_retries' => (int) env('PARTSLINK24_ILLUSTRATION_RETRIES', 3),
+        // Disk for persisted BOM diagrams (Laravel Cloud object storage / S3 in prod).
+        'diagrams_disk' => env('PARTSLINK24_DIAGRAMS_DISK', 'pl24_diagrams'),
         'brands' => [
             // VIN World Manufacturer Identifier (chars 1-3) => brand key.
             'wmi' => [

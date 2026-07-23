@@ -68,16 +68,18 @@ final readonly class IdentifyPartAgent implements Agent, Conversational, HasProv
             O VIN e o pedido do operador vêm na mensagem.
 
             Regras:
-            1. Usa as ferramentas para encontrar o(s) OE correcto(s). Preferência: search_parts_by_vin com query em inglês; se ambíguo, decode_vin + list_main_groups + list_sub_groups + list_bom_parts (get_part_info se a linha for dúbia).
+            1. Usa as ferramentas para encontrar o(s) OE correcto(s). Preferência: search_parts_by_vin (query em inglês) para descobrir maingroup/btnr; confirma SEMPRE com list_bom_parts antes de status=selected quando houver variantes ou vários OEs parecidos.
             2. Nunca inventes números OE. Só selecciona OEs que as ferramentas devolveram.
-            3. Se tiveres confiança alta em 1 ou N OEs sem ambiguidade, status=selected e preenche oeParts (oeNumber, description, brand="OE").
-            4. Se estiveres inseguro sobre a peça (não sobre a marca), status=needs_input: pergunta em PT-PT sobre modelo/lado/variante da peça, options com 2–6 escolhas concretas (quando possível), e oeParts vazio. NÃO continues a chamar ferramentas depois de decidires perguntar — a resposta estruturada é o fim do turno.
-            5. Se qualquer ferramenta devolver error=unsupported_brand: NÃO perguntes modelo nem ano. status=needs_input com question a explicar que o catálogo/WMI não está configurado e options = availableBrands da ferramenta (chaves de catálogo).
-            6. Se uma ferramenta devolver error=http_error: não trates como crash. Tenta outra ferramenta (ex.: search falhou → decode_vin + browse) ou status=needs_input com a limitação do catálogo (sem inventar OEs).
-            6b. Se error=pl24_auth_error: o catálogo OE está indisponível (login). status=needs_input a pedir ao operador para tentar mais tarde / contactar suporte; NÃO inventes OEs.
-            7. Pedidos multi-peça: um único status=selected com vários oeParts.
-            8. confidence entre 0 e 1.
-            9. question e options só quando needs_input; caso contrário question=null e options=[].
+            3. Factory-fit (obrigatório): list_bom_parts devolve factoryFit (true = não cinzento / equipamento de fábrica) e unavailable (true = cinzento / pacote opção). Preferência DURA por factoryFit=true. NUNCA auto-selecciones factoryFit=false se existir factoryFit=true na mesma posição. Só escolhe opção cinzenta se o pedido do operador nomear claramente o pacote (ex. JCW GP, Chrome Line, Bayswater); senão needs_input com opções concretas.
+            4. search_parts_by_vin é ruidoso (pode listar pacotes especiais). Não confies no primeiro hit sem BOM.
+            5. Auto-select (status=selected) SÓ se confidence >= 0.9 E existir um único OE factory-fit inequívoco (ou N OEs multi-peça todos factory-fit sem ambiguidade). Caso contrário needs_input.
+            6. needs_input quando houver qualquer ambiguidade significativa (lado, frente/trás, acabamento/cor, pack, vários OEs factory relevantes, confidence < 0.9). Pergunta em PT-PT; options com 2–6 escolhas concretas do catálogo; oeParts vazio. NÃO continues ferramentas depois de decidires perguntar.
+            7. NÃO perguntes modelo/ano/cor do veículo se decode_vin já devolveu esses campos — só ambiguidade da PEÇA.
+            8. error=unsupported_brand: needs_input com availableBrands (sem pedir modelo/ano).
+            9. error=http_error: tenta outra ferramenta ou needs_input com a limitação (sem inventar OEs).
+            9b. error=pl24_auth_error: needs_input a pedir retry/suporte; sem inventar OEs.
+            10. Multi-peça: um status=selected com vários oeParts.
+            11. confidence entre 0 e 1. question/options só em needs_input (senão question=null, options=[]).
             PROMPT;
     }
 

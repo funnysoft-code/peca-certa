@@ -50,7 +50,7 @@ All tools call `App\Services\PartsLink24\PartsLink24Client` after resolving the 
 | **Args** | `vin: string`, `query: string` (English free text) |
 | **Client** | `PartsLink24Client::searchByVin` |
 | **Return** | `{ ok, results: [{ oe, name, partno, maingroup, subgroup, btnr }] }` |
-| **Use** | Primary discovery. Treat multi-hit lists as noisy; use browse/BOM to confirm. |
+| **Use** | Primary discovery. Treat multi-hit lists as noisy; may include package-only parts not fitted to this VIN. Always confirm with `list_bom_parts` before `status=selected`. |
 
 ### 4. `list_main_groups`
 
@@ -76,8 +76,8 @@ All tools call `App\Services\PartsLink24\PartsLink24Client` after resolving the 
 | --- | --- |
 | **Args** | `vin: string`, `mainGroupId: string`, `btnr: string` |
 | **Client** | `PartsLink24Client::listBomParts` |
-| **Return** | `{ ok, parts: [{ oe, partno, description, pos, qty, partinfoPartno }] }` |
-| **Use** | Exact OE list for an illustration page. `oe` is the pricing reference. |
+| **Return** | `{ ok, parts: [{ oe, partno, description, pos, qty, partinfoPartno, factoryFit, unavailable, remark, applicability, maingroup, btnr }] }` |
+| **Use** | Exact OE list for an illustration page. `oe` is the pricing reference. **`factoryFit=true`** = non-greyed factory equipment; **`unavailable=true` / `factoryFit=false`** = greyed option pack. Hard-prefer factory. Auto-select only confidence ≥ 0.9 + single factory OE. |
 
 ### 7. `get_part_info`
 
