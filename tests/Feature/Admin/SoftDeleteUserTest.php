@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Actions\Admin\RestoreUser;
+use App\Actions\Admin\SoftDeleteUser;
 use App\Models\User;
 use App\Support\Permissions;
+use Illuminate\Validation\ValidationException;
 
 test('admin can soft delete another user', function (): void {
     $admin = User::factory()->admin()->create();
@@ -118,6 +121,50 @@ test('soft deleted users are hidden from the default admin list', function (): v
         );
 });
 
+test('admin can filter users by active and pending status', function (): void {
+    $admin = User::factory()->admin()->create([
+        'name' => 'Active Admin',
+        'email' => 'active-admin@example.com',
+        'email_verified_at' => now(),
+    ]);
+    $pending = User::factory()->create([
+        'name' => 'Pending Invitee',
+        'email' => 'pending-filter@example.com',
+        'email_verified_at' => null,
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.users.index', ['status' => 'active']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/users/index')
+            ->where('filters.status', 'active')
+            ->where('users.data', fn ($data): bool => collect($data)->every(
+                fn (array $row): bool => $row['status'] === 'active',
+            ))
+            ->where('users.data', fn ($data): bool => collect($data)->contains(
+                fn (array $row): bool => $row['email'] === 'active-admin@example.com',
+            ))
+            ->where('users.data', fn ($data): bool => collect($data)->every(
+                fn (array $row): bool => $row['email'] !== 'pending-filter@example.com',
+            ))
+        );
+
+    $this->actingAs($admin)
+        ->get(route('admin.users.index', ['status' => 'pending']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/users/index')
+            ->where('filters.status', 'pending')
+            ->where('users.data', fn ($data): bool => collect($data)->every(
+                fn (array $row): bool => $row['status'] === 'pending',
+            ))
+            ->where('users.data', fn ($data): bool => collect($data)->contains(
+                fn (array $row): bool => $row['email'] === $pending->email,
+            ))
+        );
+});
+
 test('admin can list and restore a soft deleted user', function (): void {
     $admin = User::factory()->admin()->create();
     $target = User::factory()->create([
@@ -175,4 +222,18 @@ test('regular user cannot restore users', function (): void {
     $this->actingAs($user)
         ->post(route('admin.users.restore', $target))
         ->assertForbidden();
+});
+
+test('soft delete action rejects self removal even when called directly', function (): void {
+    $admin = User::factory()->admin()->create();
+
+    expect(fn () => resolve(SoftDeleteUser::class)->execute($admin, $admin))
+        ->toThrow(ValidationException::class);
+});
+
+test('restore action rejects users that are not soft deleted', function (): void {
+    $target = User::factory()->create();
+
+    expect(fn () => resolve(RestoreUser::class)->execute($target))
+        ->toThrow(ValidationException::class);
 });

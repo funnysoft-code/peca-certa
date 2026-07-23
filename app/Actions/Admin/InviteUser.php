@@ -40,7 +40,7 @@ final readonly class InviteUser
 
     private function sendInvite(User $user): void
     {
-        $token = Password::broker()->createToken($user);
+        $token = Password::createToken($user);
 
         $user->notify(new InviteUserNotification($token));
     }

@@ -152,8 +152,15 @@ export default function AdminRolesIndex({ roles, permissions, can }: Props) {
                 promise.then(
                     () =>
                         new Promise<void>((resolve, reject) => {
+                            // Wayfinder resolves Role key as number with DB schema,
+                            // string from Spatie PHPDoc int|string when schema is unavailable (CI).
+                            const url = rolesUpdate.url(
+                                role.id as Parameters<
+                                    typeof rolesUpdate.url
+                                >[0],
+                            );
                             router.put(
-                                rolesUpdate.url(role.id),
+                                url,
                                 {
                                     permissions: draft[role.id] ?? [],
                                 },
