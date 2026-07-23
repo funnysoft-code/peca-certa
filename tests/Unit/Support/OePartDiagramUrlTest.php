@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\SearchRunKind;
 use App\Models\SearchRun;
 use App\Support\OePartDiagramUrl;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 
 it('uses the auth-gated identify route for local private disks', function (): void {
@@ -50,17 +51,21 @@ it('prefers temporaryUrl when the diagrams disk driver is s3', function (): void
 it('falls back to the auth route when s3 temporaryUrl throws', function (): void {
     config()->set([
         'suppliers.partslink24.diagrams_disk' => 'pl24_diagrams',
-        'filesystems.disks.pl24_diagrams' => [
-            'driver' => 's3',
-            'key' => 'testing',
-            'secret' => 'testing',
-            'region' => 'us-east-1',
-            'bucket' => 'testing',
-            'throw' => true,
-        ],
+        'filesystems.disks.pl24_diagrams.driver' => 's3',
     ]);
 
-    // No Storage::fake — real S3 adapter without credentials throws on temporaryUrl.
+    // With league/flysystem-aws-s3-v3 installed, temporaryUrl signs locally and does not
+    // throw without network. Force the failure path via a disk mock.
+    $disk = Mockery::mock(FilesystemAdapter::class);
+    $disk->shouldReceive('temporaryUrl')
+        ->once()
+        ->andThrow(new RuntimeException('s3 temporaryUrl unavailable'));
+
+    Storage::shouldReceive('disk')
+        ->once()
+        ->with('pl24_diagrams')
+        ->andReturn($disk);
+
     $run = SearchRun::factory()->create(['kind' => SearchRunKind::Identify]);
     $url = OePartDiagramUrl::for($run, 'diagrams/hash.png');
 
