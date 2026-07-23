@@ -42,7 +42,7 @@ export function PartsSearchForm() {
                     Referência OE ou aftermarket para consultar preços.
                 </CardDescription>
             </CardHeader>
-            <form onSubmit={submit} className="flex flex-col">
+            <form onSubmit={submit} className="flex flex-col gap-6">
                 <CardContent>
                     <FieldGroup>
                         <Field

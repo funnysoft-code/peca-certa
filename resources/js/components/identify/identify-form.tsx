@@ -47,7 +47,7 @@ export function IdentifyForm() {
                     Descreva o pedido do cliente e o VIN do veículo.
                 </CardDescription>
             </CardHeader>
-            <form onSubmit={submit} className="flex flex-col">
+            <form onSubmit={submit} className="flex flex-col gap-6">
                 <CardContent>
                     <FieldGroup>
                         <Field
