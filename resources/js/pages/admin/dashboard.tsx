@@ -1,6 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import { KeyRound, Shield, UserPlus, Users } from 'lucide-react';
-import Heading from '@/components/heading';
+import { AdminSubnav } from '@/components/admin/admin-subnav';
 import {
     Card,
     CardContent,
@@ -25,15 +25,19 @@ export default function AdminDashboard({ stats }: Props) {
         <>
             <Head title="Administração" />
 
-            <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-4 md:p-6">
-                <div className="flex flex-col gap-1">
+            <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 p-4 md:p-6">
+                <AdminSubnav />
+
+                <div className="space-y-1">
                     <p className="text-xs font-medium tracking-[0.14em] text-brand uppercase">
                         Plataforma
                     </p>
-                    <Heading
-                        title="Administração"
-                        description="Gestão de utilizadores, convites e permissões."
-                    />
+                    <h1 className="font-display text-2xl font-semibold tracking-tight">
+                        Administração
+                    </h1>
+                    <p className="text-sm text-muted-foreground">
+                        Gestão de utilizadores, convites e permissões.
+                    </p>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-3">
@@ -48,6 +52,7 @@ export default function AdminDashboard({ stats }: Props) {
                         value={stats.pending_invites}
                         description="Ainda sem palavra-passe"
                         icon={UserPlus}
+                        accent={stats.pending_invites > 0}
                     />
                     <StatCard
                         title="Funções"
@@ -60,9 +65,9 @@ export default function AdminDashboard({ stats }: Props) {
                 <div className="grid gap-4 md:grid-cols-2">
                     <Link
                         href={adminUsers()}
-                        className="group rounded-xl border border-border/80 bg-card p-5 transition-colors hover:border-brand/40 hover:bg-card/80"
+                        className="group rounded-xl border border-border/70 bg-card p-5 transition-colors hover:border-brand/40 hover:bg-card/90"
                     >
-                        <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-brand/10 text-brand">
+                        <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-brand/10 text-brand transition-colors group-hover:bg-brand/15">
                             <Users className="size-5" />
                         </div>
                         <h3 className="font-display text-base font-semibold tracking-tight">
@@ -76,16 +81,17 @@ export default function AdminDashboard({ stats }: Props) {
 
                     <Link
                         href={adminRoles()}
-                        className="group rounded-xl border border-border/80 bg-card p-5 transition-colors hover:border-brand/40 hover:bg-card/80"
+                        className="group rounded-xl border border-border/70 bg-card p-5 transition-colors hover:border-brand/40 hover:bg-card/90"
                     >
-                        <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-brand/10 text-brand">
+                        <div className="mb-3 flex size-10 items-center justify-center rounded-lg bg-brand/10 text-brand transition-colors group-hover:bg-brand/15">
                             <KeyRound className="size-5" />
                         </div>
                         <h3 className="font-display text-base font-semibold tracking-tight">
                             Funções e permissões
                         </h3>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Matriz role ↔ permission com invalidação de cache.
+                            Matriz de permissões por função, com gravação em
+                            lote.
                         </p>
                     </Link>
                 </div>
@@ -99,14 +105,16 @@ function StatCard({
     value,
     description,
     icon: Icon,
+    accent = false,
 }: {
     title: string;
     value: number;
     description: string;
     icon: typeof Users;
+    accent?: boolean;
 }) {
     return (
-        <Card className="border-border/80 bg-card">
+        <Card className="border-border/70 bg-card">
             <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
                 <div>
                     <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -116,10 +124,20 @@ function StatCard({
                         {description}
                     </CardDescription>
                 </div>
-                <Icon className="size-4 text-brand" />
+                <Icon
+                    className={
+                        accent ? 'size-4 text-amber-300' : 'size-4 text-brand'
+                    }
+                />
             </CardHeader>
             <CardContent>
-                <div className="font-display text-3xl font-semibold tracking-tight">
+                <div
+                    className={
+                        accent
+                            ? 'font-display text-3xl font-semibold tracking-tight text-amber-200'
+                            : 'font-display text-3xl font-semibold tracking-tight'
+                    }
+                >
                     {value}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
