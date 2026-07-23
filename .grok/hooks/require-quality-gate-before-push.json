@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|run_terminal_command|Shell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/require-quality-gate-before-push.sh",
+            "timeout": 1800
+          }
+        ]
+      }
+    ]
+  }
+}

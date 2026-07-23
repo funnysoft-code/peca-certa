@@ -1,2 +1,6 @@
+#!/usr/bin/env sh
+# Staged-file formatting/lint via vite-plus, then a scoped quality gate.
+# Full gate runs on pre-push. Bypass: VITE_GIT_HOOKS=0 git commit ...
 export PATH="$PWD/node_modules/.bin:$PATH"
 vp staged
+bin/quality-gate.sh --fast

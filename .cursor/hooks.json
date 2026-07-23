@@ -16,6 +16,11 @@
         "command": "bash .claude/hooks/safety-rails.sh",
         "matcher": "Write|Edit",
         "timeout": 10
+      },
+      {
+        "command": "bash .claude/hooks/require-quality-gate-before-push.sh",
+        "matcher": "Shell|Bash|run_terminal_command",
+        "timeout": 1800
       }
     ],
     "stop": [

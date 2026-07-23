@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+# Conventional Commits subject check.
+# Bypass: VITE_GIT_HOOKS=0 git commit ...
+msg_file="$1"
+if ! grep -qE '^(feat|fix|chore|docs|refactor|test|perf|style|build|ci|revert)(\([^)]+\))?!?: .+' "$msg_file"; then
+  echo "Commit subject must match Conventional Commits: <type>(<scope>)?: <subject>"
+  echo "Allowed types: feat fix chore docs refactor test perf style build ci revert"
+  exit 1
+fi

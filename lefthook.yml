@@ -1,38 +1,9 @@
-# lefthook.yml — git hook orchestration for Laravel base projects.
+# lefthook.yml — reference config (NOT the active git hook runner in this repo).
 #
-# Activation (one-time per developer):
-#   bun add -d lefthook       # or `brew install lefthook`
-#   bunx lefthook install
+# This project uses vite-plus git hooks via:
+#   git config core.hooksPath → .vite-hooks/_
+# Active scripts live in `.vite-hooks/pre-commit`, `pre-push`, `commit-msg`.
 #
-# After install, `git commit` runs the pre-commit hook below.
-# Skip ad-hoc:  LEFTHOOK=0 git commit ...
-# Skip globally: lefthook uninstall
-
-pre-commit:
-  parallel: false
-  commands:
-    quality-gate:
-      run: bin/quality-gate.sh
-      stage_fixed: false
-      fail_text: |
-        bin/quality-gate.sh exited non-zero. Fix the failing step and re-stage.
-
-        Exit-code → fix command:
-          2  → vendor/bin/pint --dirty
-          5  → bun run test:lint
-          6  → bun run test:types
-          7  → php artisan wayfinder:generate --with-form
-          8  → php artisan typescript:transform
-          9  → vendor/bin/rector
-
-        Bypass (only with explicit reason): LEFTHOOK=0 git commit ...
-
-commit-msg:
-  commands:
-    conventional-commits:
-      run: |
-        if ! grep -qE '^(feat|fix|chore|docs|refactor|test|perf|style|build|ci|revert)(\([^)]+\))?!?: .+' "{1}"; then
-          echo "Commit subject must match Conventional Commits: <type>(<scope>)?: <subject>"
-          echo "Allowed types: feat fix chore docs refactor test perf style build ci revert"
-          exit 1
-        fi
+# Do not switch core.hooksPath to lefthook without removing the vite-plus hooks.
+# Harness enforcement (Claude / Cursor / Grok) is separate:
+#   .claude/hooks/require-quality-gate-before-push.sh

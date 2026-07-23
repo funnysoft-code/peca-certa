@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+# Full quality gate before every push. Blocks push on non-zero exit.
+# Bypass (explicit reason only): VITE_GIT_HOOKS=0 git push ...
+export PATH="$PWD/node_modules/.bin:$PATH"
+bin/quality-gate.sh

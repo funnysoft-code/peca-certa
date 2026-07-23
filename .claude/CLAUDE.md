@@ -70,6 +70,11 @@ Order after modifying any PHP file:
 
 End-of-task verification: `bin/quality-gate.sh` (verify-only; fail-fast over Rector --dry-run, Pint --test, PHPStan, `wayfinder:generate` drift, bun test:lint, bun test:types, Pest non-browser parallel, then Pest browser serial). Exit codes 2..9 map to the failing step. Non-zero MUST block any completion claim, commit, push, or PR. Or invoke `/qg` slash command.
 
+**Enforced before push (do not bypass without explicit user reason):**
+
+1. **Git (vite-plus hooks)** — `core.hooksPath=.vite-hooks/_`; `.vite-hooks/pre-push` runs `bin/quality-gate.sh`. `.vite-hooks/pre-commit` runs `vp staged` + `bin/quality-gate.sh --fast`. Bypass only with reason: `VITE_GIT_HOOKS=0`.
+2. **Harness** — PreToolUse on shell tools runs `.claude/hooks/require-quality-gate-before-push.sh` and denies `git push` if the gate fails (Claude / Cursor / Grok).
+
 **Exit-code → fix map:** `2` → `pint --dirty`; `5` → `vp lint`; `6` → `tsc`; `7` → `wayfinder:generate`; `9` → `rector`.
 
 ## Workflow: Code Quality (JS/TS)
