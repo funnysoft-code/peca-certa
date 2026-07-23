@@ -148,10 +148,12 @@ it('cancels mid-pricing runs and fails unfinished lookups', function (): void {
 
     $pending = SupplierLookup::factory()->for($run, 'run')->create([
         'status' => SupplierLookupStatus::Pending,
+        'query' => 'OC 93-pending',
     ]);
 
     $done = SupplierLookup::factory()->for($run, 'run')->create([
         'status' => SupplierLookupStatus::Done,
+        'query' => 'OC 93-done',
     ]);
 
     $this->actingAs($user)

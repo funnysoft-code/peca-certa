@@ -91,3 +91,20 @@ it('requires authentication', function (): void {
     $this->postJson(route('search-runs.findings.unavailable', $run))
         ->assertUnauthorized();
 });
+
+it('is a no-op when the run has no supplier lookups', function (): void {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $run = SearchRun::factory()->for($user)->create([
+        'status' => SearchRunStatus::Done,
+        'unavailable_included' => false,
+    ]);
+
+    $this->actingAs($user)
+        ->postJson(route('search-runs.findings.unavailable', $run))
+        ->assertOk()
+        ->assertJsonPath('started', false);
+
+    Queue::assertNothingPushed();
+});

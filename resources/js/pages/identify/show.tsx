@@ -69,15 +69,34 @@ function ClarificationForm({ run }: { run: App.Data.SearchRunData }) {
         return null;
     }
 
+    const isUnsupportedBrand = run.pendingQuestion.kind === 'unsupported_brand';
+
     return (
         <Card>
             <CardHeader>
-                <CardDescription>Precisamos de mais detalhe</CardDescription>
+                <CardDescription>
+                    {isUnsupportedBrand
+                        ? 'Catálogo não configurado / WMI desconhecido'
+                        : 'Precisamos de mais detalhe'}
+                </CardDescription>
                 <CardTitle className="text-base">
                     {run.pendingQuestion.question}
                 </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
+                {isUnsupportedBrand && (
+                    <Alert>
+                        <AlertTitle>
+                            Bloqueio de routing, não de peça
+                        </AlertTitle>
+                        <AlertDescription>
+                            O VIN não mapeia para um catálogo PartsLink24
+                            conhecido. Escolha a marca (catálogo) correcta — não
+                            é necessário modelo nem ano.
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 {run.pendingQuestion.options.length > 0 && (
                     <ToggleGroup
                         type="single"
@@ -99,6 +118,11 @@ function ClarificationForm({ run }: { run: App.Data.SearchRunData }) {
                         ))}
                     </ToggleGroup>
                 )}
+                {form.errors.option && (
+                    <p className="text-sm text-destructive">
+                        {form.errors.option}
+                    </p>
+                )}
 
                 <form
                     className="flex flex-col gap-3"
@@ -109,34 +133,49 @@ function ClarificationForm({ run }: { run: App.Data.SearchRunData }) {
                         });
                     }}
                 >
-                    <FieldGroup>
-                        <Field
-                            data-invalid={form.errors.answer ? true : undefined}
-                        >
-                            <FieldLabel htmlFor="identify-answer">
-                                Resposta (texto livre)
-                            </FieldLabel>
-                            <Input
-                                id="identify-answer"
-                                value={form.data.answer}
-                                onChange={(event) =>
-                                    form.setData('answer', event.target.value)
-                                }
-                                placeholder="Descreva com mais pormenor se as opções não chegarem…"
-                                maxLength={1000}
-                                aria-invalid={
+                    {!isUnsupportedBrand && (
+                        <FieldGroup>
+                            <Field
+                                data-invalid={
                                     form.errors.answer ? true : undefined
                                 }
-                            />
-                            <FieldError>{form.errors.answer}</FieldError>
-                        </Field>
-                    </FieldGroup>
+                            >
+                                <FieldLabel htmlFor="identify-answer">
+                                    Resposta (texto livre)
+                                </FieldLabel>
+                                <Input
+                                    id="identify-answer"
+                                    value={form.data.answer}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'answer',
+                                            event.target.value,
+                                        )
+                                    }
+                                    placeholder="Descreva com mais pormenor se as opções não chegarem…"
+                                    maxLength={1000}
+                                    aria-invalid={
+                                        form.errors.answer ? true : undefined
+                                    }
+                                />
+                                <FieldError>{form.errors.answer}</FieldError>
+                            </Field>
+                        </FieldGroup>
+                    )}
                     <div className="flex flex-wrap items-center gap-2">
-                        <Button type="submit" disabled={form.processing}>
+                        <Button
+                            type="submit"
+                            disabled={
+                                form.processing ||
+                                (isUnsupportedBrand && form.data.option === '')
+                            }
+                        >
                             {form.processing && (
                                 <Spinner data-icon="inline-start" />
                             )}
-                            Continuar identificação
+                            {isUnsupportedBrand
+                                ? 'Continuar com catálogo'
+                                : 'Continuar identificação'}
                         </Button>
                         <CancelButton
                             runId={run.id}
@@ -192,7 +231,10 @@ export default function IdentifyShow({ run: initialRun }: Props) {
                         <Progress value={progress} aria-label="Progresso" />
                         <p className="text-xs text-muted-foreground">
                             {run.status === 'needs_input'
-                                ? 'Aguarda resposta do operador'
+                                ? run.pendingQuestion?.kind ===
+                                  'unsupported_brand'
+                                    ? 'Aguarda escolha de catálogo (WMI/marca)'
+                                    : 'Aguarda resposta do operador'
                                 : run.oeParts.length > 0
                                   ? 'A consultar fornecedores…'
                                   : 'A identificar a peça OE…'}

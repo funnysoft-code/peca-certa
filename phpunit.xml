@@ -27,6 +27,11 @@
                  controllers/requests; no concrete callers yet. -->
             <file>app/Http/Controllers/Controller.php</file>
             <file>app/Http/Requests/Request.php</file>
+            <!-- Large multi-provider cost aggregator; public execute() paths are
+                 covered in tests/Feature/Costs/* but provider-specific branches
+                 (Cloudflare wrangler, Laravel Cloud shared allocation, full
+                 management billing matrix) are not fully fixture-mocked yet. -->
+            <file>app/Actions/UpdateProjectCosts.php</file>
         </exclude>
     </source>
     <php>

@@ -79,3 +79,71 @@ it('records cost_in_usd_ticks from api.x.ai responses via CaptureXaiInferenceCos
         ->and((float) $row['usd'])->toBe(0.5)
         ->and($row['model'])->toBe('grok-4.3');
 });
+
+it('ignores negative cost ticks', function (): void {
+    resolve(RecordXaiInferenceCost::class)->execute([
+        'cost_in_usd_ticks' => -1,
+        'model' => 'grok-4.3',
+    ]);
+
+    expect(File::exists((string) config('costs.xai_ledger')))->toBeFalse();
+});
+
+it('creates the ledger directory when missing', function (): void {
+    $ledger = storage_path('app/private/costs-nested-test/xai-usage.jsonl');
+    config(['costs.xai_ledger' => $ledger]);
+    File::deleteDirectory(dirname($ledger));
+
+    resolve(RecordXaiInferenceCost::class)->execute([
+        'cost_in_usd_ticks' => 1,
+        'model' => 'grok-4.3',
+    ]);
+
+    expect(File::exists($ledger))->toBeTrue();
+    File::deleteDirectory(dirname($ledger));
+});
+
+it('skips CaptureXaiInferenceCost for non-xai hosts and invalid payloads', function (): void {
+    $listener = resolve(CaptureXaiInferenceCost::class);
+
+    $listener->handle(new ResponseReceived(
+        new Request(new PsrRequest('POST', 'https://example.com/v1/chat')),
+        new Response(new PsrResponse(200, ['Content-Type' => 'application/json'], '{"ok":true}')),
+    ));
+
+    $listener->handle(new ResponseReceived(
+        new Request(new PsrRequest('POST', 'https://api.x.ai/v1/chat/completions')),
+        new Response(new PsrResponse(200, ['Content-Type' => 'text/plain'], 'not-json')),
+    ));
+
+    $listener->handle(new ResponseReceived(
+        new Request(new PsrRequest('POST', 'https://api.x.ai/v1/chat/completions')),
+        new Response(new PsrResponse(200, ['Content-Type' => 'application/json'], '{"usage":{}}')),
+    ));
+
+    $listener->handle(new ResponseReceived(
+        new Request(new PsrRequest('POST', 'https://api.x.ai/v1/chat/completions')),
+        new Response(new PsrResponse(200, ['Content-Type' => 'application/json'], json_encode([
+            'usage' => ['cost_in_usd_ticks' => ['bad']],
+        ], JSON_THROW_ON_ERROR))),
+    ));
+
+    expect(File::exists((string) config('costs.xai_ledger')))->toBeFalse();
+});
+
+it('swallows exceptions from cost accounting so inference is never broken', function (): void {
+    config(['costs.xai_ledger' => '/dev/null/not-writable/xai-usage.jsonl']);
+
+    $body = json_encode([
+        'model' => 'grok-4.3',
+        'usage' => ['cost_in_usd_ticks' => 1],
+    ], JSON_THROW_ON_ERROR);
+
+    $event = new ResponseReceived(
+        new Request(new PsrRequest('POST', 'https://api.x.ai/v1/chat/completions')),
+        new Response(new PsrResponse(200, ['Content-Type' => 'application/json'], $body)),
+    );
+
+    expect(fn () => resolve(CaptureXaiInferenceCost::class)->handle($event))
+        ->not->toThrow(Throwable::class);
+});

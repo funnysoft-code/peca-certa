@@ -23,6 +23,7 @@ readonly warehouse: string,
 export type IdentifyClarification = {
 readonly question: string,
 readonly options: string[],
+readonly kind: string | null,
 };
 export type OePart = {
 readonly oeNumber: string,

@@ -153,6 +153,37 @@ it('serializes without overlapping middleware for Auto Zitania only, with an exp
         ->and($autoZitaniaMiddleware[0]->expiresAfter)->toBeGreaterThan(90);
 });
 
+it('marks unavailable_included when pricing with includeUnavailable', function (): void {
+    Event::fake([SupplierResultReady::class, SearchRunAdvanced::class]);
+    config()->set('suppliers.autodelta.catalog_url', 'https://cat.test/WebCat30WS');
+    config()->set('suppliers.autodelta.search_url', 'https://cat.test/Tecdoc');
+    config()->set('suppliers.autodelta.catalog_id', 'CAT');
+    config()->set('suppliers.autodelta.provider', 1066);
+    config()->set('suppliers.autodelta.webshop_url', 'https://shop.test/pt');
+    Cache::put('autodelta.token', new AutoDeltaToken('KEY', 'USER', now()->addDay()), now()->addDay());
+    $search = json_decode((string) file_get_contents(base_path('tests/Fixtures/AutoDelta/search-by-number.json')), true);
+    $prices = json_decode((string) file_get_contents(base_path('tests/Fixtures/AutoDelta/trade-prices.json')), true);
+    Http::fakeSequence('cat.test/*')->push($search['response'])->push($prices['response']);
+
+    $run = SearchRun::factory()->create([
+        'status' => SearchRunStatus::Running,
+        'unavailable_included' => false,
+    ]);
+    $lookup = SupplierLookup::factory()->for($run, 'run')->create([
+        'supplier' => Supplier::AutoDelta,
+        'query' => 'OC90',
+        'status' => SupplierLookupStatus::Pending,
+    ]);
+
+    new PriceSupplierJob($lookup, includeUnavailable: true)->handle(
+        resolve(SearchAutoDeltaParts::class),
+        resolve(SearchAutoZitaniaParts::class),
+        resolve(PersistLookupFindings::class),
+    );
+
+    expect($run->refresh()->unavailable_included)->toBeTrue();
+});
+
 it('marks the lookup failed, broadcasts, and completes the run on failure', function (): void {
     Event::fake([SupplierResultReady::class, SearchRunAdvanced::class]);
     $run = SearchRun::factory()->create(['status' => SearchRunStatus::Running]);

@@ -8,8 +8,12 @@ use Illuminate\Support\Str;
 
 final readonly class VinBrandResolver
 {
-    public function resolve(string $vin): ?PartsLink24Brand
+    public function resolve(string $vin, ?string $brandKeyOverride = null): ?PartsLink24Brand
     {
+        if ($brandKeyOverride !== null && $brandKeyOverride !== '') {
+            return $this->fromCatalogKey($brandKeyOverride);
+        }
+
         if (Str::length($vin) < 3) {
             return null;
         }
@@ -24,6 +28,11 @@ final readonly class VinBrandResolver
             return null;
         }
 
+        return $this->fromCatalogKey($key);
+    }
+
+    public function fromCatalogKey(string $key): ?PartsLink24Brand
+    {
         /** @var array<string, array{service: string, group: string}> $catalogs */
         $catalogs = config('suppliers.partslink24.brands.catalogs');
         $catalog = $catalogs[$key] ?? null;
@@ -33,5 +42,16 @@ final readonly class VinBrandResolver
         }
 
         return new PartsLink24Brand($key, $catalog['service'], $catalog['group']);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function availableBrandKeys(): array
+    {
+        /** @var array<string, array{service: string, group: string}> $catalogs */
+        $catalogs = config('suppliers.partslink24.brands.catalogs');
+
+        return array_keys($catalogs);
     }
 }

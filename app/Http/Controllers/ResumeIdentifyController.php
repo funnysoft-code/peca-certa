@@ -8,6 +8,7 @@ use App\Actions\ResumeIdentifyRun;
 use App\Http\Requests\ResumeIdentifyRequest;
 use App\Models\SearchRun;
 use Illuminate\Http\RedirectResponse;
+use InvalidArgumentException;
 
 final class ResumeIdentifyController extends Controller
 {
@@ -24,7 +25,13 @@ final class ResumeIdentifyController extends Controller
             ]);
         }
 
-        $resume->execute($run, $request->answer(), $request->option());
+        try {
+            $resume->execute($run, $request->answer(), $request->option());
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            return back()->withErrors([
+                'option' => $invalidArgumentException->getMessage(),
+            ]);
+        }
 
         return to_route('identify.show', $run);
     }

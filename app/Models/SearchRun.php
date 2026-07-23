@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property SearchRunKind $kind
  * @property string|null $request_text
  * @property string|null $vin
+ * @property string|null $brand_override
  * @property string|null $reference
  * @property array<string, mixed>|null $understanding
  * @property list<array<string, mixed>>|null $messages

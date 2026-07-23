@@ -56,13 +56,16 @@ return [
                 'UU1' => 'dacia',
                 'VF3' => 'peugeot',
                 'VF7' => 'citroen',
-                'W0L' => 'opel', 'W0V' => 'opel',
+                // Opel / Vauxhall (Stellantis PSA catalog). VXK = Zaragoza plant (e.g. Corsa).
+                'W0L' => 'opel', 'W0V' => 'opel', 'W0S' => 'opel', 'W0X' => 'opel', 'VXK' => 'opel',
                 'ZFA' => 'fiat',
                 'WDB' => 'mercedes', 'WDD' => 'mercedes', 'WDC' => 'mercedes', 'W1K' => 'mercedes', 'W1N' => 'mercedes',
                 'YV1' => 'volvo', 'YV4' => 'volvo',
                 'WP0' => 'porsche', 'WP1' => 'porsche',
                 'SAJ' => 'jaguar',
                 'SAL' => 'landrover',
+                // MAN Truck & Bus (decode path live-proven on man_parts / p5man).
+                'WMA' => 'man', 'WMB' => 'man',
             ],
             // brand key => PartsLink24 catalog service + p5 group prefix (from the manufacturers endpoint).
             'catalogs' => [
@@ -83,6 +86,7 @@ return [
                 'porsche' => ['service' => 'porsche_parts', 'group' => 'p5vwag'],
                 'jaguar' => ['service' => 'jaguar_parts', 'group' => 'p5jlr'],
                 'landrover' => ['service' => 'landrover_parts', 'group' => 'p5jlr'],
+                'man' => ['service' => 'man_parts', 'group' => 'p5man'],
             ],
         ],
     ],

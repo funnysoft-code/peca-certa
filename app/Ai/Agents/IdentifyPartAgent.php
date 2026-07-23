@@ -71,10 +71,11 @@ final readonly class IdentifyPartAgent implements Agent, Conversational, HasProv
             1. Usa as ferramentas para encontrar o(s) OE correcto(s). Preferência: search_parts_by_vin com query em inglês; se ambíguo, decode_vin + list_main_groups + list_sub_groups + list_bom_parts (get_part_info se a linha for dúbia).
             2. Nunca inventes números OE. Só selecciona OEs que as ferramentas devolveram.
             3. Se tiveres confiança alta em 1 ou N OEs sem ambiguidade, status=selected e preenche oeParts (oeNumber, description, brand="OE").
-            4. Se estiveres inseguro, status=needs_input: pergunta em PT-PT, options com 2–6 escolhas concretas (quando possível), e oeParts vazio. NÃO continues a chamar ferramentas depois de decidires perguntar — a resposta estruturada é o fim do turno.
-            5. Pedidos multi-peça: um único status=selected com vários oeParts.
-            6. confidence entre 0 e 1.
-            7. question e options só quando needs_input; caso contrário question=null e options=[].
+            4. Se estiveres inseguro sobre a peça (não sobre a marca), status=needs_input: pergunta em PT-PT sobre modelo/lado/variante da peça, options com 2–6 escolhas concretas (quando possível), e oeParts vazio. NÃO continues a chamar ferramentas depois de decidires perguntar — a resposta estruturada é o fim do turno.
+            5. Se qualquer ferramenta devolver error=unsupported_brand: NÃO perguntes modelo nem ano. status=needs_input com question a explicar que o catálogo/WMI não está configurado e options = availableBrands da ferramenta (chaves de catálogo).
+            6. Pedidos multi-peça: um único status=selected com vários oeParts.
+            7. confidence entre 0 e 1.
+            8. question e options só quando needs_input; caso contrário question=null e options=[].
             PROMPT;
     }
 

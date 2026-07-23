@@ -8,7 +8,7 @@ All tools call `App\Services\PartsLink24\PartsLink24Client` after resolving the 
 
 | Failure | Behavior |
 | --- | --- |
-| Unknown WMI / short VIN | Tool returns `{ "ok": false, "error": "unsupported_brand" }` (no HTTP). |
+| Unknown WMI / short VIN | Tool returns `{ "ok": false, "error": "unsupported_brand", "message", "availableBrands" }` (no HTTP). Identify job pre-gates before the LLM and surfaces `pending_question.kind=unsupported_brand` with catalog options (brand override), not model/year clarification. |
 | HTTP 4xx/5xx after retry | Exception bubbles; job marks SearchRun failed (or tool wraps as `{ ok: false, error: "http_error", status }`). |
 | Empty result | `{ "ok": true, … empty list }` — not an error. |
 | Session eviction / 401 | Client re-auths once; if still failing → http_error. |

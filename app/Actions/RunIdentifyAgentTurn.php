@@ -11,6 +11,8 @@ use App\Data\OePart;
 use App\Enums\SearchRunStatus;
 use App\Events\SearchRunAdvanced;
 use App\Models\SearchRun;
+use App\Services\PartsLink24\PartsLink24Brand;
+use App\Services\PartsLink24\VinBrandResolver;
 use Illuminate\Support\Facades\Context;
 use Laravel\Ai\Messages\Message;
 use Laravel\Ai\Messages\MessageRole;
@@ -22,6 +24,7 @@ final readonly class RunIdentifyAgentTurn
     public function __construct(
         private FanOutOePricing $fanOutOePricing,
         private LogAgentTokenUsage $logAgentTokenUsage,
+        private VinBrandResolver $vinBrandResolver,
     ) {}
 
     public function execute(SearchRun $run): IdentifyAgentResult
@@ -32,6 +35,15 @@ final readonly class RunIdentifyAgentTurn
         $run->save();
         event(new SearchRunAdvanced($run));
 
+        $brand = $this->vinBrandResolver->resolve(
+            (string) $run->vin,
+            $run->brand_override,
+        );
+
+        if (! $brand instanceof PartsLink24Brand) {
+            return $this->stopForUnsupportedBrand($run);
+        }
+
         [$prompt, $historyRows, $promptAlreadyStored] = $this->promptAndHistory($run);
 
         $history = $this->toMessages($historyRows);
@@ -40,6 +52,7 @@ final readonly class RunIdentifyAgentTurn
         $promptCacheKey = 'identify-run:'.$run->id;
 
         Context::add('identify.search_run_id', $run->id);
+        Context::add('identify.brand_override', $brand->key);
 
         try {
             $response = new IdentifyPartAgent($history, $maxSteps, $timeout, $promptCacheKey)->prompt(
@@ -48,6 +61,7 @@ final readonly class RunIdentifyAgentTurn
             );
         } finally {
             Context::forget('identify.search_run_id');
+            Context::forget('identify.brand_override');
         }
 
         throw_unless(
@@ -121,6 +135,45 @@ final readonly class RunIdentifyAgentTurn
         return $result;
     }
 
+    private function stopForUnsupportedBrand(SearchRun $run): IdentifyAgentResult
+    {
+        $options = $this->vinBrandResolver->availableBrandKeys();
+        $question = 'Catálogo PartsLink24 não configurado para este VIN (WMI desconhecido ou marca sem catálogo). Escolha a marca do catálogo para continuar. Não é necessário modelo nem ano.';
+
+        $result = new IdentifyAgentResult(
+            status: 'needs_input',
+            oeParts: [],
+            question: $question,
+            options: $options,
+            confidence: 0.0,
+        );
+
+        $messages = $run->messages ?? [];
+        $messages[] = [
+            'role' => 'assistant',
+            'content' => json_encode([
+                'status' => 'needs_input',
+                'error' => IdentifyClarification::KIND_UNSUPPORTED_BRAND,
+                'question' => $question,
+                'options' => $options,
+            ], JSON_THROW_ON_ERROR),
+            'status' => 'needs_input',
+            'kind' => IdentifyClarification::KIND_UNSUPPORTED_BRAND,
+        ];
+
+        $run->messages = $messages;
+        $run->pending_question = new IdentifyClarification(
+            question: $question,
+            options: $options,
+            kind: IdentifyClarification::KIND_UNSUPPORTED_BRAND,
+        )->jsonSerialize();
+        $run->status = SearchRunStatus::NeedsInput;
+        $run->save();
+        event(new SearchRunAdvanced($run));
+
+        return $result;
+    }
+
     /**
      * @return array{0: string, 1: list<array{role: string, content: string}>, 2: bool}
      */
@@ -138,6 +191,11 @@ final readonly class RunIdentifyAgentTurn
         $vin = (string) $run->vin;
         $request = (string) $run->request_text;
         $prompt = "VIN: {$vin}\nPedido do operador: {$request}";
+
+        if (is_string($run->brand_override) && $run->brand_override !== '') {
+            $prompt .= '
+Catálogo PartsLink24 forçado pelo operador: '.$run->brand_override;
+        }
 
         return [$prompt, $this->normalizeMessageRows($stored), false];
     }

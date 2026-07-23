@@ -36,3 +36,15 @@ it('rejects non-positive months', function (): void {
     $this->artisan('costs:update', ['--months' => 0])
         ->assertFailed();
 });
+
+it('supports dry-run without writing docs', function (): void {
+    Process::fake([
+        '*' => Process::result(errorOutput: 'cloud not available in test', exitCode: 1),
+    ]);
+
+    $this->artisan('costs:update', ['--months' => 1, '--dry-run' => true])
+        ->assertSuccessful()
+        ->expectsOutputToContain('Dry run');
+
+    expect(File::exists((string) config('costs.output.markdown')))->toBeFalse();
+});
