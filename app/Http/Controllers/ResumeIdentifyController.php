@@ -17,7 +17,7 @@ final class ResumeIdentifyController extends Controller
         SearchRun $run,
         ResumeIdentifyRun $resume,
     ): RedirectResponse {
-        abort_unless($run->user_id === $this->user($request)->id, 403);
+        $this->authorize('update', $run);
 
         if ($request->answer() === '' && $request->option() === null) {
             return back()->withErrors([

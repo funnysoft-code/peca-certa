@@ -26,7 +26,7 @@ final class IdentifyController extends Controller
         return Inertia::render('identify/index', [
             'runs' => $listSearchRuns->execute($request, SearchRunKind::Identify, $user),
             'filters' => [
-                'scope' => $listQuery->scope($request),
+                'scope' => $listQuery->scope($request, $user, SearchRunKind::Identify),
                 'q' => $listQuery->searchTerm($request),
             ],
         ]);
@@ -34,6 +34,8 @@ final class IdentifyController extends Controller
 
     public function store(IdentifyRequest $request): RedirectResponse
     {
+        $this->authorize('createIdentify', SearchRun::class);
+
         $run = SearchRun::query()->create([
             'user_id' => $this->user($request)->id,
             'kind' => SearchRunKind::Identify,
@@ -50,7 +52,8 @@ final class IdentifyController extends Controller
 
     public function show(Request $request, SearchRun $run): Response
     {
-        $this->user($request);
+        $this->authorize('view', $run);
+        abort_unless($run->kind === SearchRunKind::Identify, 404);
 
         return Inertia::render('identify/show', [
             'run' => SearchRunData::fromModel($run->load(['lookups', 'user'])),

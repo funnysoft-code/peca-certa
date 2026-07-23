@@ -7,6 +7,7 @@ namespace App\Queries;
 use App\Enums\SearchRunKind;
 use App\Models\SearchRun;
 use App\Models\User;
+use App\Support\Permissions;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -24,7 +25,7 @@ final class ListSearchRunsQuery
         User $user,
         int $perPage = self::PER_PAGE,
     ): LengthAwarePaginator {
-        $scope = $this->scope($request);
+        $scope = $this->scope($request, $user, $kind);
         $q = $this->searchTerm($request);
 
         $query = SearchRun::query()
@@ -58,9 +59,25 @@ final class ListSearchRunsQuery
         return $paginator;
     }
 
-    public function scope(Request $request): string
+    public function scope(Request $request, ?User $user = null, ?SearchRunKind $kind = null): string
     {
-        return $request->query('scope') === 'mine' ? 'mine' : 'everyone';
+        $requested = $request->query('scope') === 'mine' ? 'mine' : 'everyone';
+
+        if ($requested === 'mine') {
+            return 'mine';
+        }
+
+        if (! $user instanceof User || ! $kind instanceof SearchRunKind) {
+            return $requested;
+        }
+
+        // Cross-user list requires manage permission for the domain.
+        $canListEveryone = match ($kind) {
+            SearchRunKind::Parts => $user->can(Permissions::PartsManage) || $user->can(Permissions::SearchRunsManage),
+            SearchRunKind::Identify => $user->can(Permissions::IdentifyManage) || $user->can(Permissions::SearchRunsManage),
+        };
+
+        return $canListEveryone ? 'everyone' : 'mine';
     }
 
     public function searchTerm(Request $request): string

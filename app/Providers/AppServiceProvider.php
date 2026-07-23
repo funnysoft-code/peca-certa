@@ -6,6 +6,10 @@ namespace App\Providers;
 
 use App\Listeners\CaptureXaiInferenceCost;
 use App\Listeners\RecordIdentifyAgentToolProgress;
+use App\Models\SearchRun;
+use App\Models\User;
+use App\Policies\SearchRunPolicy;
+use App\Policies\UserPolicy;
 use App\Services\PartsLink24\Contracts\PartsLink24Catalog;
 use App\Services\PartsLink24\PartsLink24HttpClient;
 use Carbon\CarbonImmutable;
@@ -13,6 +17,7 @@ use Illuminate\Http\Client\Events\ResponseReceived;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
@@ -40,6 +45,14 @@ final class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureInertiaSsr();
         $this->configureAiListeners();
+        $this->configureAuthorization();
+    }
+
+    private function configureAuthorization(): void
+    {
+        // No Gate::before super-admin bypass — admin gets all permissions via seeder.
+        Gate::policy(SearchRun::class, SearchRunPolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
     }
 
     private function configureAiListeners(): void

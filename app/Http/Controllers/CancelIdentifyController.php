@@ -17,7 +17,7 @@ final class CancelIdentifyController extends Controller
         SearchRun $run,
         CancelSearchRun $cancel,
     ): RedirectResponse {
-        abort_unless($run->user_id === $this->user($request)->id, 403);
+        $this->authorize('update', $run);
 
         try {
             $cancel->execute($run);

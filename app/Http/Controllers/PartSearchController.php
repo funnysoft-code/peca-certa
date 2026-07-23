@@ -25,7 +25,7 @@ final class PartSearchController extends Controller
         return Inertia::render('parts/index', [
             'runs' => $listSearchRuns->execute($request, SearchRunKind::Parts, $user),
             'filters' => [
-                'scope' => $listQuery->scope($request),
+                'scope' => $listQuery->scope($request, $user, SearchRunKind::Parts),
                 'q' => $listQuery->searchTerm($request),
             ],
         ]);
@@ -35,6 +35,8 @@ final class PartSearchController extends Controller
         SearchPartsRequest $request,
         StartPartsSearch $startPartsSearch,
     ): RedirectResponse {
+        $this->authorize('createParts', SearchRun::class);
+
         $run = $startPartsSearch->execute(
             $this->user($request),
             $request->reference(),
@@ -45,7 +47,7 @@ final class PartSearchController extends Controller
 
     public function show(Request $request, SearchRun $run): Response
     {
-        $this->user($request);
+        $this->authorize('view', $run);
         abort_unless($run->kind === SearchRunKind::Parts, 404);
 
         return Inertia::render('parts/show', [

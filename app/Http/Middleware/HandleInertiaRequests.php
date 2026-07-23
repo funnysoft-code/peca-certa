@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
+use App\Support\Permissions;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -37,16 +39,41 @@ final class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $roles = [];
+        $can = [];
+
+        if ($user instanceof User) {
+            $roles = $user->getRoleNames()->values()->all();
+            $can = $this->permissionMap($user);
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
+                'roles' => $roles,
+                'can' => $can,
             ],
             'flash' => [
                 'toast' => fn () => $request->session()->get('toast'),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    private function permissionMap(User $user): array
+    {
+        $map = [];
+
+        foreach (Permissions::all() as $permission) {
+            $map[$permission] = $user->can($permission);
+        }
+
+        return $map;
     }
 }
