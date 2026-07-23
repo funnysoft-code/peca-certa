@@ -478,16 +478,15 @@ final readonly class PartsLink24Client
         // - squeezeOut=false may return USER_ALREADY_LOGGED_IN with no cookie when the seat is taken
         $attempts = $preferSqueeze ? [true, false] : [false, true];
 
-        $lastResponse = null;
-        $lastStatus = null;
+        $lastStatus = 'unknown';
 
         foreach ($attempts as $squeezeOut) {
             // Fresh jar per attempt so a failed USER_ALREADY_LOGGED_IN response
             // does not leave a half-empty cookie state.
             $attemptJar = new CookieJar;
             $response = $this->postLogin($base, $attemptJar, $squeezeOut);
-            $lastResponse = $response;
-            $lastStatus = $response->json('status');
+            $statusField = $response->json('status');
+            $lastStatus = is_string($statusField) ? $statusField : (string) $response->status();
 
             if ($response->status() === 403) {
                 continue;
@@ -498,22 +497,14 @@ final readonly class PartsLink24Client
             }
 
             if ($this->loginEstablishedSession($response, $attemptJar)) {
-                foreach ($attemptJar->toArray() as $cookie) {
-                    $jar->setCookie(new SetCookie($cookie));
-                }
+                $this->copySessionCookies($attemptJar, $jar);
 
                 return;
             }
         }
 
-        if ($lastResponse->failed()) {
-            $lastResponse->throw();
-        }
-
-        $label = is_string($lastStatus) ? $lastStatus : 'unknown';
-
         throw new RuntimeException(
-            'PartsLink24 login did not establish a session (status='.$label.'). '
+            'PartsLink24 login did not establish a session (status='.$lastStatus.'). '
             .'Another session may be active, or squeezeOut is rejected for this account. '
             .'Log out browser/other app sessions for this PL24 user, or use a dedicated app account.',
         );
@@ -528,8 +519,17 @@ final readonly class PartsLink24Client
         }
 
         // Successful squeeze-out often sets PL24TOKEN with a null JSON "token" field.
+        return $this->hasPl24SessionCookie($jar);
+    }
+
+    private function hasPl24SessionCookie(CookieJar $jar): bool
+    {
         foreach ($jar->toArray() as $cookie) {
-            $name = $cookie['Name'] ?? '';
+            if (! is_array($cookie)) {
+                continue;
+            }
+
+            $name = $cookie['Name'] ?? null;
 
             if (is_string($name) && $name !== '' && str_contains(mb_strtoupper($name), 'PL24')) {
                 return true;
@@ -537,6 +537,18 @@ final readonly class PartsLink24Client
         }
 
         return false;
+    }
+
+    private function copySessionCookies(CookieJar $from, CookieJar $to): void
+    {
+        foreach ($from->toArray() as $cookie) {
+            if (! is_array($cookie)) {
+                continue;
+            }
+
+            /** @var array<string, mixed> $cookie */
+            $to->setCookie(new SetCookie($cookie));
+        }
     }
 
     private function postLogin(string $base, CookieJar $jar, bool $squeezeOut): Response
