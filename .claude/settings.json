@@ -33,6 +33,11 @@
             "type": "command",
             "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/require-quality-gate-before-push.sh",
             "timeout": 1800
+          },
+          {
+            "type": "command",
+            "command": "bash ${CLAUDE_PROJECT_DIR}/.claude/hooks/require-partslink24-proxy.sh",
+            "timeout": 45
           }
         ]
       }

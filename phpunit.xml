@@ -53,5 +53,7 @@
         <env name="AUTOZITANIA_HTTP_URL" value=""/>
         <env name="AUTOZITANIA_HTTP_TOKEN" value=""/>
         <!-- PL24 fingerprint/pacing is config-hardcoded; APP_ENV=testing zeroes delays/volume. -->
+        <!-- Proxy required in real envs; suite disables unless a test re-enables it. -->
+        <env name="PARTSLINK24_REQUIRE_PROXY" value="false"/>
     </php>
 </phpunit>

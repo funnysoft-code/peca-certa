@@ -16,6 +16,12 @@ For framework-level rules see root `CLAUDE.md` (Boost auto-managed — do not ed
 
 PHP ^8.5 · Laravel 13 · Inertia 3 + React 19 · Tailwind 4 · shadcn/ui (new-york) · Pest 5 · PHPStan max · Rector · Pint · PostgreSQL primary · Bun ≥1.2 · vite-plus.
 
+## PartsLink24 proxy (fail closed)
+
+- **Runtime:** `suppliers.partslink24.require_proxy` (default true). `PartsLink24Client` refuses authorize if `PARTSLINK24_PROXY` is empty or dead (`bin/partslink24-proxy-test.sh`).
+- **Harness:** PreToolUse shell hook `.claude/hooks/require-partslink24-proxy.sh` (Claude + Cursor). Blocks agent shell that hits `partslink24.com` without proxy, or when proxy is down. Bypass only: `PARTSLINK24_ALLOW_DIRECT=1`.
+- **Chrome play:** `bin/chrome-pl24.sh` (CDP + proxy). **Health:** `bin/partslink24-proxy-test.sh` (`--pl24` optional).
+
 ## Safety Rails — NEVER touch without asking
 
 Enforced deterministically by `.claude/hooks/safety-rails.sh` (PreToolUse hook on Edit/Write/NotebookEdit). The hook exits 2 — the call is **blocked**, not warned. Update both the hook and this list when adding new rails.

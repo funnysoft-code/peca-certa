@@ -804,6 +804,7 @@ final readonly class PartsLink24Client
 
     private function authorize(PartsLink24Brand $brand): PartsLink24Token
     {
+        $this->assertProxyReady();
         $this->assertWithinBusinessHours();
 
         $base = config()->string('suppliers.partslink24.base_url');
@@ -1135,6 +1136,45 @@ final readonly class PartsLink24Client
     }
 
     /**
+     * Fail closed when require_proxy is on: missing or dead shop proxy means no PL24 traffic.
+     * Health is cached briefly so authorize + catalog do not re-probe every request.
+     */
+    private function assertProxyReady(): void
+    {
+        if (! (bool) config('suppliers.partslink24.require_proxy', true)) {
+            return;
+        }
+
+        $proxy = config('suppliers.partslink24.proxy');
+
+        throw_if(! is_string($proxy) || $proxy === '', RuntimeException::class, 'PartsLink24 require_proxy is enabled but PARTSLINK24_PROXY is empty. '
+        .'Set the shop 3proxy URL or set PARTSLINK24_REQUIRE_PROXY=false only in emergencies.');
+
+        $cacheKey = 'partslink24.proxy_ok.'.hash('xxh128', $proxy);
+        $cached = Cache::get($cacheKey);
+
+        if ($cached === true) {
+            return;
+        }
+
+        try {
+            $ip = mb_trim(Http::withOptions(['proxy' => $proxy])
+                ->timeout(15)
+                ->get('https://api.ipify.org')
+                ->throw()
+                ->body());
+        } catch (Throwable $throwable) {
+            throw new RuntimeException('PartsLink24 shop proxy is down or unreachable; refusing PL24 access. '
+            .'Run bin/partslink24-proxy-test.sh. ('.$throwable->getMessage().')', $throwable->getCode(), previous: $throwable);
+        }
+
+        throw_if($ip === '' || ! preg_match('/^\d{1,3}(\.\d{1,3}){3}$/', $ip), RuntimeException::class, 'PartsLink24 shop proxy did not return a public IPv4; refusing PL24 access. '
+        .'Run bin/partslink24-proxy-test.sh.');
+
+        Cache::put($cacheKey, true, Date::now()->addSeconds(60));
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function transportOptions(): array
@@ -1286,6 +1326,12 @@ final readonly class PartsLink24Client
         while (RateLimiter::tooManyAttempts($key, $max)) {
             $wait = max(1, RateLimiter::availableIn($key));
             Sleep::for($wait)->seconds();
+
+            // Pest freezes the clock + Sleep::fake does not advance decay timers.
+            // Clear after one wait so unit tests cannot spin forever.
+            if (app()->runningUnitTests()) {
+                RateLimiter::clear($key);
+            }
         }
 
         RateLimiter::hit($key, 60);

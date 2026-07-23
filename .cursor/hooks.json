@@ -21,6 +21,11 @@
         "command": "bash .claude/hooks/require-quality-gate-before-push.sh",
         "matcher": "Shell|Bash|run_terminal_command",
         "timeout": 1800
+      },
+      {
+        "command": "bash .claude/hooks/require-partslink24-proxy.sh",
+        "matcher": "Shell|Bash|run_terminal_command",
+        "timeout": 45
       }
     ],
     "stop": [

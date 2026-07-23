@@ -99,8 +99,11 @@ return [
             // Europe/Lisbon summer: getTimezoneOffset() === -60 → +60 minutes east of UTC.
             'offset' => '60',
         ],
-        // Optional shop egress only (secret). Empty = host IP.
+        // Shop egress only (secret). When require_proxy is true, empty or dead proxy blocks all PL24 HTTP.
         'proxy' => env('PARTSLINK24_PROXY', ''),
+        // Fail closed: do not call partslink24.com without a healthy PARTSLINK24_PROXY.
+        // Set PARTSLINK24_REQUIRE_PROXY=false only for emergency local work (not recommended).
+        'require_proxy' => filter_var(env('PARTSLINK24_REQUIRE_PROXY', true), FILTER_VALIDATE_BOOLEAN),
         // Prefer HTTP/2 when libcurl allows (closer to Chrome; not full JA3).
         'http2' => true,
 
