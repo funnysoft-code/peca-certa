@@ -6,8 +6,6 @@ namespace App\Ai\Agents;
 
 use App\Ai\Attributes\Reasoning;
 use App\Ai\Concerns\UsesXaiProviderOptions;
-use App\Ai\Enums\ReasoningEffort;
-use App\Ai\Enums\XaiModel;
 use App\Ai\Tools\PartsLink24\DecodeVin;
 use App\Ai\Tools\PartsLink24\GetPartInfo;
 use App\Ai\Tools\PartsLink24\ListBomParts;
@@ -15,6 +13,8 @@ use App\Ai\Tools\PartsLink24\ListMainGroups;
 use App\Ai\Tools\PartsLink24\ListSubGroups;
 use App\Ai\Tools\PartsLink24\ResolveBrand;
 use App\Ai\Tools\PartsLink24\SearchPartsByVin;
+use App\Enums\ReasoningEffort;
+use App\Enums\XaiModel;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Attributes\MaxSteps;
 use Laravel\Ai\Attributes\Model;

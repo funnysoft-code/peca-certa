@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ai\Enums;
+namespace App\Enums;
 
 /**
  * xAI text model ids used with Laravel AI's #[Model] attribute.

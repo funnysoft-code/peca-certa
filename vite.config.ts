@@ -57,6 +57,8 @@ export default defineConfig({
             'resources/js/actions/*',
             'resources/js/routes/*',
             'resources/js/wayfinder/*',
+            // Spatie typescript:transform output — keep raw writer format for CI drift checks.
+            'resources/js/types/generated.d.ts',
         ],
     },
     staged: {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Ai\Enums;
+namespace App\Enums;
 
 /**
  * Grok 4.3 reasoning effort levels (Responses API reasoning.effort).

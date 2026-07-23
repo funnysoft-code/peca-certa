@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Ai\Concerns;
 
 use App\Ai\Attributes\Reasoning;
-use App\Ai\Enums\ReasoningEffort;
+use App\Enums\ReasoningEffort;
 use Laravel\Ai\Enums\Lab;
 use ReflectionClass;
 

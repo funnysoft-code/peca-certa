@@ -399,6 +399,7 @@ final readonly class UpdateProjectCosts
                 if ($name === null) {
                     continue;
                 }
+
                 if (! $this->isSharedName($name, $prefixes)) {
                     continue;
                 }
@@ -946,9 +947,11 @@ final readonly class UpdateProjectCosts
                 if (! $at instanceof CarbonImmutable) {
                     continue;
                 }
+
                 if ($at->lt($start)) {
                     continue;
                 }
+
                 if ($at->gte($endExclusive)) {
                     continue;
                 }

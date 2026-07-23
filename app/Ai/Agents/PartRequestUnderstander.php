@@ -6,8 +6,8 @@ namespace App\Ai\Agents;
 
 use App\Ai\Attributes\Reasoning;
 use App\Ai\Concerns\UsesXaiProviderOptions;
-use App\Ai\Enums\ReasoningEffort;
-use App\Ai\Enums\XaiModel;
+use App\Enums\ReasoningEffort;
+use App\Enums\XaiModel;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Attributes\Model;
 use Laravel\Ai\Attributes\Provider;

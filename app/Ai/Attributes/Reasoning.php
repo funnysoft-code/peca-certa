@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Ai\Attributes;
 
-use App\Ai\Enums\ReasoningEffort;
+use App\Enums\ReasoningEffort;
 use Attribute;
 
 /**
