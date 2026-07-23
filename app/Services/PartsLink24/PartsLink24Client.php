@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\PartsLink24;
 
 use GuzzleHttp\Cookie\CookieJar;
+use GuzzleHttp\Cookie\SetCookie;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Date;
@@ -470,36 +471,72 @@ final readonly class PartsLink24Client
 
     private function login(string $base, CookieJar $jar): void
     {
-        $preferSqueeze = (bool) config('suppliers.partslink24.squeeze_out', false);
+        $preferSqueeze = (bool) config('suppliers.partslink24.squeeze_out', true);
 
-        // Prefer configured squeezeOut. If true is rejected (403), fall back to false.
-        // F7T-111: this account returns 403 for squeezeOut=true; false may return
-        // USER_ALREADY_LOGGED_IN without a session when another client holds the seat.
-        $response = $this->postLogin($base, $jar, $preferSqueeze);
+        // Order: configured preference first, then the opposite. Live accounts vary:
+        // - squeezeOut=true may 403 OR succeed with a PL24TOKEN cookie (JSON token often null)
+        // - squeezeOut=false may return USER_ALREADY_LOGGED_IN with no cookie when the seat is taken
+        $attempts = $preferSqueeze ? [true, false] : [false, true];
 
-        if ($response->status() === 403 && $preferSqueeze) {
-            $response = $this->postLogin($base, $jar, false);
+        $lastResponse = null;
+        $lastStatus = null;
+
+        foreach ($attempts as $squeezeOut) {
+            // Fresh jar per attempt so a failed USER_ALREADY_LOGGED_IN response
+            // does not leave a half-empty cookie state.
+            $attemptJar = new CookieJar;
+            $response = $this->postLogin($base, $attemptJar, $squeezeOut);
+            $lastResponse = $response;
+            $lastStatus = $response->json('status');
+
+            if ($response->status() === 403) {
+                continue;
+            }
+
+            if ($response->failed()) {
+                $response->throw();
+            }
+
+            if ($this->loginEstablishedSession($response, $attemptJar)) {
+                foreach ($attemptJar->toArray() as $cookie) {
+                    $jar->setCookie(new SetCookie($cookie));
+                }
+
+                return;
+            }
         }
 
-        if ($response->failed()) {
-            $response->throw();
+        if ($lastResponse->failed()) {
+            $lastResponse->throw();
         }
 
-        $status = $response->json('status');
-        $token = $response->json('token');
-
-        if (is_string($token) && $token !== '') {
-            return;
-        }
-
-        // 200 without session token: almost always another active PL24 session.
-        $label = is_string($status) ? $status : 'unknown';
+        $label = is_string($lastStatus) ? $lastStatus : 'unknown';
 
         throw new RuntimeException(
             'PartsLink24 login did not establish a session (status='.$label.'). '
-            .'Another session is likely active and squeezeOut is rejected (403) for this account. '
+            .'Another session may be active, or squeezeOut is rejected for this account. '
             .'Log out browser/other app sessions for this PL24 user, or use a dedicated app account.',
         );
+    }
+
+    private function loginEstablishedSession(Response $response, CookieJar $jar): bool
+    {
+        $token = $response->json('token');
+
+        if (is_string($token) && $token !== '') {
+            return true;
+        }
+
+        // Successful squeeze-out often sets PL24TOKEN with a null JSON "token" field.
+        foreach ($jar->toArray() as $cookie) {
+            $name = $cookie['Name'] ?? '';
+
+            if (is_string($name) && $name !== '' && str_contains(mb_strtoupper($name), 'PL24')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function postLogin(string $base, CookieJar $jar, bool $squeezeOut): Response
