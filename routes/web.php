@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DeleteUserController;
 use App\Http\Controllers\Admin\ResendUserInviteController;
+use App\Http\Controllers\Admin\RestoreUserController;
 use App\Http\Controllers\Admin\RoleController as AdminRoleController;
 use App\Http\Controllers\Admin\UpdateUserRoleController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
@@ -97,6 +98,10 @@ Route::middleware(['auth', 'verified'])->group(function (): void {
             Route::delete('users/{user}', DeleteUserController::class)
                 ->middleware('permission:'.Permissions::UsersManage)
                 ->name('users.destroy');
+            Route::post('users/{user}/restore', RestoreUserController::class)
+                ->middleware('permission:'.Permissions::UsersManage)
+                ->withTrashed()
+                ->name('users.restore');
 
             Route::get('roles', [AdminRoleController::class, 'index'])
                 ->middleware('permission:'.Permissions::RolesView)

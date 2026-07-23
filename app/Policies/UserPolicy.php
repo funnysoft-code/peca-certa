@@ -36,6 +36,13 @@ final class UserPolicy
 
     public function delete(User $user, User $model): bool
     {
-        return $user->can(Permissions::UsersManage) && ! $user->is($model);
+        return $user->can(Permissions::UsersManage)
+            && ! $user->is($model)
+            && ! $model->trashed();
+    }
+
+    public function restore(User $user, User $model): bool
+    {
+        return $user->can(Permissions::UsersManage) && $model->trashed();
     }
 }

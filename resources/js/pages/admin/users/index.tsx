@@ -1,5 +1,5 @@
 import { Form, Head, router, usePage } from '@inertiajs/react';
-import { Mail, Search, Trash2, UserPlus, Users } from 'lucide-react';
+import { Mail, RotateCcw, Search, Trash2, UserPlus, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { AdminSubnav } from '@/components/admin/admin-subnav';
 import InputError from '@/components/input-error';
@@ -48,6 +48,7 @@ import {
     destroy as destroyUser,
     index as usersIndex,
     resendInvite,
+    restore as restoreUser,
     store as usersStore,
     updateRole,
 } from '@/routes/admin/users';
@@ -57,10 +58,11 @@ type AdminUser = {
     id: string;
     name: string;
     email: string;
-    status: 'pending' | 'active';
+    status: 'pending' | 'active' | 'deleted';
     roles: string[];
     email_verified_at: string | null;
     created_at: string | null;
+    deleted_at: string | null;
 };
 
 type Paginator<T> = {
@@ -73,46 +75,65 @@ type Paginator<T> = {
     per_page: number;
 };
 
-type StatusFilter = 'all' | 'active' | 'pending';
+type StatusFilter = 'all' | 'active' | 'pending' | 'deleted';
 
 type Props = {
     users: Paginator<AdminUser>;
     roles: string[];
+    filters: {
+        status: StatusFilter;
+    };
+    counts: {
+        all: number;
+        active: number;
+        pending: number;
+        deleted: number;
+    };
     can: {
         invite: boolean;
         manageRoles: boolean;
         delete: boolean;
+        restore: boolean;
     };
 };
 
-export default function AdminUsersIndex({ users, roles, can }: Props) {
+export default function AdminUsersIndex({
+    users,
+    roles,
+    filters,
+    counts,
+    can,
+}: Props) {
     const { auth } = usePage<{ auth: Auth }>().props;
     const [inviteOpen, setInviteOpen] = useState(false);
     const [query, setQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+    const statusFilter = filters.status;
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
 
-        return users.data.filter((user) => {
-            if (statusFilter !== 'all' && user.status !== statusFilter) {
-                return false;
-            }
+        if (q === '') {
+            return users.data;
+        }
 
-            if (q === '') {
-                return true;
-            }
-
-            return (
+        return users.data.filter(
+            (user) =>
                 user.name.toLowerCase().includes(q) ||
-                user.email.toLowerCase().includes(q)
-            );
-        });
-    }, [users.data, query, statusFilter]);
+                user.email.toLowerCase().includes(q),
+        );
+    }, [users.data, query]);
 
-    const pendingCount = users.data.filter(
-        (u) => u.status === 'pending',
-    ).length;
+    const setStatusFilter = (status: StatusFilter) => {
+        router.get(
+            usersIndex.url({
+                query: status === 'all' ? {} : { status },
+            }),
+            {},
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    };
+
+    const isDeletedView = statusFilter === 'deleted';
 
     return (
         <>
@@ -131,12 +152,19 @@ export default function AdminUsersIndex({ users, roles, can }: Props) {
                         </h1>
                         <p className="max-w-xl text-sm text-muted-foreground">
                             Operadores com acesso à plataforma.
-                            {pendingCount > 0 && (
+                            {counts.pending > 0 && (
                                 <span className="text-amber-200/90">
                                     {' '}
-                                    {pendingCount} convite
-                                    {pendingCount === 1 ? '' : 's'} pendente
-                                    {pendingCount === 1 ? '' : 's'}.
+                                    {counts.pending} convite
+                                    {counts.pending === 1 ? '' : 's'} pendente
+                                    {counts.pending === 1 ? '' : 's'}.
+                                </span>
+                            )}
+                            {counts.deleted > 0 && (
+                                <span className="text-muted-foreground">
+                                    {' '}
+                                    {counts.deleted} removido
+                                    {counts.deleted === 1 ? '' : 's'}.
                                 </span>
                             )}
                         </p>
@@ -237,11 +265,12 @@ export default function AdminUsersIndex({ users, roles, can }: Props) {
                         <div className="flex flex-wrap items-center gap-2">
                             {(
                                 [
-                                    ['all', 'Todos'],
-                                    ['active', 'Ativos'],
-                                    ['pending', 'Pendentes'],
+                                    ['all', 'Todos', counts.all],
+                                    ['active', 'Ativos', counts.active],
+                                    ['pending', 'Pendentes', counts.pending],
+                                    ['deleted', 'Removidos', counts.deleted],
                                 ] as const
-                            ).map(([value, label]) => (
+                            ).map(([value, label, count]) => (
                                 <Button
                                     key={value}
                                     type="button"
@@ -259,10 +288,14 @@ export default function AdminUsersIndex({ users, roles, can }: Props) {
                                     onClick={() => setStatusFilter(value)}
                                 >
                                     {label}
+                                    <span className="ml-1 tabular-nums opacity-70">
+                                        {count}
+                                    </span>
                                 </Button>
                             ))}
                             <span className="text-xs text-muted-foreground sm:ml-1">
-                                {filtered.length} de {users.total}
+                                {filtered.length}
+                                {query ? ` de ${users.total}` : ''}
                             </span>
                         </div>
                     </div>
@@ -273,13 +306,18 @@ export default function AdminUsersIndex({ users, roles, can }: Props) {
                                 <EmptyMedia variant="icon">
                                     <Users />
                                 </EmptyMedia>
-                                <EmptyTitle>Sem utilizadores</EmptyTitle>
+                                <EmptyTitle>
+                                    {isDeletedView
+                                        ? 'Nenhum removido'
+                                        : 'Sem utilizadores'}
+                                </EmptyTitle>
                                 <EmptyDescription>
-                                    Convide o primeiro operador com nome e
-                                    email.
+                                    {isDeletedView
+                                        ? 'Não há utilizadores soft-deleted para restaurar.'
+                                        : 'Convide o primeiro operador com nome e email.'}
                                 </EmptyDescription>
                             </EmptyHeader>
-                            {can.invite && (
+                            {can.invite && !isDeletedView && (
                                 <Button
                                     className="mt-2 gap-2"
                                     onClick={() => setInviteOpen(true)}
@@ -375,7 +413,14 @@ export default function AdminUsersIndex({ users, roles, can }: Props) {
                                                         />
                                                     </TableCell>
                                                     <TableCell>
-                                                        {can.manageRoles ? (
+                                                        {user.status ===
+                                                        'deleted' ? (
+                                                            <span className="text-sm text-muted-foreground">
+                                                                {roleLabel(
+                                                                    role,
+                                                                )}
+                                                            </span>
+                                                        ) : can.manageRoles ? (
                                                             <Select
                                                                 value={role}
                                                                 onValueChange={(
@@ -441,6 +486,9 @@ export default function AdminUsersIndex({ users, roles, can }: Props) {
                                                             canDelete={
                                                                 can.delete
                                                             }
+                                                            canRestore={
+                                                                can.restore
+                                                            }
                                                         />
                                                     </TableCell>
                                                 </TableRow>
@@ -494,7 +542,8 @@ export default function AdminUsersIndex({ users, roles, can }: Props) {
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap items-center justify-between gap-3">
-                                                {can.manageRoles ? (
+                                                {user.status !== 'deleted' &&
+                                                can.manageRoles ? (
                                                     <Select
                                                         value={role}
                                                         onValueChange={(
@@ -541,6 +590,7 @@ export default function AdminUsersIndex({ users, roles, can }: Props) {
                                                     isSelf={isSelf}
                                                     canInvite={can.invite}
                                                     canDelete={can.delete}
+                                                    canRestore={can.restore}
                                                     compact={false}
                                                 />
                                             </div>
@@ -556,7 +606,7 @@ export default function AdminUsersIndex({ users, roles, can }: Props) {
     );
 }
 
-function StatusBadge({ status }: { status: 'pending' | 'active' }) {
+function StatusBadge({ status }: { status: 'pending' | 'active' | 'deleted' }) {
     if (status === 'pending') {
         return (
             <Badge
@@ -564,6 +614,17 @@ function StatusBadge({ status }: { status: 'pending' | 'active' }) {
                 className="border-amber-500/40 bg-amber-500/10 text-amber-200"
             >
                 Pendente
+            </Badge>
+        );
+    }
+
+    if (status === 'deleted') {
+        return (
+            <Badge
+                variant="outline"
+                className="border-muted-foreground/30 bg-muted/40 text-muted-foreground"
+            >
+                Removido
             </Badge>
         );
     }
@@ -583,29 +644,28 @@ function UserRowActions({
     isSelf,
     canInvite,
     canDelete,
+    canRestore,
     compact = true,
 }: {
     user: AdminUser;
     isSelf: boolean;
     canInvite: boolean;
     canDelete: boolean;
+    canRestore: boolean;
     compact?: boolean;
 }) {
     const [confirmOpen, setConfirmOpen] = useState(false);
+    const isDeleted = user.status === 'deleted';
     const showResend = canInvite && user.status === 'pending';
-    const showDelete = canDelete && !isSelf;
+    const showDelete = canDelete && !isSelf && !isDeleted;
+    const showRestore = canRestore && isDeleted;
 
-    if (!showResend && !showDelete) {
+    if (!showResend && !showDelete && !showRestore) {
         return null;
     }
 
     return (
-        <div
-            className={cn(
-                'flex items-center gap-1.5',
-                compact ? 'justify-end' : 'justify-end',
-            )}
-        >
+        <div className="flex items-center justify-end gap-1.5">
             {showResend && (
                 <Form
                     {...resendInvite.form(user.id)}
@@ -625,6 +685,30 @@ function UserRowActions({
                                 <Mail className="size-3.5" />
                             )}
                             Reenviar
+                        </Button>
+                    )}
+                </Form>
+            )}
+
+            {showRestore && (
+                <Form
+                    {...restoreUser.form(user.id)}
+                    options={{ preserveScroll: true }}
+                >
+                    {({ processing }) => (
+                        <Button
+                            type="submit"
+                            variant={compact ? 'ghost' : 'outline'}
+                            size="sm"
+                            disabled={processing}
+                            className="gap-1.5 text-brand hover:bg-brand/10 hover:text-brand"
+                        >
+                            {processing ? (
+                                <Spinner />
+                            ) : (
+                                <RotateCcw className="size-3.5" />
+                            )}
+                            Restaurar
                         </Button>
                     )}
                 </Form>
@@ -651,8 +735,8 @@ function UserRowActions({
                                     {user.name}
                                 </span>{' '}
                                 ({user.email}) será removido da equipa e deixa
-                                de poder aceder. Pode voltar a convidar o mesmo
-                                email mais tarde.
+                                de poder aceder. Pode restaurá-lo mais tarde em
+                                Removidos, ou convidar de novo o mesmo email.
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter className="gap-2 sm:gap-0">

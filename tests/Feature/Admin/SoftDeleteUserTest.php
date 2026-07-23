@@ -96,7 +96,7 @@ test('email can be re-invited after soft delete', function (): void {
         ->and(User::withTrashed()->where('email', 'reinvite@example.com')->count())->toBe(2);
 });
 
-test('soft deleted users are hidden from the admin list', function (): void {
+test('soft deleted users are hidden from the default admin list', function (): void {
     $admin = User::factory()->admin()->create();
     $target = User::factory()->create([
         'name' => 'Gone User',
@@ -114,5 +114,65 @@ test('soft deleted users are hidden from the admin list', function (): void {
             ->where('users.data', fn ($data): bool => collect($data)->every(
                 fn (array $row): bool => $row['email'] !== 'gone@example.com',
             ))
+            ->where('counts.deleted', 1)
         );
+});
+
+test('admin can list and restore a soft deleted user', function (): void {
+    $admin = User::factory()->admin()->create();
+    $target = User::factory()->create([
+        'name' => 'Restorable',
+        'email' => 'restore-me@example.com',
+    ]);
+
+    $target->delete();
+
+    $this->actingAs($admin)
+        ->get(route('admin.users.index', ['status' => 'deleted']))
+        ->assertOk()
+        ->assertInertia(fn ($page) => $page
+            ->component('admin/users/index')
+            ->where('filters.status', 'deleted')
+            ->where('users.data', fn ($data): bool => collect($data)->contains(
+                fn (array $row): bool => $row['email'] === 'restore-me@example.com'
+                    && $row['status'] === 'deleted',
+            ))
+        );
+
+    $this->actingAs($admin)
+        ->post(route('admin.users.restore', $target))
+        ->assertRedirect(route('admin.users.index', ['status' => 'all']));
+
+    expect(User::query()->whereKey($target->id)->exists())->toBeTrue()
+        ->and(User::query()->find($target->id)?->trashed())->toBeFalse();
+});
+
+test('cannot restore when the email is already used by an active user', function (): void {
+    $admin = User::factory()->admin()->create();
+    $trashed = User::factory()->create([
+        'email' => 'clash@example.com',
+    ]);
+    $trashed->delete();
+
+    User::factory()->create([
+        'email' => 'clash@example.com',
+    ]);
+
+    $this->actingAs($admin)
+        ->from(route('admin.users.index', ['status' => 'deleted']))
+        ->post(route('admin.users.restore', $trashed))
+        ->assertRedirect(route('admin.users.index', ['status' => 'deleted']))
+        ->assertSessionHasErrors('user');
+
+    expect(User::withTrashed()->find($trashed->id)?->trashed())->toBeTrue();
+});
+
+test('regular user cannot restore users', function (): void {
+    $user = User::factory()->create();
+    $target = User::factory()->create();
+    $target->delete();
+
+    $this->actingAs($user)
+        ->post(route('admin.users.restore', $target))
+        ->assertForbidden();
 });
