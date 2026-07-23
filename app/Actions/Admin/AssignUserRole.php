@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Actions\Admin;
 
+use App\Models\Role;
 use App\Models\User;
 use App\Support\Permissions;
 use Illuminate\Validation\ValidationException;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 final readonly class AssignUserRole

@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Models\Role;
 use App\Models\User;
 use App\Support\Permissions;
 use Inertia\Testing\AssertableInertia as Assert;
-use Spatie\Permission\Models\Role;
 
 test('admin can view users index', function (): void {
     $admin = User::factory()->admin()->create();

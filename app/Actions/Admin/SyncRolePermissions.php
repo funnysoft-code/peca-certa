@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Admin;
 
+use App\Models\Role;
 use App\Support\Permissions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 final readonly class SyncRolePermissions

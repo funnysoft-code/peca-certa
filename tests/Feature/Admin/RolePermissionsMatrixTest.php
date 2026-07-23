@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Models\Role;
 use App\Models\User;
 use App\Support\Permissions;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 test('admin can update role permission matrix and cache is cleared', function (): void {

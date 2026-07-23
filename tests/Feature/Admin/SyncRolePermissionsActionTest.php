@@ -3,10 +3,10 @@
 declare(strict_types=1);
 
 use App\Actions\Admin\SyncRolePermissions;
+use App\Models\Role;
 use App\Support\Permissions;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Validation\ValidationException;
-use Spatie\Permission\Models\Role;
 
 beforeEach(function (): void {
     (new RolesAndPermissionsSeeder)->run();

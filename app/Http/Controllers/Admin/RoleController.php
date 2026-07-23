@@ -7,13 +7,13 @@ namespace App\Http\Controllers\Admin;
 use App\Actions\Admin\SyncRolePermissions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\SyncRolePermissionsRequest;
+use App\Models\Role;
 use App\Support\Permissions;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\Permission\Models\Permission;
-use Spatie\Permission\Models\Role;
 
 final class RoleController extends Controller
 {
