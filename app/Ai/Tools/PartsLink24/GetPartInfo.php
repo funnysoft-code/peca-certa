@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Ai\Tools\PartsLink24;
 
 use App\Ai\Tools\PartsLink24\Concerns\ResolvesPartsLink24Brand;
+use App\Ai\Tools\PartsLink24\Concerns\SoftFailsPartsLink24Http;
 use App\Services\PartsLink24\PartsLink24Brand;
 use App\Services\PartsLink24\PartsLink24Client;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -15,6 +16,7 @@ use Laravel\Ai\Tools\Request;
 final class GetPartInfo implements Tool
 {
     use ResolvesPartsLink24Brand;
+    use SoftFailsPartsLink24Http;
 
     public function __construct(
         private PartsLink24Client $client,
@@ -27,29 +29,31 @@ final class GetPartInfo implements Tool
 
     public function description(): string
     {
-        return 'Load part detail for a BOM position. partinfoPartno and pos come from list_bom_parts (not the full OE).';
+        return 'Load part detail for a BOM position. partinfoPartno and pos come from list_bom_parts (not the full OE). Returns ok:false http_error on 4xx/5xx.';
     }
 
     public function handle(Request $request): string
     {
-        $vin = (string) $request->string('vin');
-        $mainGroupId = (string) $request->string('mainGroupId');
-        $btnr = (string) $request->string('btnr');
-        $partinfoPartno = (string) $request->string('partinfoPartno');
-        $pos = (string) $request->string('pos');
-        $brand = $this->brandForVin($vin);
+        return $this->withSoftHttp(function () use ($request): string {
+            $vin = (string) $request->string('vin');
+            $mainGroupId = (string) $request->string('mainGroupId');
+            $btnr = (string) $request->string('btnr');
+            $partinfoPartno = (string) $request->string('partinfoPartno');
+            $pos = (string) $request->string('pos');
+            $brand = $this->brandForVin($vin);
 
-        if (! $brand instanceof PartsLink24Brand) {
-            return json_encode($this->unsupportedBrand(), JSON_THROW_ON_ERROR);
-        }
+            if (! $brand instanceof PartsLink24Brand) {
+                return json_encode($this->unsupportedBrand(), JSON_THROW_ON_ERROR);
+            }
 
-        $info = $this->client->getPartInfo($brand, $vin, $mainGroupId, $btnr, $partinfoPartno, $pos);
+            $info = $this->client->getPartInfo($brand, $vin, $mainGroupId, $btnr, $partinfoPartno, $pos);
 
-        if ($info === null) {
-            return json_encode(['ok' => false, 'error' => 'not_found'], JSON_THROW_ON_ERROR);
-        }
+            if ($info === null) {
+                return json_encode(['ok' => false, 'error' => 'not_found'], JSON_THROW_ON_ERROR);
+            }
 
-        return json_encode(['ok' => true, ...$info], JSON_THROW_ON_ERROR);
+            return json_encode(['ok' => true, ...$info], JSON_THROW_ON_ERROR);
+        });
     }
 
     /**

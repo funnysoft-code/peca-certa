@@ -88,6 +88,14 @@ return [
                 'landrover' => ['service' => 'landrover_parts', 'group' => 'p5jlr'],
                 'man' => ['service' => 'man_parts', 'group' => 'p5man'],
             ],
+            // Shared-platform families for careful multi-catalog decode (session cost: short lists only).
+            'families' => [
+                'psa' => ['opel', 'peugeot', 'citroen'],
+                'vwag' => ['vw', 'audi', 'seat', 'skoda', 'porsche'],
+                'bmw' => ['mini', 'bmw'],
+                'renault' => ['renault', 'dacia'],
+                'jlr' => ['jaguar', 'landrover'],
+            ],
         ],
     ],
 ];

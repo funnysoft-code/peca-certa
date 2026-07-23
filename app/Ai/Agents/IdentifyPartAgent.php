@@ -73,9 +73,10 @@ final readonly class IdentifyPartAgent implements Agent, Conversational, HasProv
             3. Se tiveres confiança alta em 1 ou N OEs sem ambiguidade, status=selected e preenche oeParts (oeNumber, description, brand="OE").
             4. Se estiveres inseguro sobre a peça (não sobre a marca), status=needs_input: pergunta em PT-PT sobre modelo/lado/variante da peça, options com 2–6 escolhas concretas (quando possível), e oeParts vazio. NÃO continues a chamar ferramentas depois de decidires perguntar — a resposta estruturada é o fim do turno.
             5. Se qualquer ferramenta devolver error=unsupported_brand: NÃO perguntes modelo nem ano. status=needs_input com question a explicar que o catálogo/WMI não está configurado e options = availableBrands da ferramenta (chaves de catálogo).
-            6. Pedidos multi-peça: um único status=selected com vários oeParts.
-            7. confidence entre 0 e 1.
-            8. question e options só quando needs_input; caso contrário question=null e options=[].
+            6. Se uma ferramenta devolver error=http_error: não trates como crash. Tenta outra ferramenta (ex.: search falhou → decode_vin + browse) ou status=needs_input com a limitação do catálogo (sem inventar OEs).
+            7. Pedidos multi-peça: um único status=selected com vários oeParts.
+            8. confidence entre 0 e 1.
+            9. question e options só quando needs_input; caso contrário question=null e options=[].
             PROMPT;
     }
 

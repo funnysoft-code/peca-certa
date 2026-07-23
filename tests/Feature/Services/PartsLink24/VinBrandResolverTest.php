@@ -67,3 +67,11 @@ it('lists configured catalog keys including man and opel', function (): void {
 
     expect($keys)->toContain('opel', 'man', 'mini');
 });
+
+it('returns PSA family fallbacks excluding the primary brand', function (): void {
+    $siblings = resolve(VinBrandResolver::class)->familyFallbackKeys('opel');
+
+    expect($siblings)->toContain('peugeot', 'citroen')
+        ->and($siblings)->not->toContain('opel')
+        ->and(resolve(VinBrandResolver::class)->familyFallbackKeys('man'))->toBe([]);
+});

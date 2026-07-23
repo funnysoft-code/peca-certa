@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Ai\Tools\PartsLink24;
 
 use App\Ai\Tools\PartsLink24\Concerns\ResolvesPartsLink24Brand;
+use App\Ai\Tools\PartsLink24\Concerns\SoftFailsPartsLink24Http;
 use App\Services\PartsLink24\PartsLink24Brand;
 use App\Services\PartsLink24\PartsLink24Client;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -15,6 +16,7 @@ use Laravel\Ai\Tools\Request;
 final class SearchPartsByVin implements Tool
 {
     use ResolvesPartsLink24Brand;
+    use SoftFailsPartsLink24Http;
 
     public function __construct(
         private PartsLink24Client $client,
@@ -27,22 +29,24 @@ final class SearchPartsByVin implements Tool
 
     public function description(): string
     {
-        return 'Search OE parts for a VIN with an English free-text query (e.g. "oil filter"). Results can be noisy; confirm with BOM when unsure.';
+        return 'Search OE parts for a VIN with an English free-text query (e.g. "oil filter"). Results can be noisy; confirm with BOM when unsure. Returns ok:false http_error on 4xx/5xx.';
     }
 
     public function handle(Request $request): string
     {
-        $vin = (string) $request->string('vin');
-        $query = (string) $request->string('query');
-        $brand = $this->brandForVin($vin);
+        return $this->withSoftHttp(function () use ($request): string {
+            $vin = (string) $request->string('vin');
+            $query = (string) $request->string('query');
+            $brand = $this->brandForVin($vin);
 
-        if (! $brand instanceof PartsLink24Brand) {
-            return json_encode($this->unsupportedBrand(), JSON_THROW_ON_ERROR);
-        }
+            if (! $brand instanceof PartsLink24Brand) {
+                return json_encode($this->unsupportedBrand(), JSON_THROW_ON_ERROR);
+            }
 
-        $results = $this->client->searchByVin($brand, $vin, $query);
+            $results = $this->client->searchByVin($brand, $vin, $query);
 
-        return json_encode(['ok' => true, 'results' => $results], JSON_THROW_ON_ERROR);
+            return json_encode(['ok' => true, 'results' => $results], JSON_THROW_ON_ERROR);
+        });
     }
 
     /**

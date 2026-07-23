@@ -1,0 +1,163 @@
+{
+    "data": {
+        "vin": "WMA06XZZ8HM753386",
+        "description": "TGX 18T 4X2 BL D20/D26..",
+        "resultStatus": "VEHICLE_IDENTIFIED",
+        "segments": {
+            "vinfoBasic": {
+                "records": [
+                    {
+                        "values": {
+                            "description": "Vehicle type description",
+                            "value": "TGX 18T 4X2 BL D20/D26.."
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Vehicle no.",
+                            "value": "06XC3V5"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Vehicle Identification No.",
+                            "value": "WMA06XZZ8HM753386"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Vehicle base no.",
+                            "value": "06XSJ31"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Engine no.",
+                            "value": "51548002704807"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Spare engine",
+                            "value": "D 2676 LF51"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Type",
+                            "value": "M51500"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Pet",
+                            "value": "16.17"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Market launch",
+                            "value": "01.08.2006"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Vehicle type",
+                            "value": "SA"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Suspension type",
+                            "value": "BL"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Steering system",
+                            "value": "L"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Wheel base",
+                            "value": "3600"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Overhang",
+                            "value": "800"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Sonderoverhang",
+                            "value": "-"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Transmission",
+                            "value": "GZ 2700 DD 01488125"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Steering",
+                            "value": "-"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Powertrain",
+                            "value": "04X02"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Transfer case",
+                            "value": "-"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Front axle 1",
+                            "value": "000000/040793 | VOK-07-10"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Front axle 2",
+                            "value": "-"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Front axle 3",
+                            "value": "-"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Rear axle 1",
+                            "value": "600741/043756 | HY-135012"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Rear axle 2",
+                            "value": "-"
+                        }
+                    },
+                    {
+                        "values": {
+                            "description": "Rear axle 3",
+                            "value": "-"
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}

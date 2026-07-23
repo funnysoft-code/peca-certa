@@ -54,4 +54,29 @@ final readonly class VinBrandResolver
 
         return array_keys($catalogs);
     }
+
+    /**
+     * Sibling catalog keys that share a platform family (for careful multi-catalog decode).
+     * Excludes the primary key. Empty when no family is configured.
+     *
+     * @return list<string>
+     */
+    public function familyFallbackKeys(string $primaryKey): array
+    {
+        /** @var array<string, list<string>> $families */
+        $families = config('suppliers.partslink24.brands.families', []);
+
+        foreach ($families as $members) {
+            if (! in_array($primaryKey, $members, true)) {
+                continue;
+            }
+
+            return array_values(array_filter(
+                $members,
+                fn (string $key): bool => $key !== $primaryKey,
+            ));
+        }
+
+        return [];
+    }
 }

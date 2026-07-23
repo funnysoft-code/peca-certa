@@ -54,3 +54,47 @@ Live-captured (redacted) under `tests/Fixtures/PartsLink24/`:
 ## Client methods (implemented)
 
 See `docs/partslink24/agent-tool-contract.md` for the frozen F7T-48 tool list mapped onto `PartsLink24Client`.
+
+---
+
+## MAN Truck & Bus recon (F7T-95)
+
+Live recon date: 2026-07-23. Catalog: **MAN** (`service=man_parts`, `group=p5man`). VIN: `WMA06XZZ8HM753386` (TGX 18T 4X2 BL D20/D26).
+
+### Working
+
+| Capability | Endpoint | Result |
+| --- | --- | --- |
+| VIN decode / vehicle info | `GET /p5man/extern/directAccess` | **Works.** `resultStatus=VEHICLE_IDENTIFIED`, description `TGX 18T 4X2 BL D20/D26..`, basic fields (type, engine, axles, etc.). Fixture: `man-direct-access.json`. |
+
+### Broken / non-car UI paths
+
+| Capability | Endpoint | Result |
+| --- | --- | --- |
+| Free-text VIN search | `GET /p5man/extern/search/vin` | **HTTP 400.** Server-side Jackson error on `ManSearchRes` / `referenceNo` (response shape differs from Mini/car catalogs). Fixture: `man-search-error.json`. |
+| Main groups | `GET /p5man/extern/groups/main-vin` | **HTTP 500** body `{ "demo": false }`. Car-style group browser not available. Fixture: `man-main-error.json`. |
+| Func / sub groups | `GET /p5man/extern/groups/func-vin` | **HTTP 500** wrapping 404. Fixture: `man-func-error.json`. |
+| BOM | `GET /p5man/extern/bom/vin` | **HTTP 500.** Fixture: `man-bom-error.json`. |
+
+### Interpretation
+
+- MAN uses the same auth + `directAccess` path family as cars, but **search/groups/BOM car paths are not viable** on this account/catalog for the tested VIN.
+- Truck UI (Truck / Bus / TGE / Engine selectors in the browser) likely maps to non-`extern/search` / non-`main-vin` flows that we have not reverse-engineered yet.
+- Agent impact: `decode_vin` is usable; `search_parts_by_vin` / browse tools return soft `http_error` JSON (F7T-95) instead of killing the job. Operator may need OE from plate/invoice for MAN pricing until truck-specific paths exist.
+
+### Fixtures
+
+Under `tests/Fixtures/PartsLink24/`:
+
+- `man-direct-access.json` (working decode)
+- `man-search-error.json`, `man-main-error.json`, `man-func-error.json`, `man-bom-error.json` (status + body snippets)
+
+### Soft-fail contract
+
+Tools catch `RequestException` / transport errors and return:
+
+```json
+{ "ok": false, "error": "http_error", "status": 400, "body": "…" }
+```
+
+`IdentifyAgentJob` (Tries=1) must not end as empty `failed` solely because a catalog endpoint 4xx/5xx.

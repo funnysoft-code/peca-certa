@@ -1,0 +1,4 @@
+{
+    "status": 400,
+    "body": "begin 0, end 2, length 1 (through reference chain: de.lexcom.pl24.parts.jaxrs.extern.model.P5SearchResponse[\"data\"]->de.lexcom.pl24.parts.jaxrs.extern.model.P5SearchResponse$P5SearchResultPage[\"records\"]->java.util.LinkedList[0]->de.lexcom.pl24.parts.jaxrs.extern.model.P5TableRecordSearch[\"values\"]->de.lexcom.pl24.parts.man.jaxrs.extern.ManSearchRes$2[\"referenceNo\"])"
+}
