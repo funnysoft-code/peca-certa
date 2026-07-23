@@ -9,6 +9,18 @@
     "browser": {
         "binding": "BROWSER"
     },
+    // Persist portal cookies across Browser Rendering session deaths.
+    "kv_namespaces": [
+        {
+            "binding": "SESSION_KV",
+            "id": "03ee2c1f9f2b4eccbffa323d76c7408c",
+            "preview_id": "a7009f2a2c8a4ab7bfe2f5640247e05d"
+        }
+    ],
+    // Touch the warm browser every 8 minutes so keep_alive (10m) does not expire.
+    "triggers": {
+        "crons": ["*/8 * * * *"]
+    },
     // Playwright login + ERP polling is wall-clock heavy; CPU is mostly idle waits.
     "limits": {
         "cpu_ms": 300000
