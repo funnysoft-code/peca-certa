@@ -525,10 +525,7 @@ final readonly class PartsLink24Client
     private function hasPl24SessionCookie(CookieJar $jar): bool
     {
         foreach ($jar->toArray() as $cookie) {
-            if (! is_array($cookie)) {
-                continue;
-            }
-
+            /** @var array<string, mixed> $cookie */
             $name = $cookie['Name'] ?? null;
 
             if (is_string($name) && $name !== '' && str_contains(mb_strtoupper($name), 'PL24')) {
@@ -542,10 +539,6 @@ final readonly class PartsLink24Client
     private function copySessionCookies(CookieJar $from, CookieJar $to): void
     {
         foreach ($from->toArray() as $cookie) {
-            if (! is_array($cookie)) {
-                continue;
-            }
-
             /** @var array<string, mixed> $cookie */
             $to->setCookie(new SetCookie($cookie));
         }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Actions\RunIdentifyAgentTurn;
 use App\Ai\Agents\IdentifyPartAgent;
+use App\Ai\Tools\PartsLink24\Concerns\SoftFailsPartsLink24Http;
 use App\Ai\Tools\PartsLink24\DecodeVin;
 use App\Ai\Tools\PartsLink24\ListBomParts;
 use App\Ai\Tools\PartsLink24\ListMainGroups;
@@ -53,6 +54,52 @@ it('search_parts_by_vin soft-fails on HTTP 400 without throwing', function (): v
         ->and($json['error'])->toBe('http_error')
         ->and($json['status'])->toBe(400)
         ->and($json['body'])->toBeString()->not->toBeEmpty();
+});
+
+it('maps authorize 403 RequestException to pl24_auth_error with status', function (): void {
+    Cache::flush();
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+        'suppliers.partslink24.base_url' => 'https://www.partslink24.com',
+    ]);
+
+    Http::fake([
+        'https://www.partslink24.com/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'status' => 'OK']),
+        'https://www.partslink24.com/auth/ext/api/1.1/authorize' => Http::response(['error' => 'Forbidden'], 403),
+    ]);
+
+    $json = json_decode((string) resolve(SearchPartsByVin::class)->handle(new Request([
+        'vin' => 'WMWSU91010T717700',
+        'query' => 'cabin filter',
+    ])), true);
+
+    expect($json['ok'])->toBeFalse()
+        ->and($json['error'])->toBe('pl24_auth_error')
+        ->and($json['status'])->toBe(403)
+        ->and($json['body'])->toContain('authentication');
+});
+
+it('maps generic throwable soft failures without auth markers', function (): void {
+    $tool = new class
+    {
+        use SoftFailsPartsLink24Http;
+
+        public function run(): string
+        {
+            return $this->withSoftHttp(function (): string {
+                throw new RuntimeException('unexpected boom');
+            });
+        }
+    };
+
+    $json = json_decode($tool->run(), true);
+
+    expect($json['ok'])->toBeFalse()
+        ->and($json['error'])->toBe('http_error')
+        ->and($json['status'])->toBeNull()
+        ->and($json['body'])->toContain('unexpected boom');
 });
 
 it('maps login 403 to pl24_auth_error instead of generic http_error', function (): void {

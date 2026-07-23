@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Services\PartsLink24\PartsLink24Brand;
 use App\Services\PartsLink24\PartsLink24Client;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Http;
 
 function pl24Brand(): PartsLink24Brand
@@ -101,6 +102,22 @@ it('accepts a PL24TOKEN cookie as a successful login even when JSON token is nul
     $rows = resolve(PartsLink24Client::class)->searchByVin(pl24Brand(), 'WMWSU91010T717700', 'oil filter');
 
     expect($rows)->not->toBeEmpty();
+});
+
+it('throws when login returns a non-403 HTTP failure', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+        'suppliers.partslink24.squeeze_out' => true,
+    ]);
+
+    Http::fake([
+        '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['error' => 'server'], 500),
+    ]);
+
+    expect(fn () => resolve(PartsLink24Client::class)->searchByVin(pl24Brand(), 'WMWSU91010T717700', 'oil filter'))
+        ->toThrow(RequestException::class);
 });
 
 it('throws a clear error when login never establishes a session cookie or token', function (): void {

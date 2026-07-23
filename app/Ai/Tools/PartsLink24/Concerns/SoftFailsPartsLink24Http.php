@@ -23,13 +23,29 @@ trait SoftFailsPartsLink24Http
             return json_encode($this->httpErrorPayload($exception), JSON_THROW_ON_ERROR);
         } catch (Throwable $exception) {
             $message = $exception->getMessage();
-            $isSessionLock = str_contains($message, 'USER_ALREADY_LOGGED_IN')
+            $isLoginAuthFailure = str_contains($message, 'PartsLink24 login did not establish a session')
+                || str_contains($message, 'USER_ALREADY_LOGGED_IN')
                 || str_contains($message, 'squeezeOut')
-                || str_contains($message, 'Another session is likely active');
+                || str_contains($message, 'Another session is likely active')
+                || str_contains($message, 'Another session may be active');
+
+            if ($isLoginAuthFailure) {
+                $status = null;
+                if (preg_match('/status=(\d+)/', $message, $matches) === 1) {
+                    $status = (int) $matches[1];
+                }
+
+                return json_encode([
+                    'ok' => false,
+                    'error' => 'pl24_auth_error',
+                    'status' => $status,
+                    'body' => 'PartsLink24 authentication was rejected. Operator: catálogo OE indisponível; contact support (credentials/network).',
+                ], JSON_THROW_ON_ERROR);
+            }
 
             return json_encode([
                 'ok' => false,
-                'error' => $isSessionLock ? 'pl24_auth_error' : 'http_error',
+                'error' => 'http_error',
                 'status' => null,
                 'body' => mb_substr($message, 0, 500),
             ], JSON_THROW_ON_ERROR);
