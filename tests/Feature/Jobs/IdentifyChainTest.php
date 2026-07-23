@@ -10,11 +10,13 @@ use App\Data\OePart;
 use App\Enums\SearchRunStatus;
 use App\Enums\Supplier;
 use App\Events\SearchRunAdvanced;
+use App\Jobs\IdentifyAgentJob;
 use App\Jobs\IdentifyOePartsJob;
 use App\Jobs\PriceSupplierJob;
 use App\Jobs\UnderstandRequestJob;
 use App\Models\SearchRun;
 use App\Services\PartsLink24\Contracts\PartsLink24Catalog;
+use App\Support\SupplierSessionLock;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Event;
@@ -164,7 +166,24 @@ it('serializes with the partslink24 WithoutOverlapping middleware and an expiry 
 
     expect($middleware)->toHaveCount(1)
         ->and($middleware[0])->toBeInstanceOf(WithoutOverlapping::class)
-        ->and($middleware[0]->expiresAfter)->toBe(150);
+        ->and($middleware[0]->key)->toBe(SupplierSessionLock::PartsLink24)
+        ->and($middleware[0]->shareKey)->toBeTrue()
+        ->and($middleware[0]->expiresAfter)->toBe(SupplierSessionLock::ExpiresAfterSeconds)
+        ->and($middleware[0]->expiresAfter)->toBeGreaterThan(90);
+});
+
+it('shares the canonical PL24 session lock key between IdentifyOePartsJob and IdentifyAgentJob', function (): void {
+    $run = SearchRun::factory()->make();
+
+    $oePartsLock = new IdentifyOePartsJob($run)->middleware()[0];
+    $agentLocks = new IdentifyAgentJob($run)->middleware();
+
+    expect($agentLocks)->toHaveCount(2)
+        ->and($oePartsLock->key)->toBe(SupplierSessionLock::PartsLink24)
+        ->and($agentLocks[0]->key)->toBe(SupplierSessionLock::PartsLink24)
+        ->and($agentLocks[0]->shareKey)->toBeTrue()
+        ->and($agentLocks[0]->expiresAfter)->toBe(SupplierSessionLock::ExpiresAfterSeconds)
+        ->and($agentLocks[1]->key)->toBe('identify-agent:'.$run->id);
 });
 
 it('flips a running run to Failed and broadcasts when UnderstandRequestJob exhausts retries', function (): void {

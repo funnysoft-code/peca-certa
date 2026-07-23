@@ -14,6 +14,7 @@ use App\Events\SearchRunAdvanced;
 use App\Events\SupplierResultReady;
 use App\Models\SearchRun;
 use App\Models\SupplierLookup;
+use App\Support\SupplierSessionLock;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\Attributes\Tries;
@@ -42,8 +43,10 @@ final class PriceSupplierJob implements ShouldQueue
      */
     public function middleware(): array
     {
+        // Zitânia: single portal session for ALL app work (pricing + future plate/VIN identify).
+        // Always use SupplierSessionLock::autoZitania() — never a second ad-hoc key.
         return $this->lookup->supplier === Supplier::AutoZitania
-            ? [new WithoutOverlapping('zitania')->expireAfter(150)]
+            ? [SupplierSessionLock::autoZitania()]
             : [];
     }
 

@@ -8,6 +8,7 @@ use App\Actions\RunIdentifyAgentTurn;
 use App\Enums\SearchRunStatus;
 use App\Events\SearchRunAdvanced;
 use App\Models\SearchRun;
+use App\Support\SupplierSessionLock;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\Attributes\Timeout;
@@ -34,10 +35,11 @@ final class IdentifyAgentJob implements ShouldQueue
      */
     public function middleware(): array
     {
-        // Share PL24 session mutex with catalog work.
+        // PL24 session mutex shared with IdentifyOePartsJob (and any future PL24 jobs).
         return [
-            new WithoutOverlapping('partslink24')->expireAfter(150),
-            new WithoutOverlapping('identify-agent:'.$this->run->id)->expireAfter(150),
+            SupplierSessionLock::partsLink24(),
+            new WithoutOverlapping('identify-agent:'.$this->run->id)
+                ->expireAfter(SupplierSessionLock::ExpiresAfterSeconds),
         ];
     }
 

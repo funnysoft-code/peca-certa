@@ -15,6 +15,7 @@ use App\Models\Finding;
 use App\Models\SearchRun;
 use App\Models\SupplierLookup;
 use App\Services\AutoDelta\AutoDeltaToken;
+use App\Support\SupplierSessionLock;
 use Illuminate\Queue\Attributes\Tries;
 use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Support\Facades\Cache;
@@ -146,7 +147,10 @@ it('serializes without overlapping middleware for Auto Zitania only, with an exp
     expect(new PriceSupplierJob($autoDeltaLookup)->middleware())->toBe([])
         ->and($autoZitaniaMiddleware)->toHaveCount(1)
         ->and($autoZitaniaMiddleware[0])->toBeInstanceOf(WithoutOverlapping::class)
-        ->and($autoZitaniaMiddleware[0]->expiresAfter)->toBe(150);
+        ->and($autoZitaniaMiddleware[0]->key)->toBe(SupplierSessionLock::AutoZitania)
+        ->and($autoZitaniaMiddleware[0]->shareKey)->toBeTrue()
+        ->and($autoZitaniaMiddleware[0]->expiresAfter)->toBe(SupplierSessionLock::ExpiresAfterSeconds)
+        ->and($autoZitaniaMiddleware[0]->expiresAfter)->toBeGreaterThan(90);
 });
 
 it('marks the lookup failed, broadcasts, and completes the run on failure', function (): void {

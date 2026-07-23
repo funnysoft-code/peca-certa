@@ -10,6 +10,7 @@ use App\Data\PartRequestUnderstanding;
 use App\Enums\SearchRunStatus;
 use App\Events\SearchRunAdvanced;
 use App\Models\SearchRun;
+use App\Support\SupplierSessionLock;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\Attributes\Timeout;
@@ -42,7 +43,8 @@ final class IdentifyOePartsJob implements ShouldQueue
      */
     public function middleware(): array
     {
-        return [new WithoutOverlapping('partslink24')->expireAfter(150)];
+        // PL24 session mutex shared with IdentifyAgentJob (and any future PL24 jobs).
+        return [SupplierSessionLock::partsLink24()];
     }
 
     public function handle(IdentifyOeParts $identify, FanOutOePricing $fanOut): void

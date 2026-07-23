@@ -12,6 +12,17 @@
 - Constructor uses property promotion for all parameters.
 - `declare(strict_types=1)` at the top of every file.
 
+## Supplier session locks (hard rule)
+
+Dedicated app logins are live (F7T-106). Operator-vs-app contention is largely gone, but:
+
+| Portal | Rule |
+|--------|------|
+| **Auto Zitânia** | Still **one concurrent session**. All Zitânia app work (pricing **and** future plate/VIN identify) must use `SupplierSessionLock::autoZitania()`. Never invent a second key. |
+| **PartsLink24** | Dedicated account still self-evicts (`squeezeOut`). All PL24 jobs share `SupplierSessionLock::partsLink24()`. |
+
+Keys live only in `App\Support\SupplierSessionLock`. Locks are `->shared()` across job classes. Expiry: `SupplierSessionLock::ExpiresAfterSeconds` (150s).
+
 ## Patterns
 
 Job with retry attributes, batch support, and failure handling:

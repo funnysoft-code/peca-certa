@@ -5,6 +5,7 @@
 - `FakePartsLink24Catalog` remains for tests that bind it explicitly.
 - `PartsLink24Client` is the low-level HTTP surface for F7T-48 agent tools: `searchByVin`, `decodeVin`, `listMainGroups`, `listSubGroups`, `listBomParts`, `getPartInfo`.
 - Real API: login → authorize (Bearer JWT) → `/{group}/extern/…` GETs. Single concurrent session (`squeezeOut: true`).
+- Dedicated app login is live (F7T-106). App-side serialization remains mandatory: every job that hits PL24 must take `SupplierSessionLock::partsLink24()` (shared key across `IdentifyAgentJob`, `IdentifyOePartsJob`, and future PL24 work).
 - Credentials via `config('suppliers.partslink24.*')`, never `env()` directly.
 - `PartsLink24Brand` + `VinBrandResolver` map VIN WMI → catalog service/group.
 - Recon + frozen tool contract: `docs/partslink24/recon.md`, `docs/partslink24/agent-tool-contract.md`.
