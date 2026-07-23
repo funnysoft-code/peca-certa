@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use App\Actions\FinalizeFailedIdentifySteps;
 use App\Models\SearchRun;
-use RuntimeException;
 
 test('it maps session lock messages for operator detail', function (): void {
     $run = SearchRun::factory()->create([
