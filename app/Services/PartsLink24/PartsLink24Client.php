@@ -470,7 +470,41 @@ final readonly class PartsLink24Client
 
     private function login(string $base, CookieJar $jar): void
     {
-        Http::asJson()
+        $preferSqueeze = (bool) config('suppliers.partslink24.squeeze_out', false);
+
+        // Prefer configured squeezeOut. If true is rejected (403), fall back to false.
+        // F7T-111: this account returns 403 for squeezeOut=true; false may return
+        // USER_ALREADY_LOGGED_IN without a session when another client holds the seat.
+        $response = $this->postLogin($base, $jar, $preferSqueeze);
+
+        if ($response->status() === 403 && $preferSqueeze) {
+            $response = $this->postLogin($base, $jar, false);
+        }
+
+        if ($response->failed()) {
+            $response->throw();
+        }
+
+        $status = $response->json('status');
+        $token = $response->json('token');
+
+        if (is_string($token) && $token !== '') {
+            return;
+        }
+
+        // 200 without session token: almost always another active PL24 session.
+        $label = is_string($status) ? $status : 'unknown';
+
+        throw new RuntimeException(
+            'PartsLink24 login did not establish a session (status='.$label.'). '
+            .'Another session is likely active and squeezeOut is rejected (403) for this account. '
+            .'Log out browser/other app sessions for this PL24 user, or use a dedicated app account.',
+        );
+    }
+
+    private function postLogin(string $base, CookieJar $jar, bool $squeezeOut): Response
+    {
+        return Http::asJson()
             ->timeout(config()->integer('suppliers.partslink24.timeout'))
             ->withOptions(['cookies' => $jar])
             ->post($base.'/pl24-appgtw/ext/api/1.0/login', [
@@ -481,9 +515,8 @@ final readonly class PartsLink24Client
                 ],
                 'device' => ['id' => '0', 'os' => 'server', 'offset' => '0', 'lang' => 'en-US', 'os-version' => '0'],
                 'app-version' => '',
-                'squeezeOut' => true,
-            ])
-            ->throw();
+                'squeezeOut' => $squeezeOut,
+            ]);
     }
 
     /**

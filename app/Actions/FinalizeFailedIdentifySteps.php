@@ -75,8 +75,12 @@ final readonly class FinalizeFailedIdentifySteps
 
         $message = $exception->getMessage();
 
+        if (str_contains($message, 'USER_ALREADY_LOGGED_IN') || str_contains($message, 'Another session is likely active')) {
+            return 'Catálogo OE ocupado: outra sessão PartsLink24 está activa e o take-over (squeezeOut) foi recusado.';
+        }
+
         if ((str_contains($message, '/pl24-appgtw/ext/api/1.0/login') || str_contains($message, 'login')) && (str_contains($message, '403') || str_contains($message, 'Forbidden'))) {
-            return 'Catálogo OE indisponível (autenticação PartsLink24 recusada).';
+            return 'Catálogo OE indisponível (autenticação PartsLink24 recusada / squeezeOut 403).';
         }
 
         if (str_contains($message, 'partslink24') || str_contains($message, 'PartsLink24')) {

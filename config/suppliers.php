@@ -41,6 +41,10 @@ return [
         'lang' => env('PARTSLINK24_LANG', 'en'),
         // Seconds shaved off the authorize token TTL before treating it as expired.
         'token_ttl_buffer' => (int) env('PARTSLINK24_TOKEN_TTL_BUFFER', 30),
+        // When true, login asks PL24 to evict any other session on this account.
+        // Some accounts now return HTTP 403 for squeezeOut=true; the client falls
+        // back to false on 403. Prefer a dedicated app account either way.
+        'squeeze_out' => filter_var(env('PARTSLINK24_SQUEEZE_OUT', false), FILTER_VALIDATE_BOOLEAN),
         // Max distinct OE candidates fed into the Phase 1 pricing fan-out per identify.
         'max_candidates' => (int) env('PARTSLINK24_MAX_CANDIDATES', 5),
         'brands' => [

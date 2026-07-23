@@ -2,7 +2,34 @@
 
 ## Single-session constraint
 
-PartsLink24 allows **one concurrent interactive session per account**. The app login payload always sends `squeezeOut: true` (`PartsLink24Client::login`), so each new app auth **evicts any other session** on the same account (operator browser, another worker, another environment).
+PartsLink24 allows **one concurrent interactive session per account**.
+
+Login payload field `squeezeOut`:
+
+| Value | Behaviour |
+| --- | --- |
+| `true` | Ask PL24 to evict any other session on this account |
+| `false` | Login without eviction (may fail if another session is active, depending on account policy) |
+
+Config: `suppliers.partslink24.squeeze_out` / env `PARTSLINK24_SQUEEZE_OUT` (default **false**).
+
+**F7T-111 diagnosis (live probe, local + prod symptoms):**
+
+| Login attempt | Result |
+| --- | --- |
+| `squeezeOut: true` | **HTTP 403** `Forbidden` (empty Spring error body) — cannot force-evict |
+| `squeezeOut: false`, free seat | **200** with session `token` (+ cookies) |
+| `squeezeOut: false`, seat taken | **200** `status=USER_ALREADY_LOGGED_IN`, `token=null`, no cookies → authorize fails |
+
+Credentials are present and recognized (wrong password produces a different failure). The break is **session policy**: the account holds another session (browser, Cloud worker, or previous job), and **API squeeze-out is forbidden** for this account.
+
+**Client behaviour:** default `PARTSLINK24_SQUEEZE_OUT=false`; if config asks for `true` and login returns 403, retry once with `false`. If login is 200 without a token, throw a clear “session already active” error (soft-failed by tools).
+
+**Ops recovery:**
+
+1. Log out every browser/tab using this PL24 account (or wait for PL24 session TTL).
+2. Prefer a **dedicated app-only account** so humans never hold the seat.
+3. Deploy the F7T-111 client fix; re-probe login until 200 + non-null `token`.
 
 ## Recommended account split
 

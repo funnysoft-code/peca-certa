@@ -42,15 +42,64 @@ it('logs in, authorizes, and returns search rows with OE and catalog location', 
         ->and($rows[0])->toHaveKeys(['oe', 'name', 'partno', 'maingroup', 'subgroup', 'btnr']);
 });
 
-it('sends squeezeOut true on login and Bearer auth on search', function (): void {
+it('sends configured squeezeOut on login and Bearer auth on search', function (): void {
+    config()->set('suppliers.partslink24.squeeze_out', false);
     fakePl24();
 
     resolve(PartsLink24Client::class)->searchByVin(pl24Brand(), 'WMWSU91010T717700', 'oil filter');
 
     Http::assertSent(fn ($req): bool => str_contains((string) $req->url(), '/pl24-appgtw/ext/api/1.0/login')
-        && $req->data()['squeezeOut'] === true);
+        && $req->data()['squeezeOut'] === false);
     Http::assertSent(fn ($req): bool => str_contains((string) $req->url(), '/p5bmw/extern/search/vin')
         && str_starts_with((string) $req->header('Authorization')[0], 'Bearer '));
+});
+
+it('retries login with squeezeOut false when squeezeOut true is rejected with 403', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+        'suppliers.partslink24.squeeze_out' => true,
+    ]);
+
+    Http::fake([
+        '*/pl24-appgtw/ext/api/1.0/login' => Http::sequence()
+            ->push(['status' => 403, 'error' => 'Forbidden'], 403)
+            ->push(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
+        '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
+        '*/p5bmw/extern/search/vin*' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/search-oil-filter.json')), true)),
+    ]);
+
+    $rows = resolve(PartsLink24Client::class)->searchByVin(pl24Brand(), 'WMWSU91010T717700', 'oil filter');
+
+    expect($rows)->not->toBeEmpty();
+
+    $logins = Http::recorded(fn ($req): bool => str_contains((string) $req->url(), '/pl24-appgtw/ext/api/1.0/login'));
+    expect($logins)->toHaveCount(2)
+        ->and($logins[0][0]->data()['squeezeOut'])->toBeTrue()
+        ->and($logins[1][0]->data()['squeezeOut'])->toBeFalse();
+});
+
+it('throws a clear error when login is 200 but returns USER_ALREADY_LOGGED_IN without a token', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+        'suppliers.partslink24.squeeze_out' => false,
+    ]);
+
+    Http::fake([
+        '*/pl24-appgtw/ext/api/1.0/login' => Http::response([
+            'securables' => null,
+            'status' => 'USER_ALREADY_LOGGED_IN',
+            'title' => null,
+            'refreshToken' => null,
+            'token' => null,
+        ], 200),
+    ]);
+
+    expect(fn () => resolve(PartsLink24Client::class)->searchByVin(pl24Brand(), 'WMWSU91010T717700', 'oil filter'))
+        ->toThrow(RuntimeException::class, 'USER_ALREADY_LOGGED_IN');
 });
 
 it('caches the authorize token across calls', function (): void {

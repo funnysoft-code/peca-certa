@@ -4,7 +4,7 @@ Live recon date: 2026-07-22. Catalog under test: **Mini** (`service=mini_parts`,
 
 Auth pattern (unchanged):
 
-1. `POST /pl24-appgtw/ext/api/1.0/login` with `{account,user,pwd}`, `squeezeOut: true` (single concurrent session).
+1. `POST /pl24-appgtw/ext/api/1.0/login` with `{account,user,pwd}`, `squeezeOut` from config (default `false`; fallback to `false` if `true` returns 403 — see F7T-111).
 2. `POST /auth/ext/api/1.1/authorize` with brand service names → Bearer JWT (`expires_in` ~600s).
 3. Catalog GETs with `Authorization: Bearer …`.
 
@@ -34,7 +34,7 @@ Auth pattern (unchanged):
 
 ## Session / ops
 
-- One concurrent session per PL24 account; app uses `squeezeOut: true` and may evict the operator browser.
+- One concurrent session per PL24 account. Prefer a **dedicated app account**. `squeezeOut: true` can 403 on some accounts; client falls back to `false` (F7T-111).
 - Token cache key: `partslink24.token.{service}` (Cache, Octane-safe).
 - 401 on catalog GET → forget cache, re-login/authorize, retry once.
 - Default HTTP timeout: `config('suppliers.partslink24.timeout')` (30s).

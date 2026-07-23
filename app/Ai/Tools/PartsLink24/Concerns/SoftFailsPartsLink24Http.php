@@ -22,11 +22,16 @@ trait SoftFailsPartsLink24Http
         } catch (RequestException $exception) {
             return json_encode($this->httpErrorPayload($exception), JSON_THROW_ON_ERROR);
         } catch (Throwable $exception) {
+            $message = $exception->getMessage();
+            $isSessionLock = str_contains($message, 'USER_ALREADY_LOGGED_IN')
+                || str_contains($message, 'squeezeOut')
+                || str_contains($message, 'Another session is likely active');
+
             return json_encode([
                 'ok' => false,
-                'error' => 'http_error',
+                'error' => $isSessionLock ? 'pl24_auth_error' : 'http_error',
                 'status' => null,
-                'body' => mb_substr($exception->getMessage(), 0, 500),
+                'body' => mb_substr($message, 0, 500),
             ], JSON_THROW_ON_ERROR);
         }
     }
