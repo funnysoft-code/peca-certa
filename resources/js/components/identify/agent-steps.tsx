@@ -1,4 +1,4 @@
-import { CheckIcon, LoaderCircleIcon } from 'lucide-react';
+import { CheckIcon, CircleXIcon, LoaderCircleIcon } from 'lucide-react';
 
 type AgentStep = App.Data.AgentStep;
 
@@ -33,8 +33,12 @@ export function AgentSteps({
                             <span className="mt-0.5 shrink-0 text-muted-foreground">
                                 {step.status === 'done' ? (
                                     <CheckIcon className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-                                ) : (
+                                ) : step.status === 'failed' ? (
+                                    <CircleXIcon className="size-3.5 text-destructive" />
+                                ) : live ? (
                                     <LoaderCircleIcon className="size-3.5 animate-spin" />
+                                ) : (
+                                    <CircleXIcon className="size-3.5 text-destructive" />
                                 )}
                             </span>
                             <span className="min-w-0">
@@ -42,7 +46,9 @@ export function AgentSteps({
                                     className={
                                         step.status === 'done'
                                             ? 'text-foreground'
-                                            : 'text-muted-foreground'
+                                            : step.status === 'failed' || !live
+                                              ? 'text-destructive'
+                                              : 'text-muted-foreground'
                                     }
                                 >
                                     {step.label}

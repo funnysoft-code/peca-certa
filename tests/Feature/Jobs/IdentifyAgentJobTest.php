@@ -157,6 +157,106 @@ it('marks failed when the job exhausts retries', function (): void {
     Event::assertDispatched(SearchRunAdvanced::class);
 });
 
+it('finalizes stuck running agent steps when the job fails so UI stops spinning', function (): void {
+    Event::fake([SearchRunAdvanced::class]);
+
+    $run = SearchRun::factory()->create([
+        'status' => SearchRunStatus::Running,
+        'agent_steps' => [
+            [
+                'id' => 'step-done',
+                'tool' => 'resolve_brand',
+                'label' => 'A resolver a marca…',
+                'status' => 'done',
+                'detail' => null,
+                'at' => now()->toIso8601String(),
+            ],
+            [
+                'id' => 'step-already-failed',
+                'tool' => 'list_main_groups',
+                'label' => 'A listar grupos principais…',
+                'status' => 'failed',
+                'detail' => 'already failed',
+                'at' => now()->toIso8601String(),
+            ],
+            [
+                'id' => 'step-stuck',
+                'tool' => 'search_parts_by_vin',
+                'label' => 'A pesquisar no catálogo OE…',
+                'status' => 'running',
+                'detail' => 'cabin filter',
+                'at' => now()->toIso8601String(),
+            ],
+            [
+                'id' => 'step-no-detail',
+                'tool' => 'decode_vin',
+                'label' => 'A descodificar o VIN…',
+                'status' => 'running',
+                'detail' => null,
+                'at' => now()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    new IdentifyAgentJob($run)->failed(new RuntimeException(
+        'HTTP request returned status code 403: {"path":"/pl24-appgtw/ext/api/1.0/login"}',
+    ));
+
+    $run->refresh();
+
+    expect($run->status)->toBe(SearchRunStatus::Failed)
+        ->and($run->agent_steps[0]['status'])->toBe('done')
+        ->and($run->agent_steps[1]['status'])->toBe('failed')
+        ->and($run->agent_steps[1]['detail'])->toBe('already failed')
+        ->and($run->agent_steps[2]['status'])->toBe('failed')
+        ->and($run->agent_steps[2]['detail'])->toContain('cabin filter')
+        ->and($run->agent_steps[2]['detail'])->toContain('PartsLink24')
+        ->and($run->agent_steps[3]['status'])->toBe('failed')
+        ->and($run->agent_steps[3]['detail'])->toContain('PartsLink24')
+        ->and($run->tool_traces)->not->toBeEmpty()
+        ->and(array_last($run->tool_traces)['tool'] ?? null)->toBe('identify_agent_job');
+
+    Event::assertDispatched(SearchRunAdvanced::class);
+});
+
+it('uses generic PL24 failure copy and null-exception fallback when finalizing steps', function (): void {
+    Event::fake([SearchRunAdvanced::class]);
+
+    $pl24 = SearchRun::factory()->create([
+        'status' => SearchRunStatus::Running,
+        'agent_steps' => [
+            [
+                'id' => 's1',
+                'tool' => 'decode_vin',
+                'label' => 'A descodificar o VIN…',
+                'status' => 'running',
+                'detail' => null,
+                'at' => now()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    new IdentifyAgentJob($pl24)->failed(new RuntimeException('PartsLink24 token expired mid-request'));
+    expect($pl24->refresh()->agent_steps[0]['detail'])->toContain('erro PartsLink24');
+
+    $nullEx = SearchRun::factory()->create([
+        'status' => SearchRunStatus::Running,
+        'agent_steps' => [
+            [
+                'id' => 's2',
+                'tool' => 'decode_vin',
+                'label' => 'A descodificar o VIN…',
+                'status' => 'running',
+                'detail' => null,
+                'at' => now()->toIso8601String(),
+            ],
+        ],
+    ]);
+
+    new IdentifyAgentJob($nullEx)->failed(null);
+    expect($nullEx->refresh()->agent_steps[0]['detail'])->toBe('Identificação interrompida.');
+});
+
 it('exposes frozen snake_case tool names via ToolNameResolver (not class basenames)', function (): void {
     $agent = new IdentifyPartAgent([]);
     $resolved = [];

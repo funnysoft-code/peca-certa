@@ -38,6 +38,18 @@ import { cancel, create, resume } from '@/routes/identify';
 
 type Props = { run: App.Data.SearchRunData };
 
+function failedOperatorHint(run: App.Data.SearchRunData): string | null {
+    const failedStep = [...(run.agentSteps ?? [])]
+        .reverse()
+        .find((step) => step.status === 'failed' && step.detail);
+
+    if (failedStep?.detail) {
+        return failedStep.detail;
+    }
+
+    return null;
+}
+
 function CancelButton({
     runId,
     disabled,
@@ -248,8 +260,8 @@ export default function IdentifyShow({ run: initialRun }: Props) {
                             Não foi possível concluir esta identificação.
                         </AlertTitle>
                         <AlertDescription>
-                            Tente novamente ou contacte o suporte se o problema
-                            persistir.
+                            {failedOperatorHint(run) ??
+                                'Tente novamente ou contacte o suporte se o problema persistir.'}
                         </AlertDescription>
                     </Alert>
                 )}

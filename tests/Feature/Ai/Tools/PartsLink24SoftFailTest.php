@@ -55,6 +55,34 @@ it('search_parts_by_vin soft-fails on HTTP 400 without throwing', function (): v
         ->and($json['body'])->toBeString()->not->toBeEmpty();
 });
 
+it('maps login 403 to pl24_auth_error instead of generic http_error', function (): void {
+    Cache::flush();
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+        'suppliers.partslink24.base_url' => 'https://www.partslink24.com',
+    ]);
+
+    Http::fake([
+        'https://www.partslink24.com/pl24-appgtw/ext/api/1.0/login' => Http::response([
+            'status' => 403,
+            'error' => 'Forbidden',
+            'path' => '/pl24-appgtw/ext/api/1.0/login',
+        ], 403),
+    ]);
+
+    $json = json_decode((string) resolve(SearchPartsByVin::class)->handle(new Request([
+        'vin' => 'WMWSU91010T717700',
+        'query' => 'cabin filter',
+    ])), true);
+
+    expect($json['ok'])->toBeFalse()
+        ->and($json['error'])->toBe('pl24_auth_error')
+        ->and($json['status'])->toBe(403)
+        ->and($json['body'])->toContain('authentication');
+});
+
 it('list_main_groups soft-fails on HTTP 500 without throwing', function (): void {
     softFailPl24Auth();
     Http::fake([

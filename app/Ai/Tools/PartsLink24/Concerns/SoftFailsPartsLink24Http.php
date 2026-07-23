@@ -37,12 +37,44 @@ trait SoftFailsPartsLink24Http
     private function httpErrorPayload(RequestException $exception): array
     {
         $response = $exception->response;
+        $status = $response->status();
+        $effectiveUri = $response->effectiveUri();
+        $url = $effectiveUri !== null ? (string) $effectiveUri : '';
+        $body = mb_substr($response->body(), 0, 500);
+        $message = $exception->getMessage();
+
+        if ($this->isPartsLink24AuthFailure($status, $url, $message, $body)) {
+            return [
+                'ok' => false,
+                'error' => 'pl24_auth_error',
+                'status' => $status,
+                'body' => 'PartsLink24 authentication was rejected. Operator: catálogo OE indisponível; contact support (credentials/network).',
+            ];
+        }
 
         return [
             'ok' => false,
             'error' => 'http_error',
-            'status' => $response->status(),
-            'body' => mb_substr($response->body(), 0, 500),
+            'status' => $status,
+            'body' => $body,
         ];
+    }
+
+    private function isPartsLink24AuthFailure(int $status, string $url, string $message, string $body): bool
+    {
+        if ($status !== 401 && $status !== 403) {
+            return false;
+        }
+
+        $haystack = mb_strtolower($url.' '.$message.' '.$body);
+
+        // Login 403 often has empty message body; treat any 401/403 against PL24
+        // auth paths (or generic Forbidden during catalog auth) as auth failure.
+        return str_contains($haystack, '/login')
+            || str_contains($haystack, 'pl24-appgtw')
+            || str_contains($haystack, 'partslink24')
+            || str_contains($haystack, 'authorize')
+            || str_contains($haystack, 'forbidden')
+            || $status === 403;
     }
 }

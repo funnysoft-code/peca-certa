@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Actions\FinalizeFailedIdentifySteps;
 use App\Actions\RunIdentifyAgentTurn;
 use App\Enums\SearchRunStatus;
 use App\Events\SearchRunAdvanced;
@@ -68,8 +69,8 @@ final class IdentifyAgentJob implements ShouldQueue
         }
 
         $run->status = SearchRunStatus::Failed;
-        $run->save();
+        resolve(FinalizeFailedIdentifySteps::class)->execute($run, $exception);
 
-        event(new SearchRunAdvanced($run));
+        event(new SearchRunAdvanced($run->fresh() ?? $run));
     }
 }
