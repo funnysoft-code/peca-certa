@@ -51,33 +51,6 @@ return [
     */
 
     'providers' => [
-        'anthropic' => [
-            'driver' => 'anthropic',
-            'name' => 'anthropic',
-            'key' => env('ANTHROPIC_API_KEY'),
-            'models' => [
-                'text' => [
-                    'default' => env('ANTHROPIC_DEFAULT_MODEL', 'claude-sonnet-4-6'),
-                    'smartest' => env('ANTHROPIC_SMARTEST_MODEL', 'claude-opus-4-7'),
-                ],
-            ],
-        ],
-
-        'openai' => [
-            'driver' => 'openai',
-            'name' => 'openai',
-            'key' => env('OPENAI_API_KEY'),
-            'models' => [
-                'text' => [
-                    'default' => env('OPENAI_DEFAULT_MODEL', 'gpt-4o'),
-                    'cheapest' => env('OPENAI_CHEAPEST_MODEL', 'gpt-4o-mini'),
-                ],
-                'image' => [
-                    'default' => env('OPENAI_DEFAULT_IMAGE_MODEL', 'dall-e-3'),
-                ],
-            ],
-        ],
-
         'xai' => [
             'driver' => 'xai',
             'name' => 'xai',
@@ -96,7 +69,8 @@ return [
             'models' => [
                 'text' => [
                     'default' => env('XAI_DEFAULT_MODEL', 'grok-4.3'),
-                    'cheapest' => env('XAI_CHEAPEST_MODEL', 'grok-4.3-fast'),
+                    'cheapest' => env('XAI_CHEAPEST_MODEL', 'grok-4.3'),
+                    'smartest' => env('XAI_SMARTEST_MODEL', 'grok-4.5'),
                 ],
                 'image' => [
                     'default' => env('XAI_DEFAULT_IMAGE_MODEL', 'grok-imagine-image'),

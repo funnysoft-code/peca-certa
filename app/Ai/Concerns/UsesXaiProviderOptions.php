@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Ai\Concerns;
 
+use App\Ai\Attributes\Reasoning;
+use App\Ai\Enums\ReasoningEffort;
 use Laravel\Ai\Enums\Lab;
+use ReflectionClass;
 
 trait UsesXaiProviderOptions
 {
@@ -19,7 +22,10 @@ trait UsesXaiProviderOptions
             return [];
         }
 
-        $options = [];
+        $options = [
+            // Responses API: https://docs.x.ai/developers/model-capabilities/text/reasoning
+            'reasoning' => ['effort' => $this->xaiReasoningEffort()->value],
+        ];
 
         $serviceTier = config('ai.providers.xai.service_tier');
 
@@ -30,12 +36,26 @@ trait UsesXaiProviderOptions
         $promptCacheKey = $this->xaiPromptCacheKey();
 
         if (filled($promptCacheKey)) {
-            // Responses API sticky routing for prompt-cache hits.
+            // Sticky routing for prompt-cache hits.
             // https://docs.x.ai/developers/advanced-api-usage/prompt-caching/maximizing-cache-hits
             $options['prompt_cache_key'] = $promptCacheKey;
         }
 
         return $options;
+    }
+
+    /**
+     * Prefer #[Reasoning(ReasoningEffort::…)] on the agent; default Low if omitted.
+     */
+    protected function xaiReasoningEffort(): ReasoningEffort
+    {
+        $attributes = new ReflectionClass($this)->getAttributes(Reasoning::class);
+
+        if ($attributes === []) {
+            return ReasoningEffort::Low;
+        }
+
+        return $attributes[0]->newInstance()->effort;
     }
 
     /**

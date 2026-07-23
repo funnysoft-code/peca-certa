@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Ai\Agents;
 
+use App\Ai\Attributes\Reasoning;
 use App\Ai\Concerns\UsesXaiProviderOptions;
+use App\Ai\Enums\ReasoningEffort;
+use App\Ai\Enums\XaiModel;
 use App\Ai\Tools\PartsLink24\DecodeVin;
 use App\Ai\Tools\PartsLink24\GetPartInfo;
 use App\Ai\Tools\PartsLink24\ListBomParts;
@@ -14,6 +17,8 @@ use App\Ai\Tools\PartsLink24\ResolveBrand;
 use App\Ai\Tools\PartsLink24\SearchPartsByVin;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Attributes\MaxSteps;
+use Laravel\Ai\Attributes\Model;
+use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Attributes\Timeout;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
@@ -21,9 +26,13 @@ use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Contracts\Tool;
+use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Messages\Message;
 use Laravel\Ai\Promptable;
 
+#[Provider(Lab::xAI)]
+#[Model(XaiModel::Grok43->value)]
+#[Reasoning(ReasoningEffort::Low)]
 #[MaxSteps(8)]
 #[Timeout(90)]
 final readonly class IdentifyPartAgent implements Agent, Conversational, HasProviderOptions, HasStructuredOutput, HasTools

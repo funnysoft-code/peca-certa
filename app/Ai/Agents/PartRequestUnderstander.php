@@ -4,13 +4,22 @@ declare(strict_types=1);
 
 namespace App\Ai\Agents;
 
+use App\Ai\Attributes\Reasoning;
 use App\Ai\Concerns\UsesXaiProviderOptions;
+use App\Ai\Enums\ReasoningEffort;
+use App\Ai\Enums\XaiModel;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Ai\Attributes\Model;
+use Laravel\Ai\Attributes\Provider;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasProviderOptions;
 use Laravel\Ai\Contracts\HasStructuredOutput;
+use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Promptable;
 
+#[Provider(Lab::xAI)]
+#[Model(XaiModel::Grok43->value)]
+#[Reasoning(ReasoningEffort::Low)]
 final class PartRequestUnderstander implements Agent, HasProviderOptions, HasStructuredOutput
 {
     use Promptable;
