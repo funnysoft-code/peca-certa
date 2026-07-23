@@ -24,6 +24,7 @@ function fakeDiagramPl24(string $bomFixture): void
     Storage::fake('pl24_diagrams');
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response(json_decode((string) file_get_contents(base_path($bomFixture)), true)),
@@ -165,6 +166,7 @@ it('uses search coordinates when the OE is missing from the BOM page', function 
     Storage::fake('pl24_diagrams');
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/search/vin*' => Http::response([
@@ -208,6 +210,7 @@ it('soft-skips diagrams when PL24 throws a non-RuntimeException during illustrat
     Storage::fake('pl24_diagrams');
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response('down', 503),
@@ -245,6 +248,7 @@ it('covers search/tool-trace coordinate validation branches', function (): void 
     Storage::fake('pl24_diagrams');
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/search/vin*' => Http::response([
@@ -321,6 +325,7 @@ it('leaves parts unchanged when BOM location cannot be resolved', function (): v
     ]);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/search/vin*' => Http::response(['data' => ['records' => []]]),
@@ -345,6 +350,7 @@ it('falls back to OePart catalog meta when listBomParts throws', function (): vo
     Storage::fake('pl24_diagrams');
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::sequence()
@@ -386,6 +392,7 @@ it('skips non-matching search rows and empty catalog coordinates', function (): 
     Storage::fake('pl24_diagrams');
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/search/vin*' => Http::response([
@@ -441,6 +448,7 @@ it('stores jpeg payloads with a .jpg extension', function (): void {
     $jpg = "\xFF\xD8\xFF".str_repeat("\x00", 12);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response([
@@ -478,6 +486,7 @@ it('stores riff payloads with a .bin extension', function (): void {
     $riff = 'RIFF'.str_repeat('A', 24);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response([
@@ -513,6 +522,7 @@ it('locates OE via searchByVin when tool traces are empty', function (): void {
     Storage::fake('pl24_diagrams');
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/search/vin*' => Http::response([
@@ -621,6 +631,7 @@ it('stores gif illustrations with a .gif extension', function (): void {
     $gif = 'GIF89a'.str_repeat("\x00", 16);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response([
@@ -658,6 +669,7 @@ it('stores svg illustrations with a .svg extension', function (): void {
     $svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>';
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response([
@@ -695,6 +707,7 @@ it('hard-fails when PL24 advertises an illustration but bytes cannot be obtained
     Storage::fake('pl24_diagrams');
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response([

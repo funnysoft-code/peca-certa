@@ -2,6 +2,8 @@
 
 Live recon date: 2026-07-22. Catalog under test: **Mini** (`service=mini_parts`, `group=p5bmw`). VIN: `WMWSU91010T717700` (MINI R56 LCI).
 
+Ops guides (fingerprint handoff, shop proxy, edge vs Zitania): see `docs/partslink24/browser-fingerprint-capture.md`, `shop-desktop-proxy.md`, `edge-isolation-vs-zitania.md`.
+
 Auth pattern (unchanged):
 
 1. `POST /pl24-appgtw/ext/api/1.0/login` with `{account,user,pwd}`, `squeezeOut` from config (default `false`; fallback to `false` if `true` returns 403 — see F7T-111).

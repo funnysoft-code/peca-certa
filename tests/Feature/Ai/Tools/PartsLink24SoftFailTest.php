@@ -29,6 +29,7 @@ function softFailPl24Auth(): void
     ]);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
     ]);
@@ -40,6 +41,7 @@ it('search_parts_by_vin soft-fails on HTTP 400 without throwing', function (): v
     $errorFixture = json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/man-search-error.json')), true);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5man/extern/search/vin*' => Http::response($errorFixture['body'], $errorFixture['status']),
@@ -66,6 +68,7 @@ it('maps authorize 403 RequestException to pl24_auth_error with status', functio
     ]);
 
     Http::fake([
+        'https://www.partslink24.com/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         'https://www.partslink24.com/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'status' => 'OK']),
         'https://www.partslink24.com/auth/ext/api/1.1/authorize' => Http::response(['error' => 'Forbidden'], 403),
     ]);
@@ -106,16 +109,18 @@ it('maps login 403 to pl24_auth_error instead of generic http_error', function (
     Cache::flush();
     config()->set([
         'suppliers.partslink24.account' => 'pt-test',
-        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.username' => 'ricardo',
         'suppliers.partslink24.password' => 'secret',
         'suppliers.partslink24.base_url' => 'https://www.partslink24.com',
+        'suppliers.partslink24.squeeze_out' => true,
     ]);
 
+    // Non-admin uses portal login; both squeeze attempts return 403.
     Http::fake([
-        'https://www.partslink24.com/pl24-appgtw/ext/api/1.0/login' => Http::response([
+        'https://www.partslink24.com/auth/ext/api/1.1/login' => Http::response([
             'status' => 403,
             'error' => 'Forbidden',
-            'path' => '/pl24-appgtw/ext/api/1.0/login',
+            'path' => '/auth/ext/api/1.1/login',
         ], 403),
     ]);
 
@@ -133,6 +138,7 @@ it('maps login 403 to pl24_auth_error instead of generic http_error', function (
 it('list_main_groups soft-fails on HTTP 500 without throwing', function (): void {
     softFailPl24Auth();
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5man/extern/groups/main-vin*' => Http::response(['demo' => false], 500),
@@ -150,6 +156,7 @@ it('list_main_groups soft-fails on HTTP 500 without throwing', function (): void
 it('list_sub_groups and list_bom_parts soft-fail on 5xx', function (): void {
     softFailPl24Auth();
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5man/extern/groups/func-vin*' => Http::response(['messages' => ['HTTP 404 Not Found']], 500),
@@ -173,6 +180,7 @@ it('list_sub_groups and list_bom_parts soft-fail on 5xx', function (): void {
 it('decode_vin works for MAN fixture path and returns brandKey', function (): void {
     softFailPl24Auth();
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5man/extern/directAccess*' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/man-direct-access.json')), true)),
@@ -191,6 +199,7 @@ it('decode_vin works for MAN fixture path and returns brandKey', function (): vo
 it('decode_vin family fallback tries sibling PSA catalog when primary fails', function (): void {
     softFailPl24Auth();
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5psa/extern/directAccess*' => Http::sequence()
@@ -216,6 +225,7 @@ it('soft-fails non-HTTP exceptions as http_error without status', function (): v
         'suppliers.partslink24.password' => 'secret',
     ]);
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'status' => 'OK']),
         // Incomplete authorize triggers RuntimeException inside the client (not RequestException).
         '*/auth/ext/api/1.1/authorize' => Http::response(['expires_in' => 600], 200),
@@ -240,6 +250,7 @@ it('decode_vin skips invalid family sibling catalog keys', function (): void {
     ]);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5psa/extern/directAccess*' => Http::response(['data' => []], 200),
@@ -266,6 +277,7 @@ it('soft http_error does not kill IdentifyAgentJob into empty failed', function 
 
     softFailPl24Auth();
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=x; Path=/']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5man/extern/*' => Http::response(['demo' => false], 500),

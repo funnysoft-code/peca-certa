@@ -32,26 +32,105 @@ return [
         'http_token' => env('AUTOZITANIA_HTTP_TOKEN', ''),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | PartsLink24
+    |--------------------------------------------------------------------------
+    |
+    | Fingerprint + session + pacing are HARDCODED from a live real-Chrome CDP
+    | capture (2026-07-23, portal-ui). Source of truth:
+    | docs/partslink24/capture-2026-07-23-real-chrome.md
+    |
+    | Only secrets / deploy wiring stay in env: account, username, password,
+    | optional shop proxy, diagrams disk. Do not reintroduce fingerprint via .env.
+    |
+    | Testing (APP_ENV=testing): warm-up/pacing/volume/cache forced off so the
+    | suite stays deterministic (Http::fake counts, no real delays).
+    |
+    */
     'partslink24' => [
-        'base_url' => env('PARTSLINK24_BASE_URL', 'https://www.partslink24.com'),
+        'base_url' => 'https://www.partslink24.com',
         'account' => env('PARTSLINK24_ACCOUNT'),
         'username' => env('PARTSLINK24_USERNAME'),
         'password' => env('PARTSLINK24_PASSWORD'),
-        'timeout' => (int) env('PARTSLINK24_TIMEOUT', 30),
-        'lang' => env('PARTSLINK24_LANG', 'en'),
-        // Seconds shaved off the authorize token TTL before treating it as expired.
-        'token_ttl_buffer' => (int) env('PARTSLINK24_TOKEN_TTL_BUFFER', 30),
-        // When true, login asks PL24 to evict any other session on this account.
-        // Client tries the configured value first, then the opposite. Success is a
-        // JSON token OR a PL24TOKEN cookie (token field is often null after squeeze).
-        // Prefer a dedicated app account so humans never hold the seat.
-        'squeeze_out' => filter_var(env('PARTSLINK24_SQUEEZE_OUT', true), FILTER_VALIDATE_BOOLEAN),
-        // Max distinct OE candidates fed into the Phase 1 pricing fan-out per identify.
-        'max_candidates' => (int) env('PARTSLINK24_MAX_CANDIDATES', 5),
-        // BOM illustration download attempts when data.images is non-empty.
-        'illustration_retries' => (int) env('PARTSLINK24_ILLUSTRATION_RETRIES', 3),
-        // Disk for persisted BOM diagrams (Laravel Cloud object storage / S3 in prod).
+        'timeout' => 30,
+        // Catalog query lang (search/decode/BOM). English index is more complete than PT.
+        'lang' => 'en',
+        'token_ttl_buffer' => 30,
+        // Prefer not to squeeze humans; dedicated app account + free seat.
+        // Portal login (non-admin) supports squeezeOut:true; appgtw often 403s for non-admin.
+        'squeeze_out' => true,
+        // Login API strategy:
+        // - auto: username "admin" → appgtw legacy; any other user → portal auth/1.1 (Chrome path)
+        // - portal: always /auth/ext/api/1.1/login (flat account/user/password)
+        // - appgtw: always /pl24-appgtw/ext/api/1.0/login (nested authentication + device)
+        'login_strategy' => 'auto',
+        'max_candidates' => 5,
+        'illustration_retries' => 3,
         'diagrams_disk' => env('PARTSLINK24_DIAGRAMS_DISK', 'pl24_diagrams'),
+
+        // --- Real Chrome/150.0.7871.129 (Mac arm, Europe/Lisbon) ---
+        'user_agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36',
+        // Live XHR Accept-Language on authorize/portal APIs.
+        'accept_language' => 'pt',
+        'app_version' => '1.0.0',
+        // Exact Client Hints brand order from live authorize/catalog requests.
+        'sec_ch_ua' => '"Not;A=Brand";v="8", "Chromium";v="150", "Google Chrome";v="150"',
+        'sec_ch_ua_mobile' => '?0',
+        'sec_ch_ua_platform' => '"macOS"',
+        // SPA shell used as Referer on XHR: https://www.partslink24.com/portal-ui
+        'referer_path' => '/portal-ui',
+        // Extra headers layered on every request (beyond pendingRequest defaults).
+        'extra_headers' => [
+            // Live Chrome also sends these; client already sets most of them, listed for parity.
+            'Cache-Control' => 'no-cache',
+            'Pragma' => 'no-cache',
+        ],
+        // Extra login body keys (non-core). Empty until a login HAR fills this.
+        'login_extra' => [],
+        'device' => [
+            // Stable app-device id (not "0", not os:server). Keep fixed across deploys.
+            'id' => '019f8f10-5e1f-7c00-8a00-c0ffee000001',
+            'os' => 'MacOS',
+            // navigator.userAgentData high-entropy platformVersion from capture.
+            'os_version' => '26.5.2',
+            // navigator.language from capture (Chrome UI was en-US).
+            'lang' => 'en-US',
+            // Europe/Lisbon summer: getTimezoneOffset() === -60 → +60 minutes east of UTC.
+            'offset' => '60',
+        ],
+        // Optional shop egress only (secret). Empty = host IP.
+        'proxy' => env('PARTSLINK24_PROXY', ''),
+        // Prefer HTTP/2 when libcurl allows (closer to Chrome; not full JA3).
+        'http2' => true,
+
+        // Session life matching a browser: HTML shell → think → login → think → authorize.
+        'session' => [
+            'warm_up' => env('APP_ENV') !== 'testing',
+            'send_cookies' => true,
+            'think_ms_min' => env('APP_ENV') === 'testing' ? 0 : 400,
+            'think_ms_max' => env('APP_ENV') === 'testing' ? 0 : 1200,
+            'auth_think_ms_min' => env('APP_ENV') === 'testing' ? 0 : 250,
+            'auth_think_ms_max' => env('APP_ENV') === 'testing' ? 0 : 800,
+            'min_gap_ms' => env('APP_ENV') === 'testing' ? 0 : 200,
+        ],
+        'jitter_ms_min' => env('APP_ENV') === 'testing' ? 0 : 200,
+        'jitter_ms_max' => env('APP_ENV') === 'testing' ? 0 : 700,
+        'rate_limit_per_minute' => env('APP_ENV') === 'testing' ? 0 : 30,
+        'volume' => [
+            'max_per_hour' => env('APP_ENV') === 'testing' ? 0 : 180,
+            'max_per_day' => env('APP_ENV') === 'testing' ? 0 : 1200,
+            'business_hours_only' => false,
+            'business_hours_start' => 7,
+            'business_hours_end' => 20,
+            'business_timezone' => 'Europe/Lisbon',
+        ],
+        'cache' => [
+            'decode_ttl' => env('APP_ENV') === 'testing' ? 0 : 1800,
+            'main_groups_ttl' => env('APP_ENV') === 'testing' ? 0 : 1800,
+            'sub_groups_ttl' => env('APP_ENV') === 'testing' ? 0 : 900,
+            'bom_ttl' => env('APP_ENV') === 'testing' ? 0 : 600,
+        ],
         'brands' => [
             // VIN World Manufacturer Identifier (chars 1-3) => brand key.
             'wmi' => [

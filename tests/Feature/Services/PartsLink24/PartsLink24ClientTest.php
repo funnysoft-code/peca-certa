@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Services\PartsLink24\PartsLink24Brand;
 use App\Services\PartsLink24\PartsLink24Client;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Http;
 
 function pl24Brand(): PartsLink24Brand
@@ -12,15 +13,23 @@ function pl24Brand(): PartsLink24Brand
     return new PartsLink24Brand('mini', 'mini_parts', 'p5bmw');
 }
 
-function fakePl24(): void
+function fakePl24(string $username = 'tester'): void
 {
     config()->set([
         'suppliers.partslink24.account' => 'pt-test',
-        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.username' => $username,
         'suppliers.partslink24.password' => 'secret',
+        'suppliers.partslink24.login_strategy' => 'auto',
     ]);
 
     Http::fake([
+        // Non-admin (portal / Chrome path)
+        '*/auth/ext/api/1.1/login' => Http::response(
+            ['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'],
+            200,
+            ['Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com'],
+        ),
+        // Admin (legacy appgtw path)
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/search/vin*' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/search-oil-filter.json')), true)),
@@ -43,24 +52,213 @@ it('logs in, authorizes, and returns search rows with OE and catalog location', 
         ->and($rows[0])->toHaveKeys(['oe', 'name', 'partno', 'maingroup', 'subgroup', 'btnr']);
 });
 
-it('sends configured squeezeOut on login and Bearer auth on search', function (): void {
+it('uses portal auth/1.1 login for non-admin users with flat password fields', function (): void {
     config()->set('suppliers.partslink24.squeeze_out', true);
-    fakePl24();
+    fakePl24('ricardo');
 
     resolve(PartsLink24Client::class)->searchByVin(pl24Brand(), 'WMWSU91010T717700', 'oil filter');
 
-    Http::assertSent(fn ($req): bool => str_contains((string) $req->url(), '/pl24-appgtw/ext/api/1.0/login')
-        && $req->data()['squeezeOut'] === true);
+    Http::assertSent(fn ($req): bool => str_contains((string) $req->url(), '/auth/ext/api/1.1/login')
+        && ($req->data()['user'] ?? null) === 'ricardo'
+        && ($req->data()['password'] ?? null) === 'secret'
+        && array_key_exists('account', $req->data())
+        && ($req->data()['squeezeOut'] ?? null) === true
+        && ! array_key_exists('authentication', $req->data()));
     Http::assertSent(fn ($req): bool => str_contains((string) $req->url(), '/p5bmw/extern/search/vin')
         && str_starts_with((string) $req->header('Authorization')[0], 'Bearer '));
+    Http::assertNotSent(fn ($req): bool => str_contains((string) $req->url(), '/pl24-appgtw/ext/api/1.0/login'));
 });
 
-it('retries login with the opposite squeezeOut when the preferred value fails', function (): void {
+it('uses legacy appgtw login for admin with nested authentication and device', function (): void {
+    config()->set([
+        'suppliers.partslink24.squeeze_out' => true,
+        'suppliers.partslink24.device.id' => 'dev-uuid-1',
+        'suppliers.partslink24.device.os' => 'Windows',
+        'suppliers.partslink24.device.os_version' => '10',
+        'suppliers.partslink24.device.lang' => 'pt-PT',
+        'suppliers.partslink24.device.offset' => '60',
+        'suppliers.partslink24.app_version' => '2.4.1',
+        'suppliers.partslink24.user_agent' => 'Mozilla/5.0 TestBrowser/1.0',
+        'suppliers.partslink24.accept_language' => 'pt',
+        'suppliers.partslink24.base_url' => 'https://www.partslink24.com',
+        'suppliers.partslink24.referer_path' => '/portal-ui',
+        'suppliers.partslink24.sec_ch_ua' => '"Test";v="1"',
+        'suppliers.partslink24.sec_ch_ua_mobile' => '?0',
+        'suppliers.partslink24.sec_ch_ua_platform' => '"macOS"',
+        'suppliers.partslink24.login_extra' => ['extraFlag' => true],
+    ]);
+    fakePl24('admin');
+
+    resolve(PartsLink24Client::class)->searchByVin(pl24Brand(), 'WMWSU91010T717700', 'oil filter');
+
+    Http::assertSent(function ($req): bool {
+        if (! str_contains((string) $req->url(), '/pl24-appgtw/ext/api/1.0/login')) {
+            return false;
+        }
+
+        $device = $req->data()['device'] ?? null;
+
+        return is_array($device)
+            && $device === [
+                'id' => 'dev-uuid-1',
+                'os' => 'Windows',
+                'offset' => '60',
+                'lang' => 'pt-PT',
+                'os-version' => '10',
+            ]
+            && ($req->data()['app-version'] ?? null) === '2.4.1'
+            && ($req->data()['extraFlag'] ?? null) === true
+            && ($req->data()['authentication']['user'] ?? null) === 'admin'
+            && ($req->data()['authentication']['pwd'] ?? null) === 'secret'
+            && ($req->data()['squeezeOut'] ?? null) === true
+            && str_contains((string) $req->header('User-Agent')[0], 'TestBrowser/1.0')
+            && ($req->header('Accept-Language')[0] ?? null) === 'pt'
+            && ($req->header('Origin')[0] ?? null) === 'https://www.partslink24.com'
+            && ($req->header('Referer')[0] ?? null) === 'https://www.partslink24.com/portal-ui'
+            && ($req->header('sec-ch-ua')[0] ?? null) === '"Test";v="1"'
+            && ($req->header('sec-fetch-mode')[0] ?? null) === 'cors';
+    });
+    Http::assertNotSent(fn ($req): bool => str_contains((string) $req->url(), '/auth/ext/api/1.1/login'));
+});
+
+it('portal login retries with opposite squeezeOut after session-limit 400', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'ricardo',
+        'suppliers.partslink24.password' => 'secret',
+        'suppliers.partslink24.squeeze_out' => false,
+        'suppliers.partslink24.login_strategy' => 'auto',
+    ]);
+
+    Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::sequence()
+            ->push([
+                'type' => 'urn:login:session-limit-exceeded',
+                'title' => 'Bad Request',
+                'status' => 400,
+                'detail' => 'Session limit exceeded.',
+            ], 400)
+            ->push(['loginStatus' => 'OK', 'sessionToken' => 'after-squeeze'], 200, [
+                'Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com',
+            ]),
+        '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
+        '*/p5bmw/extern/search/vin*' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/search-oil-filter.json')), true)),
+    ]);
+
+    $rows = resolve(PartsLink24Client::class)->searchByVin(pl24Brand(), 'WMWSU91010T717700', 'oil filter');
+
+    expect($rows)->not->toBeEmpty();
+
+    $logins = Http::recorded(fn ($req): bool => str_contains((string) $req->url(), '/auth/ext/api/1.1/login'));
+    expect($logins)->toHaveCount(2)
+        ->and($logins[0][0]->data()['squeezeOut'])->toBeFalse()
+        ->and($logins[1][0]->data()['squeezeOut'])->toBeTrue();
+});
+
+it('warms the session with an HTML document GET before login', function (): void {
+    config()->set([
+        'suppliers.partslink24.session.warm_up' => true,
+        'suppliers.partslink24.base_url' => 'https://www.partslink24.com',
+        'suppliers.partslink24.referer_path' => '/portal-ui',
+    ]);
+
+    Http::fake([
+        'https://www.partslink24.com/portal-ui' => Http::response('<html>pl24</html>', 200, ['Content-Type' => 'text/html']),
+        '*/auth/ext/api/1.1/login' => Http::response(
+            ['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'],
+            200,
+            ['Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com'],
+        ),
+        '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
+        '*/p5bmw/extern/search/vin*' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/search-oil-filter.json')), true)),
+    ]);
+
     config()->set([
         'suppliers.partslink24.account' => 'pt-test',
         'suppliers.partslink24.username' => 'tester',
         'suppliers.partslink24.password' => 'secret',
+    ]);
+
+    resolve(PartsLink24Client::class)->searchByVin(pl24Brand(), 'WMWSU91010T717700', 'oil filter');
+
+    $urls = collect(Http::recorded())->map(fn ($pair): string => (string) $pair[0]->url())->values();
+
+    expect($urls->first())->toBe('https://www.partslink24.com/portal-ui')
+        ->and($urls->contains(fn (string $url): bool => str_contains($url, '/auth/ext/api/1.1/login')))->toBeTrue();
+
+    Http::assertSent(fn ($req): bool => $req->url() === 'https://www.partslink24.com/portal-ui'
+        && ($req->header('sec-fetch-mode')[0] ?? null) === 'navigate'
+        && str_contains((string) ($req->header('Accept')[0] ?? ''), 'text/html'));
+});
+
+it('refuses new sessions outside business hours when the gate is enabled', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+        'suppliers.partslink24.volume.business_hours_only' => true,
+        'suppliers.partslink24.volume.business_hours_start' => 7,
+        'suppliers.partslink24.volume.business_hours_end' => 20,
+        'suppliers.partslink24.volume.business_timezone' => 'Europe/Lisbon',
+    ]);
+
+    $this->travelTo(Date::parse('2026-07-23 22:30:00', 'Europe/Lisbon'));
+
+    expect(fn () => resolve(PartsLink24Client::class)->searchByVin(pl24Brand(), 'WMWSU91010T717700', 'oil filter'))
+        ->toThrow(RuntimeException::class, 'business-hours gate');
+});
+
+it('throws when the hourly catalog budget is exhausted', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.password' => 'secret',
+        'suppliers.partslink24.volume.max_per_hour' => 1,
+        'suppliers.partslink24.volume.max_per_day' => 0,
+    ]);
+    fakePl24();
+
+    $client = resolve(PartsLink24Client::class);
+    $client->searchByVin(pl24Brand(), 'WMWSU91010T717700', 'oil filter');
+
+    expect(fn () => $client->searchByVin(pl24Brand(), 'WMWSU91010T717700', 'brake disc'))
+        ->toThrow(RuntimeException::class, 'hourly catalog budget');
+});
+
+it('caches decodeVin results for the configured TTL', function (): void {
+    config()->set('suppliers.partslink24.cache.decode_ttl', 1800);
+    fakePl24();
+    $client = resolve(PartsLink24Client::class);
+
+    $first = $client->decodeVin(pl24Brand(), 'WMWSU91010T717700');
+    $second = $client->decodeVin(pl24Brand(), 'WMWSU91010T717700');
+
+    expect($first)->not->toBeNull()
+        ->and($second)->toBe($first);
+
+    expect(Http::recorded(fn ($req): bool => str_contains((string) $req->url(), '/extern/directAccess')))
+        ->toHaveCount(1);
+});
+
+it('caches listMainGroups results for the configured TTL', function (): void {
+    config()->set('suppliers.partslink24.cache.main_groups_ttl', 1800);
+    fakePl24();
+    $client = resolve(PartsLink24Client::class);
+
+    $client->listMainGroups(pl24Brand(), 'WMWSU91010T717700');
+    $client->listMainGroups(pl24Brand(), 'WMWSU91010T717700');
+
+    expect(Http::recorded(fn ($req): bool => str_contains((string) $req->url(), '/groups/main-vin')))
+        ->toHaveCount(1);
+});
+
+it('retries appgtw login with the opposite squeezeOut when the preferred value fails', function (): void {
+    config()->set([
+        'suppliers.partslink24.account' => 'pt-test',
+        'suppliers.partslink24.username' => 'admin',
+        'suppliers.partslink24.password' => 'secret',
         'suppliers.partslink24.squeeze_out' => true,
+        'suppliers.partslink24.login_strategy' => 'auto',
     ]);
 
     Http::fake([
@@ -81,10 +279,10 @@ it('retries login with the opposite squeezeOut when the preferred value fails', 
         ->and($logins[1][0]->data()['squeezeOut'])->toBeFalse();
 });
 
-it('accepts a PL24TOKEN cookie as a successful login even when JSON token is null', function (): void {
+it('accepts a PL24TOKEN cookie as a successful appgtw login even when JSON token is null', function (): void {
     config()->set([
         'suppliers.partslink24.account' => 'pt-test',
-        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.username' => 'admin',
         'suppliers.partslink24.password' => 'secret',
         'suppliers.partslink24.squeeze_out' => true,
     ]);
@@ -104,26 +302,26 @@ it('accepts a PL24TOKEN cookie as a successful login even when JSON token is nul
     expect($rows)->not->toBeEmpty();
 });
 
-it('throws when login returns a non-403 HTTP failure', function (): void {
+it('throws when portal login returns a non-recoverable HTTP failure', function (): void {
     config()->set([
         'suppliers.partslink24.account' => 'pt-test',
-        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.username' => 'ricardo',
         'suppliers.partslink24.password' => 'secret',
         'suppliers.partslink24.squeeze_out' => true,
     ]);
 
     Http::fake([
-        '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['error' => 'server'], 500),
+        '*/auth/ext/api/1.1/login' => Http::response(['error' => 'server'], 500),
     ]);
 
     expect(fn () => resolve(PartsLink24Client::class)->searchByVin(pl24Brand(), 'WMWSU91010T717700', 'oil filter'))
         ->toThrow(RequestException::class);
 });
 
-it('throws a clear error when login never establishes a session cookie or token', function (): void {
+it('throws a clear error when appgtw login never establishes a session cookie or token', function (): void {
     config()->set([
         'suppliers.partslink24.account' => 'pt-test',
-        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.username' => 'admin',
         'suppliers.partslink24.password' => 'secret',
         'suppliers.partslink24.squeeze_out' => false,
     ]);
@@ -155,12 +353,16 @@ it('caches the authorize token across calls', function (): void {
 it('retries once after a 401 by dropping the cached token and re-authenticating', function (): void {
     config()->set([
         'suppliers.partslink24.account' => 'pt-test',
-        'suppliers.partslink24.username' => 'tester',
+        'suppliers.partslink24.username' => 'ricardo',
         'suppliers.partslink24.password' => 'secret',
     ]);
 
     Http::fake([
-        '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
+        '*/auth/ext/api/1.1/login' => Http::response(
+            ['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'],
+            200,
+            ['Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com'],
+        ),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/search/vin*' => Http::sequence()
             ->push(['message' => 'Unauthorized'], 401)
@@ -172,7 +374,7 @@ it('retries once after a 401 by dropping the cached token and re-authenticating'
     expect($rows)->not->toBeEmpty();
 
     Http::assertSentCount(6);
-    expect(Http::recorded(fn ($req): bool => str_contains((string) $req->url(), '/pl24-appgtw/ext/api/1.0/login')))->toHaveCount(2)
+    expect(Http::recorded(fn ($req): bool => str_contains((string) $req->url(), '/auth/ext/api/1.1/login')))->toHaveCount(2)
         ->and(Http::recorded(fn ($req): bool => str_contains((string) $req->url(), '/auth/ext/api/1.1/authorize')))->toHaveCount(2)
         ->and(Http::recorded(fn ($req): bool => str_contains((string) $req->url(), '/p5bmw/extern/search/vin')))->toHaveCount(2);
 });
@@ -234,6 +436,7 @@ it('marks package-only BOM rows as non-factory (greyed) and keeps the factory OE
     ]);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/bom-vin-gearshift-unavailable.json')), true)),
@@ -272,6 +475,7 @@ it('downloads illustration from a url field on the image descriptor', function (
     $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', true);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response([
@@ -300,6 +504,7 @@ it('downloads illustration bytes from images/vin when content-type is image', fu
     $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', true);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response([
@@ -325,6 +530,7 @@ it('accepts raw svg illustration text that is not base64', function (): void {
     $svg = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="1" height="1"/></svg>';
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response([
@@ -351,6 +557,7 @@ it('decodes data:image base64 illustration payloads', function (): void {
     $b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response([
@@ -377,6 +584,7 @@ it('retries and hard-fails when illustration resolve returns empty body', functi
     ]);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response([
@@ -406,6 +614,7 @@ it('accepts illustration json envelope with base64 from images/vin', function ()
     $b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response([
@@ -432,6 +641,7 @@ it('retries illustration download after a 401 on the absolute image url', functi
     $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', true);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response([
@@ -461,6 +671,7 @@ it('returns null when absolute illustration url fails permanently', function ():
     ]);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response([
@@ -487,6 +698,7 @@ it('returns null illustration when PL24 has no BOM images', function (): void {
     ]);
 
     Http::fake([
+        '*/auth/ext/api/1.1/login' => Http::response(['loginStatus' => 'OK', 'sessionToken' => 'portal-sess'], 200, ['Set-Cookie' => 'PL24TOKEN=session-cookie-value; Path=/; Domain=www.partslink24.com']),
         '*/pl24-appgtw/ext/api/1.0/login' => Http::response(['token' => 'sess', 'refreshToken' => 'r', 'status' => 'OK']),
         '*/auth/ext/api/1.1/authorize' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/authorize.json')), true)),
         '*/p5bmw/extern/bom/vin*' => Http::response(json_decode((string) file_get_contents(base_path('tests/Fixtures/PartsLink24/bom-vin-no-images.json')), true)),
