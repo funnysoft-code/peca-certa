@@ -47,7 +47,7 @@ it('returns a paginated findings contract for the run owner', function (): void 
             ->etc());
 });
 
-it('allows any authenticated user to list findings for another users run', function (): void {
+it('forbids a regular user from listing findings for another users run', function (): void {
     $owner = User::factory()->create();
     $other = User::factory()->create();
     $run = SearchRun::factory()->for($owner)->create();
@@ -61,6 +61,24 @@ it('allows any authenticated user to list findings for another users run', funct
     ]);
 
     $this->actingAs($other)
+        ->getJson(findingsRoute($run, ['filter' => ['in_stock' => '1']]))
+        ->assertForbidden();
+});
+
+it('allows an admin to list findings for another users run', function (): void {
+    $owner = User::factory()->create();
+    $admin = User::factory()->admin()->create();
+    $run = SearchRun::factory()->for($owner)->create();
+    $lookup = SupplierLookup::factory()->for($run, 'run')->create(['supplier' => Supplier::AutoDelta]);
+    Finding::factory()->forLookup($lookup)->create([
+        'brand' => 'MANN-FILTER',
+        'article' => 'W71275',
+        'price' => 4.5,
+        'supplier' => Supplier::AutoDelta,
+        'in_stock' => true,
+    ]);
+
+    $this->actingAs($admin)
         ->getJson(findingsRoute($run, ['filter' => ['in_stock' => '1']]))
         ->assertOk()
         ->assertJson(fn (AssertableJson $json): AssertableJson => $json

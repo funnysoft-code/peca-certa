@@ -25,7 +25,7 @@ it('renders the parts index page for authenticated users', function (): void {
             ->component('parts/index')
             ->has('runs')
             ->has('filters')
-            ->where('filters.scope', 'everyone')
+            ->where('filters.scope', 'mine')
             ->where('filters.q', ''),
         );
 });
@@ -38,22 +38,19 @@ it('redirects guests away from parts pages', function (): void {
     $this->get(route('parts.show', $run))->assertRedirect(route('login'));
 });
 
-it('lists parts runs for all users by default, newest first, 10 per page', function (): void {
+it('lists own parts runs by default, newest first, 10 per page', function (): void {
     $viewer = User::factory()->create(['email_verified_at' => now(), 'name' => 'Viewer User']);
     $author = User::factory()->create(['email_verified_at' => now(), 'name' => 'Author Alice']);
     $baseTime = now();
 
-    SearchRun::factory()->for($author)->parts()->count(11)->sequence(
+    SearchRun::factory()->for($author)->parts()->count(5)->create();
+
+    SearchRun::factory()->for($viewer)->parts()->count(11)->sequence(
         ...collect(range(1, 11))->map(fn (int $i): array => [
             'reference' => 'ref-'.$i,
             'created_at' => $baseTime->copy()->subMinutes(12 - $i),
         ])->all(),
     )->create();
-
-    SearchRun::factory()->for($viewer)->parts()->create([
-        'reference' => 'viewer-ref',
-        'created_at' => $baseTime->copy()->subMinutes(20),
-    ]);
 
     $this->actingAs($viewer)
         ->get('/parts')
@@ -62,10 +59,10 @@ it('lists parts runs for all users by default, newest first, 10 per page', funct
             ->component('parts/index')
             ->has('runs.data', ListSearchRunsQuery::PER_PAGE)
             ->where('runs.meta.per_page', ListSearchRunsQuery::PER_PAGE)
-            ->where('runs.meta.total', 12)
+            ->where('runs.meta.total', 11)
             ->where('runs.data.0.reference', 'ref-11')
-            ->where('runs.data.0.authorName', 'Author Alice')
-            ->where('filters.scope', 'everyone'),
+            ->where('runs.data.0.authorName', 'Viewer User')
+            ->where('filters.scope', 'mine'),
         );
 });
 
@@ -88,29 +85,21 @@ it('limits the parts list to mine when scope=mine', function (): void {
         );
 });
 
-it('searches parts runs by reference and author name', function (): void {
-    $viewer = User::factory()->create(['email_verified_at' => now()]);
+it('searches own parts runs by reference', function (): void {
+    $viewer = User::factory()->create(['email_verified_at' => now(), 'name' => 'Viewer']);
     $alice = User::factory()->create(['email_verified_at' => now(), 'name' => 'Alice Workshop']);
-    $bob = User::factory()->create(['email_verified_at' => now(), 'name' => 'Bob Counter']);
 
     SearchRun::factory()->for($alice)->parts()->create(['reference' => 'OC90']);
-    SearchRun::factory()->for($bob)->parts()->create(['reference' => 'W712/95']);
-
-    $this->actingAs($viewer)
-        ->get('/parts?q=Alice')
-        ->assertOk()
-        ->assertInertia(fn (Assert $page): Assert => $page
-            ->has('runs.data', 1)
-            ->where('runs.data.0.authorName', 'Alice Workshop')
-            ->where('filters.q', 'Alice'),
-        );
+    SearchRun::factory()->for($viewer)->parts()->create(['reference' => 'W712/95']);
+    SearchRun::factory()->for($viewer)->parts()->create(['reference' => 'OTHER']);
 
     $this->actingAs($viewer)
         ->get('/parts?q=W712')
         ->assertOk()
         ->assertInertia(fn (Assert $page): Assert => $page
             ->has('runs.data', 1)
-            ->where('runs.data.0.reference', 'W712/95'),
+            ->where('runs.data.0.reference', 'W712/95')
+            ->where('filters.q', 'W712'),
         );
 });
 
@@ -219,12 +208,22 @@ it('shows the run page for the owner with author name', function (): void {
         );
 });
 
-it('allows another authenticated user to open a parts run', function (): void {
+it('forbids another regular user from opening a parts run', function (): void {
     $owner = User::factory()->create(['email_verified_at' => now(), 'name' => 'Owner Alice']);
     $run = SearchRun::factory()->for($owner)->parts()->create(['reference' => 'SHARED-REF']);
     $other = User::factory()->create(['email_verified_at' => now()]);
 
     $this->actingAs($other)
+        ->get(route('parts.show', $run))
+        ->assertForbidden();
+});
+
+it('allows an admin to open another users parts run', function (): void {
+    $owner = User::factory()->create(['email_verified_at' => now(), 'name' => 'Owner Alice']);
+    $run = SearchRun::factory()->for($owner)->parts()->create(['reference' => 'SHARED-REF']);
+    $admin = User::factory()->admin()->create(['email_verified_at' => now()]);
+
+    $this->actingAs($admin)
         ->get(route('parts.show', $run))
         ->assertOk()
         ->assertInertia(fn (Assert $page): Assert => $page
