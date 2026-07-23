@@ -67,19 +67,12 @@ type AdminUser = {
 
 type Paginator<T> = {
     data: T[];
-    links: {
-        first: string | null;
-        last: string | null;
-        prev: string | null;
-        next: string | null;
-    };
-    meta: {
-        current_page: number;
-        last_page: number;
-        total: number;
-        from: number | null;
-        to: number | null;
-    };
+    current_page: number;
+    last_page: number;
+    total: number;
+    from: number | null;
+    to: number | null;
+    per_page: number;
 };
 
 type Props = {
@@ -194,10 +187,8 @@ export default function AdminUsersIndex({ users, roles, can }: Props) {
                     <CardHeader className="border-b border-border/60">
                         <CardTitle className="text-base">Equipa</CardTitle>
                         <CardDescription>
-                            {users.meta.total}{' '}
-                            {users.meta.total === 1
-                                ? 'utilizador'
-                                : 'utilizadores'}
+                            {users.total}{' '}
+                            {users.total === 1 ? 'utilizador' : 'utilizadores'}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-0">
